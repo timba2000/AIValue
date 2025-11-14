@@ -1,4 +1,11 @@
-import { customType, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  customType,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uuid
+} from "drizzle-orm/pg-core";
 
 const vector = customType<{ data: number[] | null; config: { dimensions: number } }>({
   dataType: (config) => {
@@ -17,6 +24,10 @@ export const useCases = pgTable("use_cases", {
   title: text("title").notNull(),
   problem: text("problem").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }).$type<number[] | null>(),
+  industry: text("industry"),
+  pattern: text("pattern"),
+  automationLevel: text("automation_level"),
+  classificationConfidence: numeric("classification_confidence"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
 });
 
