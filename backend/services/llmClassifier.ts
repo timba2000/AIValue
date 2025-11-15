@@ -5,9 +5,10 @@ export interface ClassificationCategory {
 
 export interface LLMClassifierOptions {
   /**
-   * API key used to authorize requests to the LLM provider.
+   * API key used to authorize requests to the LLM provider. When omitted, the
+   * classifier will look up the key in environment variables.
    */
-  apiKey: string;
+  apiKey?: string;
   /**
    * The identifier of the model to use for classification.
    */
@@ -59,7 +60,12 @@ export class LLMClassifierError extends Error {
   }
 }
 
-const DEFAULT_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+type LLMProvider = "openai" | "deepseek";
+
+const PROVIDER_ENDPOINTS: Record<LLMProvider, string> = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  deepseek: "https://api.deepseek.com/v1/chat/completions"
+};
 const DEFAULT_INSTRUCTIONS =
   "You are a product analyst that classifies product use case descriptions into well defined categories. " +
   "Always respond with a JSON object containing the keys label, reasoning, and optionally confidence (0-1).";
@@ -68,12 +74,9 @@ export class LLMClassifier {
   private readonly endpoint: string;
   private readonly headers: Record<string, string>;
   private readonly instructions: string;
+  private readonly provider: LLMProvider;
 
   constructor(private readonly options: LLMClassifierOptions) {
-    if (!options.apiKey) {
-      throw new LLMClassifierError("An apiKey must be provided to initialize the LLMClassifier.");
-    }
-
     if (!options.model) {
       throw new LLMClassifierError("A model identifier must be provided to initialize the LLMClassifier.");
     }
@@ -82,10 +85,19 @@ export class LLMClassifier {
       throw new LLMClassifierError("At least one classification category must be provided.");
     }
 
-    this.endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+    this.provider = this.detectProvider();
+    const apiKey = this.resolveApiKey();
+
+    if (!apiKey) {
+      throw new LLMClassifierError(
+        "An API key must be provided via the constructor or environment variables (OPENAI_API_KEY, DEEPSEEK_API_KEY, or LLM_API_KEY)."
+      );
+    }
+
+    this.endpoint = options.endpoint ?? PROVIDER_ENDPOINTS[this.provider];
     this.headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${options.apiKey}`
+      Authorization: `Bearer ${apiKey}`
     };
     this.instructions = options.instructions ?? DEFAULT_INSTRUCTIONS;
   }
@@ -193,5 +205,32 @@ export class LLMClassifier {
     } catch (error) {
       return { error: "Failed to parse error body", cause: error };
     }
+  }
+
+  private detectProvider(): LLMProvider {
+    const endpoint = this.options.endpoint?.toLowerCase();
+    if (endpoint?.includes("deepseek")) {
+      return "deepseek";
+    }
+
+    const model = this.options.model.toLowerCase();
+    if (model.includes("deepseek")) {
+      return "deepseek";
+    }
+
+    return "openai";
+  }
+
+  private resolveApiKey(): string | undefined {
+    if (this.options.apiKey) {
+      return this.options.apiKey;
+    }
+
+    const envKeys =
+      this.provider === "deepseek"
+        ? [process.env.DEEPSEEK_API_KEY, process.env.OPENAI_API_KEY, process.env.LLM_API_KEY]
+        : [process.env.OPENAI_API_KEY, process.env.LLM_API_KEY, process.env.DEEPSEEK_API_KEY];
+
+    return envKeys.find((value) => typeof value === "string" && value.trim())?.trim();
   }
 }
