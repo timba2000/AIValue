@@ -8,7 +8,10 @@ const router = Router();
 
 router.get("/", async (_req, res) => {
   try {
-    const results = await db.select().from(useCases).orderBy(desc(useCases.createdAt));
+    const results = await db
+      .select()
+      .from(useCases)
+      .orderBy(desc(useCases.valueScore), desc(useCases.createdAt));
     res.json(results);
   } catch (error) {
     console.error("Failed to fetch use cases", error);
@@ -17,16 +20,45 @@ router.get("/", async (_req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { title, problem } = req.body ?? {};
+  const {
+    title,
+    problem,
+    hoursSavedPerOccurrence: rawHoursSaved,
+    occurrencesPerMonth: rawOccurrences,
+    valuePerHour: rawValuePerHour
+  } = req.body ?? {};
 
   if (!title || !problem) {
     return res.status(400).json({ message: "title and problem are required" });
+  }
+
+  const parseMetric = (value: unknown, field: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`${field} must be a non-negative number`);
+    }
+    return parsed;
+  };
+
+  let hoursSaved: number;
+  let occurrences: number;
+  let valuePerHour: number;
+
+  try {
+    hoursSaved = parseMetric(rawHoursSaved, "hoursSavedPerOccurrence");
+    occurrences = parseMetric(rawOccurrences, "occurrencesPerMonth");
+    valuePerHour = parseMetric(rawValuePerHour, "valuePerHour");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid metric value";
+    return res.status(400).json({ message });
   }
 
   let industry: string | undefined;
   let pattern: string | undefined;
   let automationLevel: string | undefined;
   let confidence: number | undefined;
+
+  const valueScore = hoursSaved * occurrences * valuePerHour;
 
   try {
     const classifier = getUseCaseClassifier();
@@ -57,7 +89,11 @@ router.post("/", async (req, res) => {
         industry,
         pattern,
         automationLevel,
-        classificationConfidence: confidence !== undefined ? confidence.toString() : null
+        classificationConfidence: confidence !== undefined ? confidence.toString() : null,
+        hoursSavedPerOccurrence: hoursSaved.toString(),
+        occurrencesPerMonth: occurrences.toString(),
+        valuePerHour: valuePerHour.toString(),
+        valueScore: valueScore.toString()
       })
       .returning();
 

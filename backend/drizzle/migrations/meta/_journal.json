@@ -15,6 +15,13 @@
       "when": 1763163810000,
       "tag": "0001_add_use_case_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1763164800000,
+      "tag": "0002_capture_roi_metrics",
+      "breakpoints": true
     }
   ]
 }

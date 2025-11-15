@@ -4,7 +4,15 @@ import { immer } from "zustand/middleware/immer";
 import type { ApiUseCase, CreateUseCasePayload, UseCase } from "@/types/useCase";
 
 const normalizeUseCase = (useCase: ApiUseCase): UseCase => {
-  const { classificationConfidence, ...rest } = useCase;
+  const {
+    classificationConfidence,
+    hoursSavedPerOccurrence,
+    occurrencesPerMonth,
+    valuePerHour,
+    valueScore,
+    ...rest
+  } = useCase;
+
   const numericConfidence =
     classificationConfidence === null || classificationConfidence === undefined
       ? null
@@ -13,9 +21,18 @@ const normalizeUseCase = (useCase: ApiUseCase): UseCase => {
   const finiteConfidence =
     numericConfidence !== null && Number.isFinite(numericConfidence) ? numericConfidence : null;
 
+  const parseMetric = (value: string | number) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   return {
     ...rest,
-    classificationConfidence: finiteConfidence
+    classificationConfidence: finiteConfidence,
+    hoursSavedPerOccurrence: parseMetric(hoursSavedPerOccurrence),
+    occurrencesPerMonth: parseMetric(occurrencesPerMonth),
+    valuePerHour: parseMetric(valuePerHour),
+    valueScore: parseMetric(valueScore)
   };
 };
 

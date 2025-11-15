@@ -99,6 +99,23 @@ export function UseCaseTable() {
     useCases
   ]);
 
+  const sortedUseCases = useMemo(() => {
+    return [...filteredUseCases].sort((a, b) => {
+      if (a.valueScore === b.valueScore) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return b.valueScore - a.valueScore;
+    });
+  }, [filteredUseCases]);
+
+  const currencyFormatter = useMemo(() => {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    });
+  }, []);
+
   const formatConfidence = (confidence: number | null) => {
     if (confidence === null) {
       return "—";
@@ -213,6 +230,9 @@ export function UseCaseTable() {
                 Confidence
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                Value
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                 Created
               </th>
             </tr>
@@ -220,14 +240,14 @@ export function UseCaseTable() {
         <tbody className="divide-y divide-border bg-card/40">
           {filteredUseCases.length === 0 && !loading ? (
             <tr>
-              <td colSpan={7} className="px-6 py-4 text-center text-sm text-muted-foreground">
+              <td colSpan={8} className="px-6 py-4 text-center text-sm text-muted-foreground">
                 {useCases.length === 0
                   ? "No use cases yet. Add one above!"
                   : "No use cases match the selected filters."}
               </td>
             </tr>
           ) : (
-            filteredUseCases.map((useCase) => (
+            sortedUseCases.map((useCase) => (
               <tr key={useCase.id} className="hover:bg-muted/50">
                 <td className="px-6 py-4 text-sm font-medium text-foreground">{useCase.title}</td>
                 <td className="px-6 py-4 text-sm text-muted-foreground">
@@ -243,6 +263,9 @@ export function UseCaseTable() {
                   {useCase.automationLevel ?? "—"}
                 </td>
                 <td className="px-6 py-4 text-sm text-muted-foreground">{formatConfidence(useCase.classificationConfidence)}</td>
+                <td className="px-6 py-4 text-sm text-muted-foreground">
+                  {currencyFormatter.format(useCase.valueScore)}
+                </td>
                 <td className="px-6 py-4 text-sm text-muted-foreground">
                   {new Date(useCase.createdAt).toLocaleString()}
                 </td>
