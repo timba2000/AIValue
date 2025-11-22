@@ -53,12 +53,9 @@ const replaceProcessLinks = async (
 
 router.get("/", async (req, res) => {
   const businessUnitId = String(req.query.businessUnitId ?? "").trim();
-  if (!businessUnitId) {
-    return res.status(400).json({ message: "businessUnitId is required" });
-  }
 
   try {
-    const records = await db
+    const query = db
       .select({
         id: processes.id,
         businessId: processes.businessId,
@@ -73,8 +70,11 @@ router.get("/", async (req, res) => {
         useCaseCount: sql<number>`coalesce((SELECT count(*)::int FROM process_use_cases u WHERE u.process_id = ${processes.id}), 0)`
       })
       .from(processes)
-      .where(eq(processes.businessUnitId, businessUnitId))
       .orderBy(asc(processes.name));
+
+    const records = businessUnitId
+      ? await query.where(eq(processes.businessUnitId, businessUnitId))
+      : await query;
 
     res.json(records);
   } catch (error) {

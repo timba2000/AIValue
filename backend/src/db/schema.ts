@@ -69,14 +69,23 @@ export const processPainPoints = pgTable("process_pain_points", {
 export const useCases = pgTable("use_cases", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  summary: text("summary"),
-  valueScore: numeric("value_score").notNull().default("0"),
-  effortScore: numeric("effort_score").notNull().default("0"),
-  riskScore: numeric("risk_score").notNull().default("0"),
-  complexityScore: numeric("complexity_score").notNull().default("0"),
-  category: text("category"),
-  maturity: text("maturity"),
-  prerequisites: text("prerequisites"),
+  description: text("description"),
+  problemToSolve: text("problem_to_solve").notNull(),
+  solutionOverview: text("solution_overview").notNull(),
+  expectedBenefits: text("expected_benefits"),
+  valueDrivers: text("value_drivers"),
+  complexity: text("complexity").notNull(),
+  dataRequirements: text("data_requirements"),
+  systemsImpacted: text("systems_impacted"),
+  risks: text("risks"),
+  estimatedFTEHours: numeric("estimated_fte_hours"),
+  estimatedDeliveryTime: text("estimated_delivery_time"),
+  costRange: text("cost_range"),
+  roiEstimate: text("roi_estimate"),
+  confidenceLevel: text("confidence_level"),
+  processId: uuid("process_id")
+    .notNull()
+    .references(() => processes.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
