@@ -142,6 +142,7 @@ export function UseCaseList({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Process</TableHead>
                     <TableHead>Complexity</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead>ROI Estimate</TableHead>
@@ -149,25 +150,26 @@ export function UseCaseList({
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {items.map((useCase) => (
-                    <TableRow key={useCase.id} className="hover:bg-muted/40">
-                      <TableCell className="font-medium">{useCase.name}</TableCell>
-                      <TableCell>{useCase.complexity}</TableCell>
-                      <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>
-                      <TableCell>{useCase.roiEstimate ?? "-"}</TableCell>
-                      <TableCell>{useCase.estimatedDeliveryTime ?? "-"}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(useCase)}>
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => onDelete(useCase.id)}
-                        >
-                          Delete
+                  <TableBody>
+                    {items.map((useCase) => (
+                      <TableRow key={useCase.id} className="hover:bg-muted/40">
+                        <TableCell className="font-medium">{useCase.name}</TableCell>
+                        <TableCell>{useCase.processName ?? "-"}</TableCell>
+                        <TableCell>{useCase.complexity}</TableCell>
+                        <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>
+                        <TableCell>{useCase.roiEstimate ?? "-"}</TableCell>
+                        <TableCell>{useCase.estimatedDeliveryTime ?? "-"}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => onEdit(useCase)}>
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => onDelete(useCase.id)}
+                          >
+                            Delete
                         </Button>
                       </TableCell>
                     </TableRow>

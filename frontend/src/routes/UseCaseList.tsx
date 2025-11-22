@@ -27,7 +27,7 @@ export default function UseCaseListPage() {
     queryFn: getProcesses
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutation<void, unknown, string, { previous?: UseCase[] }>({
     mutationFn: deleteUseCase,
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: ["use-cases"] });
@@ -35,12 +35,12 @@ export default function UseCaseListPage() {
       if (previous) {
         queryClient.setQueryData(
           ["use-cases"],
-          previous.filter((useCase) => useCase.id !== id)
+          previous.filter((useCase: UseCase) => useCase.id !== id)
         );
       }
       return { previous };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error: unknown, _variables: string, context?: { previous?: UseCase[] }) => {
       if (context?.previous) {
         queryClient.setQueryData(["use-cases"], context.previous);
       }
