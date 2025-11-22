@@ -1,6 +1,42 @@
+modules = ["nodejs-20"]
+
 [[ports]]
 localPort = 5173
 externalPort = 80
 
+[[ports]]
+localPort = 42053
+externalPort = 3000
+
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.development]
+VITE_API_URL = "http://localhost:3000"
+PORT = "3000"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Application"
+
+[[workflows.workflow]]
+name = "Start Application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash -c \"cd backend && npm run dev & cd frontend && npm run dev\""
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"

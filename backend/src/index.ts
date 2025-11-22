@@ -8,11 +8,11 @@ import processesRouter from "./routes/processes";
 import painPointsRouter from "./routes/painPoints";
 
 const app = express();
-const port = process.env.PORT ? Number(process.env.PORT) : 5000;
+const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN?.split(",") ?? ["http://localhost:5173"],
+    origin: process.env.CLIENT_ORIGIN?.split(",") ?? ["http://localhost:5000"],
     credentials: true
   })
 );

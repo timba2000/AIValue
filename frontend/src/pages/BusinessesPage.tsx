@@ -15,7 +15,7 @@ import { CompanyList } from "@/components/business/CompanyList";
 import { CompanyModal } from "@/components/business/CompanyModal";
 import type { BusinessUnit, Company, BusinessUnitPayload, CompanyPayload } from "@/types/business";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export default function BusinessesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
