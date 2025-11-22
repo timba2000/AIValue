@@ -9,6 +9,7 @@ export type ProcessSignal = {
   name: string;
   fte?: number | null;
   volume?: number | null;
+  type?: string | null;
   systemCount?: number | null;
   systemsUsed?: string | string[] | null;
 };
@@ -26,10 +27,18 @@ export type PainPointSignal = {
   id: string;
   processId: string;
   statement: string;
+  category?: string | null;
   frequency?: string | null;
   magnitude?: string | null;
   rootCause?: string | null;
   workarounds?: string | null;
+};
+
+export type UseCaseSignal = {
+  id: string;
+  name: string;
+  category?: string | null;
+  description?: string | null;
 };
 
 export type PainPointOpportunityCategory =
@@ -44,6 +53,17 @@ export type PainPointOpportunity = {
   description: string;
   category: PainPointOpportunityCategory;
   trigger: "frequency-magnitude" | "root-cause" | "workarounds";
+};
+
+export type TemplateOpportunity = {
+  processId: string;
+  useCaseId: string;
+  title: string;
+  description: string;
+  category: "template";
+  matchType: "pain-point" | "process";
+  matchReference: string;
+  painPointIds?: string[];
 };
 
 export class OpportunityService {
@@ -171,8 +191,75 @@ export class OpportunityService {
     return opportunities;
   }
 
-  async generateTemplateOpportunities(): Promise<void> {
-    throw new Error("Method not implemented.");
+  async generateTemplateOpportunities(
+    useCases: UseCaseSignal[],
+    painPoints: PainPointSignal[],
+    processes: ProcessSignal[]
+  ): Promise<TemplateOpportunity[]> {
+    const opportunities: TemplateOpportunity[] = [];
+    const seen = new Set<string>();
+
+    const painPointsByCategory = new Map<string, PainPointSignal[]>();
+    for (const painPoint of painPoints) {
+      const category = this.normalizeValue(painPoint.category);
+      if (!category) continue;
+
+      const existing = painPointsByCategory.get(category) ?? [];
+      existing.push(painPoint);
+      painPointsByCategory.set(category, existing);
+    }
+
+    const processesByType = new Map<string, ProcessSignal[]>();
+    for (const process of processes) {
+      const type = this.normalizeValue(process.type);
+      if (!type) continue;
+
+      const existing = processesByType.get(type) ?? [];
+      existing.push(process);
+      processesByType.set(type, existing);
+    }
+
+    for (const useCase of useCases) {
+      const category = this.normalizeValue(useCase.category);
+      if (!category) continue;
+
+      const painPointMatches = painPointsByCategory.get(category) ?? [];
+      for (const painPoint of painPointMatches) {
+        const key = `${painPoint.processId}-${painPoint.id}-${useCase.id}-pain-point`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        opportunities.push({
+          processId: painPoint.processId,
+          useCaseId: useCase.id,
+          painPointIds: [painPoint.id],
+          title: `${useCase.name}: address ${painPoint.statement}`,
+          description: `Use case category "${useCase.category ?? useCase.name}" aligns with pain point "${painPoint.statement}".`,
+          category: "template",
+          matchType: "pain-point",
+          matchReference: category
+        });
+      }
+
+      const processMatches = processesByType.get(category) ?? [];
+      for (const process of processMatches) {
+        const key = `${process.id}-${useCase.id}-process`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        opportunities.push({
+          processId: process.id,
+          useCaseId: useCase.id,
+          title: `${process.name}: apply ${useCase.name}`,
+          description: `Process type "${process.type ?? ""}" matches use case category "${useCase.category ?? ""}".`,
+          category: "template",
+          matchType: "process",
+          matchReference: category
+        });
+      }
+    }
+
+    return opportunities;
   }
 
   async scoreOpportunities(): Promise<void> {
