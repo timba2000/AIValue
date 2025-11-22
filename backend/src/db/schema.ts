@@ -23,6 +23,9 @@ export const businessUnits = pgTable("business_units", {
 
 export const processes = pgTable("processes", {
   id: uuid("id").defaultRandom().primaryKey(),
+  businessId: uuid("business_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
   businessUnitId: uuid("business_unit_id")
     .notNull()
     .references(() => businessUnits.id, { onDelete: "restrict" }),
@@ -39,9 +42,6 @@ export const processes = pgTable("processes", {
 
 export const painPoints = pgTable("pain_points", {
   id: uuid("id").defaultRandom().primaryKey(),
-  processId: uuid("process_id")
-    .notNull()
-    .references(() => processes.id, { onDelete: "cascade" }),
   statement: text("statement").notNull(),
   impactType: text("impact_type"),
   businessImpact: text("business_impact"),
@@ -54,6 +54,16 @@ export const painPoints = pgTable("pain_points", {
   opportunityPotential: numeric("opportunity_potential"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const processPainPoints = pgTable("process_pain_points", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  processId: uuid("process_id")
+    .notNull()
+    .references(() => processes.id, { onDelete: "cascade" }),
+  painPointId: uuid("pain_point_id")
+    .notNull()
+    .references(() => painPoints.id, { onDelete: "cascade" })
 });
 
 export const useCases = pgTable("use_cases", {
@@ -81,6 +91,16 @@ export const painPointUseCases = pgTable("pain_point_use_cases", {
     .references(() => useCases.id, { onDelete: "cascade" })
 });
 
+export const processUseCases = pgTable("process_use_cases", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  processId: uuid("process_id")
+    .notNull()
+    .references(() => processes.id, { onDelete: "cascade" }),
+  useCaseId: uuid("use_case_id")
+    .notNull()
+    .references(() => useCases.id, { onDelete: "cascade" })
+});
+
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
 
@@ -98,3 +118,9 @@ export type NewUseCase = typeof useCases.$inferInsert;
 
 export type PainPointUseCase = typeof painPointUseCases.$inferSelect;
 export type NewPainPointUseCase = typeof painPointUseCases.$inferInsert;
+
+export type ProcessPainPoint = typeof processPainPoints.$inferSelect;
+export type NewProcessPainPoint = typeof processPainPoints.$inferInsert;
+
+export type ProcessUseCase = typeof processUseCases.$inferSelect;
+export type NewProcessUseCase = typeof processUseCases.$inferInsert;
