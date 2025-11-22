@@ -22,6 +22,30 @@ export type StructuralOpportunity = {
   notes?: string;
 };
 
+export type PainPointSignal = {
+  id: string;
+  processId: string;
+  statement: string;
+  frequency?: string | null;
+  magnitude?: string | null;
+  rootCause?: string | null;
+  workarounds?: string | null;
+};
+
+export type PainPointOpportunityCategory =
+  | "automation"
+  | "data-quality"
+  | "workflow-automation";
+
+export type PainPointOpportunity = {
+  processId: string;
+  painPointIds: string[];
+  title: string;
+  description: string;
+  category: PainPointOpportunityCategory;
+  trigger: "frequency-magnitude" | "root-cause" | "workarounds";
+};
+
 export class OpportunityService {
   constructor(private readonly defaultThresholds: StructuralThresholds = {
     fte: 5,
@@ -95,8 +119,56 @@ export class OpportunityService {
     return 0;
   }
 
-  async generatePainPointOpportunities(): Promise<void> {
-    throw new Error("Method not implemented.");
+  private normalizeValue(value?: string | null): string {
+    return value?.trim().toLowerCase() ?? "";
+  }
+
+  async generatePainPointOpportunities(
+    painPoints: PainPointSignal[]
+  ): Promise<PainPointOpportunity[]> {
+    const opportunities: PainPointOpportunity[] = [];
+
+    for (const painPoint of painPoints) {
+      const frequency = this.normalizeValue(painPoint.frequency);
+      const magnitude = this.normalizeValue(painPoint.magnitude);
+      const rootCause = this.normalizeValue(painPoint.rootCause);
+      const workarounds = this.normalizeValue(painPoint.workarounds);
+
+      if (frequency === "high" && magnitude === "high") {
+        opportunities.push({
+          processId: painPoint.processId,
+          painPointIds: [painPoint.id],
+          title: `${painPoint.statement}: automate the pain point`,
+          description: "High frequency and magnitude suggest automation potential.",
+          category: "automation",
+          trigger: "frequency-magnitude"
+        });
+      }
+
+      if (rootCause === "data") {
+        opportunities.push({
+          processId: painPoint.processId,
+          painPointIds: [painPoint.id],
+          title: `${painPoint.statement}: improve data quality`,
+          description: "Data-related root causes warrant a data quality agent.",
+          category: "data-quality",
+          trigger: "root-cause"
+        });
+      }
+
+      if (workarounds === "manual") {
+        opportunities.push({
+          processId: painPoint.processId,
+          painPointIds: [painPoint.id],
+          title: `${painPoint.statement}: remove manual workarounds`,
+          description: "Manual workarounds highlight workflow automation potential.",
+          category: "workflow-automation",
+          trigger: "workarounds"
+        });
+      }
+    }
+
+    return opportunities;
   }
 
   async generateTemplateOpportunities(): Promise<void> {
