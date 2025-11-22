@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { BusinessUnit, Company } from "@/types/business";
 import type { PainPointOption, ProcessOptionsResponse, ProcessPayload, ProcessRecord, UseCaseOption } from "@/types/process";
@@ -439,11 +440,15 @@ export default function ProcessList() {
               </div>
               <div className="space-y-2">
                 <Label>Volume Unit</Label>
-                <Input
+                <Select
                   value={formState.volumeUnit}
                   onChange={(event) => setFormState((prev) => ({ ...prev, volumeUnit: event.target.value }))}
-                  placeholder="per month"
-                />
+                >
+                  <option value="">Select unit...</option>
+                  <option value="per day">per day</option>
+                  <option value="per month">per month</option>
+                  <option value="per year">per year</option>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>FTE</Label>

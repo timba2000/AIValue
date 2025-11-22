@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - Implemented auto-population of ANZSIC division codes when selecting an industry
 - Added backward compatibility for companies with legacy custom industry values
 - Fixed API configuration to use Vite proxy for frontend-backend communication (changed default VITE_API_URL from localhost:3000 to relative URLs)
+- Added volume unit dropdown to process form with three standardized options: "per day", "per month", "per year"
 
 ## System Architecture
 
