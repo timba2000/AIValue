@@ -88,6 +88,27 @@ export type TemplateOpportunity = {
   painPointIds?: string[];
 };
 
+export type GeneratedOpportunity = {
+  opportunity: StructuralOpportunity | PainPointOpportunity | TemplateOpportunity;
+  score: OpportunityScore;
+};
+
+export type GeneratedOpportunitiesResult = {
+  companyId: string;
+  structural: StructuralOpportunity[];
+  painPoints: PainPointOpportunity[];
+  templates: TemplateOpportunity[];
+  scored: GeneratedOpportunity[];
+};
+
+export type OpportunityPipelineOptions = {
+  thresholds?: StructuralThresholds;
+  scoringResolver?: (
+    opportunity: StructuralOpportunity | PainPointOpportunity | TemplateOpportunity
+  ) => OpportunityScoringInput;
+  persist?: (payload: GeneratedOpportunitiesResult) => Promise<void> | void;
+};
+
 export class OpportunityService {
   constructor(private readonly defaultThresholds: StructuralThresholds = {
     fte: 5,
@@ -282,6 +303,41 @@ export class OpportunityService {
     }
 
     return opportunities;
+  }
+
+  async generateAllOpportunities(
+    companyId: string,
+    signals: { processes: ProcessSignal[]; painPoints: PainPointSignal[]; useCases: UseCaseSignal[] },
+    options: OpportunityPipelineOptions = {}
+  ): Promise<GeneratedOpportunitiesResult> {
+    const structural = await this.generateStructuralOpportunities(signals.processes, options.thresholds);
+    const painPoints = await this.generatePainPointOpportunities(signals.painPoints);
+    const templates = await this.generateTemplateOpportunities(signals.useCases, signals.painPoints, signals.processes);
+
+    const combined = [...structural, ...painPoints, ...templates];
+    const scoringInputs: OpportunityScoringInput[] = combined.map(
+      (opportunity) => options.scoringResolver?.(opportunity) ?? {}
+    );
+    const scores = await this.scoreOpportunities(scoringInputs);
+
+    const scored: GeneratedOpportunity[] = combined.map((opportunity, index) => ({
+      opportunity,
+      score: scores[index]
+    }));
+
+    const result: GeneratedOpportunitiesResult = {
+      companyId,
+      structural,
+      painPoints,
+      templates,
+      scored
+    };
+
+    if (options.persist) {
+      await options.persist(result);
+    }
+
+    return result;
   }
 
   async scoreOpportunities(opportunities: OpportunityScoringInput[]): Promise<OpportunityScore[]> {
