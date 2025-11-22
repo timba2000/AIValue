@@ -11,6 +11,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **November 22, 2025:**
+- Fixed database schema sync issue: dropped and recreated use_cases table with correct "name" column
+- Built complete Pain Points management feature with full CRUD functionality:
+  - Created pain points types (PainPoint, PainPointPayload, ImpactType, RiskLevel)
+  - Implemented frontend page with list view, search, and modal form
+  - Added backend API endpoints (GET, POST, PUT, DELETE) with validation
+  - Supports tracking: statement, impact type, risk level, magnitude, frequency, root cause, workarounds, dependencies, and opportunity potential
 - Added industry dropdown to company form with 19 standardized ANZSIC industry categories (A-S)
 - Implemented auto-population of ANZSIC division codes when selecting an industry
 - Added backward compatibility for companies with legacy custom industry values
