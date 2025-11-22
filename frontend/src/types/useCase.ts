@@ -1,34 +1,28 @@
+export type ComplexityLevel = "Low" | "Medium" | "High" | "Very High";
+export type ConfidenceLevel = "Low" | "Medium" | "High";
+export type DeliveryTime = "Quick Win" | "1 to 3 months" | "3 to 6 months" | "6 plus months";
+export type CostRange = "Low" | "Medium" | "High" | "Very High";
+
 export interface UseCase {
   id: string;
-  title: string;
-  problem: string;
-  embedding: number[] | null;
-  industry: string | null;
-  pattern: string | null;
-  automationLevel: string | null;
-  classificationConfidence: number | null;
-  hoursSavedPerOccurrence: number;
-  occurrencesPerMonth: number;
-  valuePerHour: number;
-  valueScore: number;
+  name: string;
+  description: string | null;
+  problemToSolve: string;
+  solutionOverview: string;
+  expectedBenefits: string | null;
+  valueDrivers: string | null;
+  complexity: ComplexityLevel;
+  dataRequirements: string | null;
+  systemsImpacted: string | null;
+  risks: string | null;
+  estimatedFTEHours: number | null;
+  estimatedDeliveryTime: DeliveryTime | null;
+  costRange: CostRange | null;
+  roiEstimate: string | null;
+  confidenceLevel: ConfidenceLevel | null;
+  processId: string;
+  processName: string | null;
   createdAt: string;
 }
 
-export interface CreateUseCasePayload {
-  title: string;
-  problem: string;
-  hoursSavedPerOccurrence: number;
-  occurrencesPerMonth: number;
-  valuePerHour: number;
-}
-
-export type ApiUseCase = Omit<
-  UseCase,
-  "classificationConfidence" | "hoursSavedPerOccurrence" | "occurrencesPerMonth" | "valuePerHour" | "valueScore"
-> & {
-  classificationConfidence: string | number | null;
-  hoursSavedPerOccurrence: string | number;
-  occurrencesPerMonth: string | number;
-  valuePerHour: string | number;
-  valueScore: string | number;
-};
+export type UseCasePayload = Omit<UseCase, "id" | "processName" | "createdAt">;
