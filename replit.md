@@ -8,6 +8,14 @@ AIValue Use Case Tracker is a full-stack TypeScript application for managing bus
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**November 22, 2025:**
+- Added industry dropdown to company form with 19 standardized ANZSIC industry categories (A-S)
+- Implemented auto-population of ANZSIC division codes when selecting an industry
+- Added backward compatibility for companies with legacy custom industry values
+- Fixed API configuration to use Vite proxy for frontend-backend communication (changed default VITE_API_URL from localhost:3000 to relative URLs)
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -106,7 +114,7 @@ Preferred communication style: Simple, everyday language.
 - `DATABASE_URL` - PostgreSQL connection string (required)
 - `CLIENT_ORIGIN` - Allowed CORS origins (defaults to localhost:5000)
 - `PORT` - Backend server port (defaults to 3000)
-- `VITE_API_URL` - Frontend API base URL (defaults to localhost:3000)
+- `VITE_API_URL` - Frontend API base URL (defaults to empty string for relative URLs; Vite proxy forwards /api requests to backend)
 - `LLM_CLASSIFIER_MODEL` - Model identifier for classification service
 
 **Development Tools:**

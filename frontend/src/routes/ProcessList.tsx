@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { BusinessUnit, Company } from "@/types/business";
 import type { PainPointOption, ProcessOptionsResponse, ProcessPayload, ProcessRecord, UseCaseOption } from "@/types/process";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 type FormState = {
   name: string;
