@@ -41,6 +41,28 @@ export type UseCaseSignal = {
   description?: string | null;
 };
 
+export type OpportunityScoringInput = {
+  fteHoursSaved?: number | null;
+  errorCostAvoided?: number | null;
+  complexityScore?: number | null;
+  systemIntegrationDepth?: number | null;
+  dataCompleteness?: Partial<Record<keyof OpportunityScoreWeights, number>>;
+};
+
+export type OpportunityScore = {
+  estimatedValue: number;
+  estimatedEffort: number;
+  roi: number;
+  confidence: number;
+};
+
+type OpportunityScoreWeights = {
+  fteHoursSaved: number;
+  errorCostAvoided: number;
+  complexityScore: number;
+  systemIntegrationDepth: number;
+};
+
 export type PainPointOpportunityCategory =
   | "automation"
   | "data-quality"
@@ -262,7 +284,65 @@ export class OpportunityService {
     return opportunities;
   }
 
-  async scoreOpportunities(): Promise<void> {
-    throw new Error("Method not implemented.");
+  async scoreOpportunities(opportunities: OpportunityScoringInput[]): Promise<OpportunityScore[]> {
+    return opportunities.map((opportunity) => this.scoreOpportunity(opportunity));
+  }
+
+  private scoreOpportunity(factors: OpportunityScoringInput): OpportunityScore {
+    const estimatedValue = this.normalizeNumber(factors.fteHoursSaved) + this.normalizeNumber(factors.errorCostAvoided);
+    const estimatedEffort =
+      this.normalizeNumber(factors.complexityScore) + this.normalizeNumber(factors.systemIntegrationDepth);
+
+    const roi = estimatedEffort > 0 ? estimatedValue / estimatedEffort : 0;
+    const confidence = this.calculateConfidence(factors);
+
+    return { estimatedValue, estimatedEffort, roi, confidence };
+  }
+
+  private calculateConfidence(factors: OpportunityScoringInput): number {
+    const weights: OpportunityScoreWeights = {
+      fteHoursSaved: 0.35,
+      errorCostAvoided: 0.35,
+      complexityScore: 0.15,
+      systemIntegrationDepth: 0.15
+    };
+
+    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+
+    const completenessScores: Record<keyof OpportunityScoreWeights, number> = {
+      fteHoursSaved: this.resolveCompleteness("fteHoursSaved", factors),
+      errorCostAvoided: this.resolveCompleteness("errorCostAvoided", factors),
+      complexityScore: this.resolveCompleteness("complexityScore", factors),
+      systemIntegrationDepth: this.resolveCompleteness("systemIntegrationDepth", factors)
+    };
+
+    const weightedSum = (Object.keys(weights) as (keyof OpportunityScoreWeights)[]).reduce((sum, key) => {
+      return sum + weights[key] * completenessScores[key];
+    }, 0);
+
+    if (totalWeight === 0) return 0;
+
+    const confidence = weightedSum / totalWeight;
+    return Math.min(Math.max(confidence, 0), 1);
+  }
+
+  private resolveCompleteness(
+    factor: keyof OpportunityScoreWeights,
+    factors: OpportunityScoringInput & { dataCompleteness?: Partial<Record<keyof OpportunityScoreWeights, number>> }
+  ): number {
+    const provided = factors[factor];
+    const completeness = factors.dataCompleteness?.[factor];
+
+    if (typeof completeness === "number" && Number.isFinite(completeness)) {
+      return Math.min(Math.max(completeness, 0), 1);
+    }
+
+    return provided === null || provided === undefined ? 0 : 1;
+  }
+
+  private normalizeNumber(value?: number | null): number {
+    if (value === null || value === undefined) return 0;
+    const normalized = Number(value);
+    return Number.isFinite(normalized) ? normalized : 0;
   }
 }
