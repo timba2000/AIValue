@@ -22,6 +22,13 @@
       "when": 1763164800000,
       "tag": "0002_capture_roi_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1763165800000,
+      "tag": "0003_align_core_entities",
+      "breakpoints": true
     }
   ]
 }
