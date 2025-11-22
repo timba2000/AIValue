@@ -11,7 +11,13 @@ router.get("/", async (_req, res) => {
       .select()
       .from(useCases)
       .orderBy(desc(useCases.valueScore), desc(useCases.createdAt));
-    res.json(results);
+    res.json(
+      results.map((useCase) => ({
+        ...useCase,
+        title: useCase.name,
+        problem: useCase.summary
+      }))
+    );
   } catch (error) {
     console.error("Failed to fetch use cases", error);
     res.status(500).json({ message: "Failed to fetch use cases" });
@@ -20,20 +26,24 @@ router.get("/", async (_req, res) => {
 
 router.post("/", async (req, res) => {
   const {
-    name,
-    summary,
+    name: rawName,
+    summary: rawSummary,
+    title,
+    problem,
     valueScore: rawValueScore,
     effortScore: rawEffortScore,
     riskScore: rawRiskScore,
     complexityScore: rawComplexityScore,
+    hoursSavedPerOccurrence: rawHoursSavedPerOccurrence,
+    occurrencesPerMonth: rawOccurrencesPerMonth,
+    valuePerHour: rawValuePerHour,
     category,
     maturity,
     prerequisites
   } = req.body ?? {};
 
-  if (!name) {
-    return res.status(400).json({ message: "name is required" });
-  }
+  const name = (rawName ?? title)?.trim();
+  const summary = (rawSummary ?? problem)?.trim();
 
   const parseOptionalMetric = (value: unknown, field: string): number | undefined => {
     if (value === undefined || value === null || value === "") return undefined;
@@ -49,12 +59,34 @@ router.post("/", async (req, res) => {
   let effortScore: number | undefined;
   let riskScore: number | undefined;
   let complexityScore: number | undefined;
+  let hoursSavedPerOccurrence: number | undefined;
+  let occurrencesPerMonth: number | undefined;
+  let valuePerHour: number | undefined;
+
+  if (!name) {
+    return res.status(400).json({ message: "name is required" });
+  }
 
   try {
     valueScore = parseOptionalMetric(rawValueScore, "valueScore");
     effortScore = parseOptionalMetric(rawEffortScore, "effortScore");
     riskScore = parseOptionalMetric(rawRiskScore, "riskScore");
     complexityScore = parseOptionalMetric(rawComplexityScore, "complexityScore");
+    hoursSavedPerOccurrence = parseOptionalMetric(
+      rawHoursSavedPerOccurrence,
+      "hoursSavedPerOccurrence"
+    );
+    occurrencesPerMonth = parseOptionalMetric(rawOccurrencesPerMonth, "occurrencesPerMonth");
+    valuePerHour = parseOptionalMetric(rawValuePerHour, "valuePerHour");
+
+    if (
+      valueScore === undefined &&
+      hoursSavedPerOccurrence !== undefined &&
+      occurrencesPerMonth !== undefined &&
+      valuePerHour !== undefined
+    ) {
+      valueScore = hoursSavedPerOccurrence * occurrencesPerMonth * valuePerHour;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid metric value";
     return res.status(400).json({ message });
@@ -76,7 +108,14 @@ router.post("/", async (req, res) => {
       })
       .returning();
 
-    res.status(201).json(created);
+    res.status(201).json({
+      ...created,
+      title: name,
+      problem: summary,
+      hoursSavedPerOccurrence,
+      occurrencesPerMonth,
+      valuePerHour
+    });
   } catch (error) {
     console.error("Failed to create use case", error);
     res.status(500).json({ message: "Failed to create use case" });
