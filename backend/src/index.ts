@@ -3,11 +3,11 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
-import useCaseRouter from "./routes/useCases";
-import companiesRouter from "./routes/companies";
-import businessUnitsRouter from "./routes/businessUnits";
-import processesRouter from "./routes/processes";
-import painPointsRouter from "./routes/painPoints";
+import useCaseRouter from "./routes/useCases.js";
+import companiesRouter from "./routes/companies.js";
+import businessUnitsRouter from "./routes/businessUnits.js";
+import processesRouter from "./routes/processes.js";
+import painPointsRouter from "./routes/painPoints.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

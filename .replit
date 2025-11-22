@@ -9,6 +9,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 38661
+externalPort = 3002
+
+[[ports]]
 localPort = 40725
 externalPort = 3001
 
@@ -47,7 +51,6 @@ outputType = "webview"
 [deployment]
 deploymentTarget = "autoscale"
 run = ["node", "backend/dist/src/index.js"]
-build = ["bash", "-c", "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build"]
 
 [nix]
 channel = "stable-25_05"
