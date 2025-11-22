@@ -29,6 +29,13 @@
       "when": 1763165800000,
       "tag": "0003_align_core_entities",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1763166800000,
+      "tag": "0005_opportunity_data_model",
+      "breakpoints": true
     }
   ]
 }
