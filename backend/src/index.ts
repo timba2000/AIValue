@@ -12,7 +12,7 @@ const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN?.split(",") ?? ["http://localhost:5000"],
+    origin: process.env.CLIENT_ORIGIN?.split(",") ?? ["http://localhost:5000", "http://127.0.0.1:5000"],
     credentials: true
   })
 );

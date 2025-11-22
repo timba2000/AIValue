@@ -157,15 +157,17 @@ export default function BusinessesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Businesses</h1>
-          <p className="text-muted-foreground">Manage companies, their business units, and FTEs.</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Businesses</h1>
+            <p className="text-sm text-gray-600 mt-1">Manage companies, their business units, and FTEs.</p>
+          </div>
+          {error ? <p className="text-sm text-red-600 font-medium">{error}</p> : null}
         </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <CompanyList
           companies={companies}
           selectedCompanyId={selectedCompanyId}

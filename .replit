@@ -9,7 +9,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 40365
+localPort = 33865
 externalPort = 3001
 
 [agent]
@@ -18,7 +18,6 @@ expertMode = true
 [userenv]
 
 [userenv.development]
-VITE_API_URL = "http://localhost:3000"
 PORT = "3000"
 
 [workflows]

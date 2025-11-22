@@ -38,10 +38,10 @@ function App() {
   }, [location]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-gray-50">
       {shouldShowSidebar && isMobileNavOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 md:hidden"
+          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm md:hidden"
           onClick={() => setIsMobileNavOpen(false)}
           aria-hidden
         />
@@ -54,8 +54,8 @@ function App() {
         </>
       )}
 
-      <main className={`flex-1 ${shouldShowSidebar ? "pt-16 md:pt-0 md:pl-60" : ""}`}>
-        <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      <main className={`flex-1 ${shouldShowSidebar ? "pt-24 md:pt-0 md:pl-64" : ""}`}>
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <Switch>
             <Route path="/" component={DashboardHome} />
             <Route path="/dashboard" component={DashboardHome} />

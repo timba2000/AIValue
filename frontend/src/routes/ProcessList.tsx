@@ -271,23 +271,24 @@ export default function ProcessList() {
   };
 
   return (
-    <section className="space-y-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Processes</h1>
-          <p className="text-muted-foreground">
-            Manage processes within each business unit and link them to pain points and use cases.
-          </p>
+    <section className="space-y-4 sm:space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Processes</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Manage processes within each business unit and link them to pain points and use cases.
+            </p>
+          </div>
+          <Button onClick={openCreateForm} disabled={!selectedUnitId} className="sm:mt-0">
+            New process
+          </Button>
         </div>
-        <Button onClick={openCreateForm} disabled={!selectedUnitId}>
-          New process
-        </Button>
-      </header>
+        {error ? <p className="text-sm text-red-600 font-medium mt-3">{error}</p> : null}
+      </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-      <div className="grid gap-4 lg:grid-cols-[320px,1fr]">
-        <aside className="space-y-4 rounded-lg border p-4">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[280px,1fr]">
+        <aside className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
           <div className="space-y-2">
             <Label htmlFor="business-select">Business</Label>
             <select

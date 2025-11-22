@@ -67,15 +67,17 @@ export default function UseCaseListPage() {
   }, [useCases.length, useCasesLoading]);
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Use cases</p>
-        <h1 className="text-3xl font-bold tracking-tight">AI Use Case Library</h1>
-        <p className="text-muted-foreground">{headerSubtitle}</p>
-      </header>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Use cases</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">AI Use Case Library</h1>
+          <p className="text-sm text-gray-600">{headerSubtitle}</p>
+        </div>
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_minmax(380px,0.9fr)]">
-        <div className="space-y-6">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1fr_auto]">
+        <div className="space-y-6 min-w-0">
           <UseCaseGrid
             useCases={useCases}
             processes={processes}
@@ -87,7 +89,7 @@ export default function UseCaseListPage() {
           />
         </div>
 
-        <div className="relative">
+        <div className="xl:w-[420px] xl:sticky xl:top-6 xl:self-start hidden xl:block">
           <UseCaseForm
             selectedUseCase={selectedUseCase}
             processes={processes}
@@ -97,7 +99,7 @@ export default function UseCaseListPage() {
       </div>
 
       <Button
-        className="fixed bottom-6 right-6 shadow-lg"
+        className="fixed bottom-6 right-6 shadow-lg xl:hidden z-50"
         onClick={() => setSelectedUseCase(null)}
       >
         Add Use Case
