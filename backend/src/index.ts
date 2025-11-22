@@ -34,7 +34,7 @@ app.use("/api/business-units", businessUnitsRouter);
 app.use("/api/processes", processesRouter);
 app.use("/api/pain-points", painPointsRouter);
 
-const frontendDist = path.join(__dirname, "../../frontend/dist");
+const frontendDist = path.join(__dirname, "../../../frontend/dist");
 app.use(express.static(frontendDist));
 
 app.get("*", (_req, res) => {

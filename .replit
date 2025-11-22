@@ -54,8 +54,7 @@ outputType = "webview"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "cd backend && node dist/src/index.js"]
-build = ["sh", "-c", "cd frontend && npm ci && npm run build && cd ../backend && npm ci && npm run build"]
+run = ["node", "backend/dist/src/index.js"]
 
 [nix]
 channel = "stable-25_05"
