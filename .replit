@@ -12,6 +12,10 @@ externalPort = 80
 localPort = 40725
 externalPort = 3001
 
+[[ports]]
+localPort = 44893
+externalPort = 3002
+
 [agent]
 expertMode = true
 
@@ -46,7 +50,8 @@ outputType = "webview"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd backend && npm run dev & cd frontend && npm run dev"]
+run = ["node", "backend/dist/src/index.js"]
+build = ["bash", "-c", "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build"]
 
 [nix]
 channel = "stable-25_05"

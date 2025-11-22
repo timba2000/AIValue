@@ -123,9 +123,9 @@ router.post("/", async (req, res) => {
         businessUnitId,
         name,
         description,
-        volume: volumeValue ?? null,
+        volume: volumeValue != null ? String(volumeValue) : null,
         volumeUnit,
-        fte: fteValue ?? null,
+        fte: fteValue != null ? String(fteValue) : null,
         owner
       })
       .returning();
@@ -181,9 +181,9 @@ router.put("/:id", async (req, res) => {
       .set({
         name,
         description,
-        volume: volumeValue ?? null,
+        volume: volumeValue != null ? String(volumeValue) : null,
         volumeUnit,
-        fte: fteValue ?? null,
+        fte: fteValue != null ? String(fteValue) : null,
         owner
       })
       .where(and(eq(processes.id, id), eq(processes.businessUnitId, existing.businessUnitId)))

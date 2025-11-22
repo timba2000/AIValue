@@ -1,5 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import "dotenv/config";
 import useCaseRouter from "./routes/useCases";
 import companiesRouter from "./routes/companies";
@@ -7,8 +9,11 @@ import businessUnitsRouter from "./routes/businessUnits";
 import processesRouter from "./routes/processes";
 import painPointsRouter from "./routes/painPoints";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
 app.use(
   cors({
@@ -29,11 +34,18 @@ app.use("/api/business-units", businessUnitsRouter);
 app.use("/api/processes", processesRouter);
 app.use("/api/pain-points", painPointsRouter);
 
+const frontendDist = path.join(__dirname, "../../frontend/dist");
+app.use(express.static(frontendDist));
+
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(frontendDist, "index.html"));
+});
+
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
   res.status(500).json({ message: "Internal server error" });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server is running on http://0.0.0.0:${port}`);
 });
