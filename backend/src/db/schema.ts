@@ -1,22 +1,22 @@
-import { numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const businesses = pgTable("businesses", {
+export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  legalName: text("legal_name"),
   industry: text("industry"),
+  anzsic: text("anzsic"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
 export const businessUnits = pgTable("business_units", {
   id: uuid("id").defaultRandom().primaryKey(),
-  businessId: uuid("business_id")
+  companyId: uuid("company_id")
     .notNull()
-    .references(() => businesses.id, { onDelete: "cascade" }),
+    .references(() => companies.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
-  fte: numeric("fte"),
+  fte: integer("fte").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
@@ -25,7 +25,7 @@ export const processes = pgTable("processes", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessUnitId: uuid("business_unit_id")
     .notNull()
-    .references(() => businessUnits.id, { onDelete: "cascade" }),
+    .references(() => businessUnits.id, { onDelete: "restrict" }),
   name: text("name").notNull(),
   description: text("description"),
   volume: numeric("volume"),
@@ -81,8 +81,8 @@ export const painPointUseCases = pgTable("pain_point_use_cases", {
     .references(() => useCases.id, { onDelete: "cascade" })
 });
 
-export type Business = typeof businesses.$inferSelect;
-export type NewBusiness = typeof businesses.$inferInsert;
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
 
 export type BusinessUnit = typeof businessUnits.$inferSelect;
 export type NewBusinessUnit = typeof businessUnits.$inferInsert;

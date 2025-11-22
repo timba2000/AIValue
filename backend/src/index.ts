@@ -2,6 +2,8 @@ import express, { type Request, type Response, type NextFunction } from "express
 import cors from "cors";
 import "dotenv/config";
 import useCaseRouter from "./routes/useCases";
+import companiesRouter from "./routes/companies";
+import businessUnitsRouter from "./routes/businessUnits";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 5000;
@@ -19,6 +21,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/usecases", useCaseRouter);
+app.use("/api/companies", companiesRouter);
+app.use("/api/business-units", businessUnitsRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);

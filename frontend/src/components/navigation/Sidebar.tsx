@@ -3,7 +3,7 @@ import { AlertTriangle, Briefcase, Gauge, Lightbulb, Workflow } from "lucide-rea
 import { Link, useLocation } from "wouter";
 
 const navItems = [
-  { label: "Business", href: "/business", icon: Briefcase },
+  { label: "Businesses", href: "/businesses", icon: Briefcase },
   { label: "Processes", href: "/processes", icon: Workflow },
   { label: "Pain Points", href: "/pain-points", icon: AlertTriangle },
   { label: "Use Cases", href: "/use-cases", icon: Lightbulb },
