@@ -1,4 +1,4 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "postgresql-16"]
 
 [[ports]]
 localPort = 3000
@@ -9,7 +9,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 33865
+localPort = 40725
 externalPort = 3001
 
 [agent]
@@ -47,3 +47,6 @@ outputType = "webview"
 [deployment]
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "cd backend && npm run dev & cd frontend && npm run dev"]
+
+[nix]
+channel = "stable-25_05"
