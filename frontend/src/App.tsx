@@ -4,10 +4,10 @@ import { Route, Switch, useLocation } from "wouter";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import DashboardHome from "@/routes/DashboardHome";
-import BusinessList from "@/routes/BusinessList";
 import PainPointList from "@/routes/PainPointList";
 import ProcessList from "@/routes/ProcessList";
 import UseCaseList from "@/routes/UseCaseList";
+import BusinessesPage from "@/pages/BusinessesPage";
 
 function LoginPage() {
   return (
@@ -59,7 +59,8 @@ function App() {
           <Switch>
             <Route path="/" component={DashboardHome} />
             <Route path="/dashboard" component={DashboardHome} />
-            <Route path="/business" component={BusinessList} />
+            <Route path="/business" component={BusinessesPage} />
+            <Route path="/businesses" component={BusinessesPage} />
             <Route path="/processes" component={ProcessList} />
             <Route path="/pain-points" component={PainPointList} />
             <Route path="/use-cases" component={UseCaseList} />
