@@ -4,6 +4,8 @@ import "dotenv/config";
 import useCaseRouter from "./routes/useCases";
 import companiesRouter from "./routes/companies";
 import businessUnitsRouter from "./routes/businessUnits";
+import processesRouter from "./routes/processes";
+import painPointsRouter from "./routes/painPoints";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 5000;
@@ -21,8 +23,11 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/usecases", useCaseRouter);
+app.use("/api/use-cases", useCaseRouter);
 app.use("/api/companies", companiesRouter);
 app.use("/api/business-units", businessUnitsRouter);
+app.use("/api/processes", processesRouter);
+app.use("/api/pain-points", painPointsRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
