@@ -4,54 +4,170 @@
   "version": "5",
   "dialect": "pg",
   "tables": {
+    "businesses": {
+      "name": "businesses",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "legal_name": { "name": "legal_name", "type": "text", "primaryKey": false, "notNull": false },
+        "industry": { "name": "industry", "type": "text", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "business_units": {
+      "name": "business_units",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "business_id": { "name": "business_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false },
+        "fte": { "name": "fte", "type": "numeric", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "business_units_business_id_businesses_id_fk": {
+          "name": "business_units_business_id_businesses_id_fk",
+          "tableFrom": "business_units",
+          "tableTo": "businesses",
+          "columnsFrom": ["business_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "processes": {
+      "name": "processes",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "business_unit_id": { "name": "business_unit_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false },
+        "volume": { "name": "volume", "type": "numeric", "primaryKey": false, "notNull": false },
+        "volume_unit": { "name": "volume_unit", "type": "text", "primaryKey": false, "notNull": false },
+        "fte": { "name": "fte", "type": "numeric", "primaryKey": false, "notNull": false },
+        "owner": { "name": "owner", "type": "text", "primaryKey": false, "notNull": false },
+        "systems_used": { "name": "systems_used", "type": "text", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "processes_business_unit_id_business_units_id_fk": {
+          "name": "processes_business_unit_id_business_units_id_fk",
+          "tableFrom": "processes",
+          "tableTo": "business_units",
+          "columnsFrom": ["business_unit_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "pain_points": {
+      "name": "pain_points",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "process_id": { "name": "process_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "statement": { "name": "statement", "type": "text", "primaryKey": false, "notNull": true },
+        "impact_type": { "name": "impact_type", "type": "text", "primaryKey": false, "notNull": false },
+        "business_impact": { "name": "business_impact", "type": "text", "primaryKey": false, "notNull": false },
+        "magnitude": { "name": "magnitude", "type": "numeric", "primaryKey": false, "notNull": false },
+        "frequency": { "name": "frequency", "type": "numeric", "primaryKey": false, "notNull": false },
+        "root_cause": { "name": "root_cause", "type": "text", "primaryKey": false, "notNull": false },
+        "workarounds": { "name": "workarounds", "type": "text", "primaryKey": false, "notNull": false },
+        "dependencies": { "name": "dependencies", "type": "text", "primaryKey": false, "notNull": false },
+        "risk_level": { "name": "risk_level", "type": "text", "primaryKey": false, "notNull": false },
+        "opportunity_potential": { "name": "opportunity_potential", "type": "numeric", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pain_points_process_id_processes_id_fk": {
+          "name": "pain_points_process_id_processes_id_fk",
+          "tableFrom": "pain_points",
+          "tableTo": "processes",
+          "columnsFrom": ["process_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "use_cases": {
       "name": "use_cases",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "problem": {
-          "name": "problem",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "embedding": {
-          "name": "embedding",
-          "type": "vector(1536)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true },
+        "summary": { "name": "summary", "type": "text", "primaryKey": false, "notNull": false },
+        "value_score": { "name": "value_score", "type": "numeric", "primaryKey": false, "notNull": true, "default": "0" },
+        "effort_score": { "name": "effort_score", "type": "numeric", "primaryKey": false, "notNull": true, "default": "0" },
+        "risk_score": { "name": "risk_score", "type": "numeric", "primaryKey": false, "notNull": true, "default": "0" },
+        "complexity_score": { "name": "complexity_score", "type": "numeric", "primaryKey": false, "notNull": true, "default": "0" },
+        "category": { "name": "category", "type": "text", "primaryKey": false, "notNull": false },
+        "maturity": { "name": "maturity", "type": "text", "primaryKey": false, "notNull": false },
+        "prerequisites": { "name": "prerequisites", "type": "text", "primaryKey": false, "notNull": false },
+        "created_at": { "name": "created_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" },
+        "updated_at": { "name": "updated_at", "type": "timestamp with time zone", "primaryKey": false, "notNull": true, "default": "now()" }
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "pain_point_use_cases": {
+      "name": "pain_point_use_cases",
+      "schema": "",
+      "columns": {
+        "id": { "name": "id", "type": "uuid", "primaryKey": true, "notNull": true, "default": "gen_random_uuid()" },
+        "pain_point_id": { "name": "pain_point_id", "type": "uuid", "primaryKey": false, "notNull": true },
+        "use_case_id": { "name": "use_case_id", "type": "uuid", "primaryKey": false, "notNull": true }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pain_point_use_cases_pain_point_id_pain_points_id_fk": {
+          "name": "pain_point_use_cases_pain_point_id_pain_points_id_fk",
+          "tableFrom": "pain_point_use_cases",
+          "tableTo": "pain_points",
+          "columnsFrom": ["pain_point_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pain_point_use_cases_use_case_id_use_cases_id_fk": {
+          "name": "pain_point_use_cases_use_case_id_use_cases_id_fk",
+          "tableFrom": "pain_point_use_cases",
+          "tableTo": "use_cases",
+          "columnsFrom": ["use_case_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }
   },
   "enums": {},
   "schemas": {},
-  "_meta": {
-    "columns": {},
-    "schemas": {},
-    "tables": {}
-  }
+  "_meta": { "columns": {}, "schemas": {}, "tables": {} }
 }

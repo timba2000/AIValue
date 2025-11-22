@@ -2,7 +2,6 @@ import { Router } from "express";
 import { desc } from "drizzle-orm";
 import { db } from "../db/client";
 import { useCases } from "../db/schema";
-import { getUseCaseClassifier, parseUseCaseClassificationLabel } from "../../services/useCaseClassifier";
 
 const router = Router();
 
@@ -21,18 +20,24 @@ router.get("/", async (_req, res) => {
 
 router.post("/", async (req, res) => {
   const {
-    title,
-    problem,
-    hoursSavedPerOccurrence: rawHoursSaved,
-    occurrencesPerMonth: rawOccurrences,
-    valuePerHour: rawValuePerHour
+    name,
+    summary,
+    valueScore: rawValueScore,
+    effortScore: rawEffortScore,
+    riskScore: rawRiskScore,
+    complexityScore: rawComplexityScore,
+    category,
+    maturity,
+    prerequisites
   } = req.body ?? {};
 
-  if (!title || !problem) {
-    return res.status(400).json({ message: "title and problem are required" });
+  if (!name) {
+    return res.status(400).json({ message: "name is required" });
   }
 
-  const parseMetric = (value: unknown, field: string) => {
+  const parseOptionalMetric = (value: unknown, field: string): number | undefined => {
+    if (value === undefined || value === null || value === "") return undefined;
+
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed < 0) {
       throw new Error(`${field} must be a non-negative number`);
@@ -40,60 +45,34 @@ router.post("/", async (req, res) => {
     return parsed;
   };
 
-  let hoursSaved: number;
-  let occurrences: number;
-  let valuePerHour: number;
+  let valueScore: number | undefined;
+  let effortScore: number | undefined;
+  let riskScore: number | undefined;
+  let complexityScore: number | undefined;
 
   try {
-    hoursSaved = parseMetric(rawHoursSaved, "hoursSavedPerOccurrence");
-    occurrences = parseMetric(rawOccurrences, "occurrencesPerMonth");
-    valuePerHour = parseMetric(rawValuePerHour, "valuePerHour");
+    valueScore = parseOptionalMetric(rawValueScore, "valueScore");
+    effortScore = parseOptionalMetric(rawEffortScore, "effortScore");
+    riskScore = parseOptionalMetric(rawRiskScore, "riskScore");
+    complexityScore = parseOptionalMetric(rawComplexityScore, "complexityScore");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid metric value";
     return res.status(400).json({ message });
-  }
-
-  let industry: string | undefined;
-  let pattern: string | undefined;
-  let automationLevel: string | undefined;
-  let confidence: number | undefined;
-
-  const valueScore = hoursSaved * occurrences * valuePerHour;
-
-  try {
-    const classifier = getUseCaseClassifier();
-    const classification = await classifier.classify(problem);
-    const parsed = parseUseCaseClassificationLabel(classification.label);
-
-    industry = parsed.industry;
-    pattern = parsed.pattern;
-    automationLevel = parsed.automationLevel;
-    confidence = classification.confidence;
-  } catch (error) {
-    console.error("Failed to classify use case", error);
-
-    const message = error instanceof Error ? error.message : "Unexpected classification error";
-
-    return res.status(502).json({
-      message: "Failed to classify use case description",
-      detail: message
-    });
   }
 
   try {
     const [created] = await db
       .insert(useCases)
       .values({
-        title,
-        problem,
-        industry,
-        pattern,
-        automationLevel,
-        classificationConfidence: confidence !== undefined ? confidence.toString() : null,
-        hoursSavedPerOccurrence: hoursSaved.toString(),
-        occurrencesPerMonth: occurrences.toString(),
-        valuePerHour: valuePerHour.toString(),
-        valueScore: valueScore.toString()
+        name,
+        summary,
+        valueScore: (valueScore ?? 0).toString(),
+        effortScore: (effortScore ?? 0).toString(),
+        riskScore: (riskScore ?? 0).toString(),
+        complexityScore: (complexityScore ?? 0).toString(),
+        category,
+        maturity,
+        prerequisites
       })
       .returning();
 
