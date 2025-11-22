@@ -90,6 +90,38 @@ export const painPointUseCases = pgTable("pain_point_use_cases", {
     .references(() => useCases.id, { onDelete: "cascade" })
 });
 
+export const opportunities = pgTable("opportunities", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  businessUnitId: uuid("business_unit_id")
+    .notNull()
+    .references(() => businessUnits.id, { onDelete: "cascade" }),
+  processId: uuid("process_id")
+    .notNull()
+    .references(() => processes.id, { onDelete: "cascade" }),
+  painPointIds: uuid("pain_point_ids").array(),
+  category: text("category"),
+  estimatedValue: numeric("estimated_value"),
+  estimatedEffort: numeric("estimated_effort"),
+  roi: numeric("roi"),
+  confidence: numeric("confidence"),
+  tags: text("tags").array(),
+  status: text("status"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const opportunityPainPoints = pgTable("opportunity_pain_points", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  opportunityId: uuid("opportunity_id")
+    .notNull()
+    .references(() => opportunities.id, { onDelete: "cascade" }),
+  painPointId: uuid("pain_point_id")
+    .notNull()
+    .references(() => painPoints.id, { onDelete: "cascade" })
+});
+
 export type Business = typeof businesses.$inferSelect;
 export type NewBusiness = typeof businesses.$inferInsert;
 
@@ -107,3 +139,9 @@ export type NewUseCase = typeof useCases.$inferInsert;
 
 export type PainPointUseCase = typeof painPointUseCases.$inferSelect;
 export type NewPainPointUseCase = typeof painPointUseCases.$inferInsert;
+
+export type Opportunity = typeof opportunities.$inferSelect;
+export type NewOpportunity = typeof opportunities.$inferInsert;
+
+export type OpportunityPainPoint = typeof opportunityPainPoints.$inferSelect;
+export type NewOpportunityPainPoint = typeof opportunityPainPoints.$inferInsert;
