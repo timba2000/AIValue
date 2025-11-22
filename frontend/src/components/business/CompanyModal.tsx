@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { Company, CompanyPayload } from "@/types/business";
 
 interface CompanyModalProps {
@@ -11,6 +12,28 @@ interface CompanyModalProps {
   onSubmit: (payload: CompanyPayload) => Promise<void>;
   initialCompany?: Company | null;
 }
+
+const INDUSTRY_OPTIONS = [
+  { label: "Agriculture, Forestry and Fishing", code: "A" },
+  { label: "Mining", code: "B" },
+  { label: "Manufacturing", code: "C" },
+  { label: "Electricity, Gas, Water and Waste Services", code: "D" },
+  { label: "Construction", code: "E" },
+  { label: "Wholesale Trade", code: "F" },
+  { label: "Retail Trade", code: "G" },
+  { label: "Accommodation and Food Services", code: "H" },
+  { label: "Transport, Postal and Warehousing", code: "I" },
+  { label: "Information Media and Telecommunications", code: "J" },
+  { label: "Financial and Insurance Services", code: "K" },
+  { label: "Rental, Hiring and Real Estate Services", code: "L" },
+  { label: "Professional, Scientific and Technical Services", code: "M" },
+  { label: "Administrative and Support Services", code: "N" },
+  { label: "Public Administration and Safety", code: "O" },
+  { label: "Education and Training", code: "P" },
+  { label: "Health Care and Social Assistance", code: "Q" },
+  { label: "Arts and Recreation Services", code: "R" },
+  { label: "Other Services", code: "S" },
+] as const;
 
 export function CompanyModal({ open, onOpenChange, onSubmit, initialCompany }: CompanyModalProps) {
   const [name, setName] = useState("");
@@ -31,6 +54,18 @@ export function CompanyModal({ open, onOpenChange, onSubmit, initialCompany }: C
     }
     setErrors(null);
   }, [initialCompany, open]);
+
+  const handleIndustryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedIndustry = event.target.value;
+    setIndustry(selectedIndustry);
+    
+    const industryOption = INDUSTRY_OPTIONS.find(opt => opt.label === selectedIndustry);
+    if (industryOption) {
+      setAnzsic(industryOption.code);
+    }
+  };
+
+  const isLegacyIndustry = industry && !INDUSTRY_OPTIONS.some(opt => opt.label === industry);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -78,12 +113,23 @@ export function CompanyModal({ open, onOpenChange, onSubmit, initialCompany }: C
           </div>
           <div className="space-y-2">
             <Label htmlFor="industry">Industry</Label>
-            <Input
+            <Select
               id="industry"
               value={industry}
-              onChange={(event) => setIndustry(event.target.value)}
-              placeholder="Industrial Machinery"
-            />
+              onChange={handleIndustryChange}
+            >
+              <option value="">Select an industry...</option>
+              {isLegacyIndustry && (
+                <option value={industry} disabled>
+                  {industry} (legacy value - please select a standard industry)
+                </option>
+              )}
+              {INDUSTRY_OPTIONS.map((option) => (
+                <option key={option.code} value={option.label}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="anzsic">ANZSIC</Label>
