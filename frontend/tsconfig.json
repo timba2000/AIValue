@@ -10,7 +10,8 @@
     "types": ["vite/client", "node"],
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "wouter": ["./lib/wouter"]
     }
   },
   "include": ["src"]

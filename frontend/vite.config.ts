@@ -9,7 +9,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": "/src"
+      "@": "/src",
+      wouter: "/src/lib/wouter"
     }
   }
 });
