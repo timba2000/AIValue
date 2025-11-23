@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteUseCase, getUseCases } from "@/api/useCases";
 import { getProcesses } from "@/api/processes";
@@ -11,8 +11,7 @@ import type { UseCase } from "@/types/useCase";
 export default function UseCaseListPage() {
   const queryClient = useQueryClient();
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
-  const [showMobileForm, setShowMobileForm] = useState(false);
-  const formRef = useRef<HTMLDivElement>(null);
+  const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({
     search: "",
     processId: "",
@@ -65,16 +64,12 @@ export default function UseCaseListPage() {
 
   const handleNewUseCase = () => {
     setSelectedUseCase(null);
-    if (window.innerWidth >= 1280) {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      setShowMobileForm(true);
-    }
+    setShowForm(true);
   };
 
   const handleFormSuccess = () => {
     setSelectedUseCase(null);
-    setShowMobileForm(false);
+    setShowForm(false);
   };
 
   const headerSubtitle = useMemo(() => {
@@ -98,36 +93,17 @@ export default function UseCaseListPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1fr_auto]">
-        <div className="space-y-6 min-w-0">
-          <UseCaseGrid
-            useCases={useCases}
-            processes={processes}
-            filters={filters}
-            onFiltersChange={setFilters}
-            onEdit={setSelectedUseCase}
-            onDelete={handleDelete}
-            isLoading={useCasesLoading}
-          />
-        </div>
+      <UseCaseGrid
+        useCases={useCases}
+        processes={processes}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onEdit={setSelectedUseCase}
+        onDelete={handleDelete}
+        isLoading={useCasesLoading}
+      />
 
-        <div ref={formRef} className="xl:w-[420px] xl:sticky xl:top-6 xl:self-start hidden xl:block">
-          <UseCaseForm
-            selectedUseCase={selectedUseCase}
-            processes={processes}
-            onSuccess={handleFormSuccess}
-          />
-        </div>
-      </div>
-
-      <Button
-        className="fixed bottom-6 right-6 shadow-lg xl:hidden z-50"
-        onClick={handleNewUseCase}
-      >
-        Add Use Case
-      </Button>
-
-      <Dialog open={showMobileForm} onOpenChange={setShowMobileForm}>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedUseCase ? "Edit Use Case" : "Create New Use Case"}</DialogTitle>
