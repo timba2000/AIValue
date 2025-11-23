@@ -72,6 +72,13 @@ export default function UseCaseListPage() {
     setShowForm(false);
   };
 
+  const handleDialogChange = (open: boolean) => {
+    setShowForm(open);
+    if (!open) {
+      setSelectedUseCase(null);
+    }
+  };
+
   const headerSubtitle = useMemo(() => {
     if (useCasesLoading) return "Loading use cases...";
     if (useCases.length === 0) return "Create your first use case to get started.";
@@ -98,12 +105,15 @@ export default function UseCaseListPage() {
         processes={processes}
         filters={filters}
         onFiltersChange={setFilters}
-        onEdit={setSelectedUseCase}
+        onEdit={(useCase) => {
+          setSelectedUseCase(useCase);
+          setShowForm(true);
+        }}
         onDelete={handleDelete}
         isLoading={useCasesLoading}
       />
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedUseCase ? "Edit Use Case" : "Create New Use Case"}</DialogTitle>
