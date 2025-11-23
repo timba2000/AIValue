@@ -43,15 +43,18 @@ export const processes = pgTable("processes", {
 export const painPoints = pgTable("pain_points", {
   id: uuid("id").defaultRandom().primaryKey(),
   statement: text("statement").notNull(),
-  impactType: text("impact_type"),
+  impactType: text("impact_type").array(),
   businessImpact: text("business_impact"),
   magnitude: numeric("magnitude"),
   frequency: numeric("frequency"),
+  timePerUnit: numeric("time_per_unit"),
+  totalHoursPerMonth: numeric("total_hours_per_month"),
+  fteCount: numeric("fte_count"),
   rootCause: text("root_cause"),
   workarounds: text("workarounds"),
   dependencies: text("dependencies"),
   riskLevel: text("risk_level"),
-  opportunityPotential: numeric("opportunity_potential"),
+  effortSolving: numeric("effort_solving"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });

@@ -36,11 +36,13 @@ router.post("/", async (req, res) => {
     businessImpact,
     magnitude,
     frequency,
+    timePerUnit,
+    fteCount,
     rootCause,
     workarounds,
     dependencies,
     riskLevel,
-    opportunityPotential
+    effortSolving
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -51,31 +53,45 @@ router.post("/", async (req, res) => {
 
   let magnitudeNum: number | null = null;
   let frequencyNum: number | null = null;
-  let opportunityNum: number | null = null;
+  let effortNum: number | null = null;
+  let timePerUnitNum: number | null = null;
+  let fteCountNum: number | null = null;
+  let totalHoursPerMonth: number | null = null;
 
   try {
     magnitudeNum = parseOptionalNumber(magnitude, "magnitude");
     frequencyNum = parseOptionalNumber(frequency, "frequency");
-    opportunityNum = parseOptionalNumber(opportunityPotential, "opportunityPotential");
+    effortNum = parseOptionalNumber(effortSolving, "effortSolving");
+    timePerUnitNum = parseOptionalNumber(timePerUnit, "timePerUnit");
+    fteCountNum = parseOptionalNumber(fteCount, "fteCount");
+    
+    if (frequencyNum != null && timePerUnitNum != null) {
+      totalHoursPerMonth = frequencyNum * timePerUnitNum;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid numeric value";
     return res.status(400).json({ message });
   }
+
+  const impactTypeArray = Array.isArray(impactType) ? impactType.filter(Boolean) : (impactType ? [impactType] : null);
 
   try {
     const [created] = await db
       .insert(painPoints)
       .values({
         statement: statementText,
-        impactType: impactType || null,
+        impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
         businessImpact: businessImpact || null,
         magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
         frequency: frequencyNum != null ? String(frequencyNum) : null,
+        timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
+        totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
+        fteCount: fteCountNum != null ? String(fteCountNum) : null,
         rootCause: rootCause || null,
         workarounds: workarounds || null,
         dependencies: dependencies || null,
         riskLevel: riskLevel || null,
-        opportunityPotential: opportunityNum != null ? String(opportunityNum) : null
+        effortSolving: effortNum != null ? String(effortNum) : null
       })
       .returning();
 
@@ -94,11 +110,13 @@ router.put("/:id", async (req, res) => {
     businessImpact,
     magnitude,
     frequency,
+    timePerUnit,
+    fteCount,
     rootCause,
     workarounds,
     dependencies,
     riskLevel,
-    opportunityPotential
+    effortSolving
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -109,16 +127,27 @@ router.put("/:id", async (req, res) => {
 
   let magnitudeNum: number | null = null;
   let frequencyNum: number | null = null;
-  let opportunityNum: number | null = null;
+  let effortNum: number | null = null;
+  let timePerUnitNum: number | null = null;
+  let fteCountNum: number | null = null;
+  let totalHoursPerMonth: number | null = null;
 
   try {
     magnitudeNum = parseOptionalNumber(magnitude, "magnitude");
     frequencyNum = parseOptionalNumber(frequency, "frequency");
-    opportunityNum = parseOptionalNumber(opportunityPotential, "opportunityPotential");
+    effortNum = parseOptionalNumber(effortSolving, "effortSolving");
+    timePerUnitNum = parseOptionalNumber(timePerUnit, "timePerUnit");
+    fteCountNum = parseOptionalNumber(fteCount, "fteCount");
+    
+    if (frequencyNum != null && timePerUnitNum != null) {
+      totalHoursPerMonth = frequencyNum * timePerUnitNum;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid numeric value";
     return res.status(400).json({ message });
   }
+
+  const impactTypeArray = Array.isArray(impactType) ? impactType.filter(Boolean) : (impactType ? [impactType] : null);
 
   try {
     const [existing] = await db.select().from(painPoints).where(eq(painPoints.id, id));
@@ -131,15 +160,18 @@ router.put("/:id", async (req, res) => {
       .update(painPoints)
       .set({
         statement: statementText,
-        impactType: impactType || null,
+        impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
         businessImpact: businessImpact || null,
         magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
         frequency: frequencyNum != null ? String(frequencyNum) : null,
+        timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
+        totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
+        fteCount: fteCountNum != null ? String(fteCountNum) : null,
         rootCause: rootCause || null,
         workarounds: workarounds || null,
         dependencies: dependencies || null,
         riskLevel: riskLevel || null,
-        opportunityPotential: opportunityNum != null ? String(opportunityNum) : null
+        effortSolving: effortNum != null ? String(effortNum) : null
       })
       .where(eq(painPoints.id, id))
       .returning();

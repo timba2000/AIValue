@@ -26,28 +26,32 @@ const RISK_LEVELS: { value: RiskLevel; label: string }[] = [
 
 interface FormState {
   statement: string;
-  impactType: string;
+  impactType: string[];
   businessImpact: string;
   magnitude: string;
   frequency: string;
+  timePerUnit: string;
+  fteCount: string;
   rootCause: string;
   workarounds: string;
   dependencies: string;
   riskLevel: string;
-  opportunityPotential: string;
+  effortSolving: string;
 }
 
 const emptyForm: FormState = {
   statement: "",
-  impactType: "",
+  impactType: [],
   businessImpact: "",
   magnitude: "",
   frequency: "",
+  timePerUnit: "",
+  fteCount: "",
   rootCause: "",
   workarounds: "",
   dependencies: "",
   riskLevel: "",
-  opportunityPotential: ""
+  effortSolving: ""
 };
 
 export default function PainPointList() {
@@ -91,15 +95,17 @@ export default function PainPointList() {
     setEditingPainPoint(painPoint);
     setFormState({
       statement: painPoint.statement,
-      impactType: painPoint.impactType ?? "",
+      impactType: painPoint.impactType ?? [],
       businessImpact: painPoint.businessImpact ?? "",
       magnitude: painPoint.magnitude?.toString() ?? "",
       frequency: painPoint.frequency?.toString() ?? "",
+      timePerUnit: painPoint.timePerUnit?.toString() ?? "",
+      fteCount: painPoint.fteCount?.toString() ?? "",
       rootCause: painPoint.rootCause ?? "",
       workarounds: painPoint.workarounds ?? "",
       dependencies: painPoint.dependencies ?? "",
       riskLevel: painPoint.riskLevel ?? "",
-      opportunityPotential: painPoint.opportunityPotential?.toString() ?? ""
+      effortSolving: painPoint.effortSolving?.toString() ?? ""
     });
     setFormOpen(true);
   };
@@ -115,15 +121,17 @@ export default function PainPointList() {
 
     const payload: PainPointPayload = {
       statement: formState.statement.trim(),
-      impactType: formState.impactType || null,
+      impactType: formState.impactType.length > 0 ? formState.impactType : null,
       businessImpact: formState.businessImpact || null,
       magnitude: formState.magnitude ? Number(formState.magnitude) : null,
       frequency: formState.frequency ? Number(formState.frequency) : null,
+      timePerUnit: formState.timePerUnit ? Number(formState.timePerUnit) : null,
+      fteCount: formState.fteCount ? Number(formState.fteCount) : null,
       rootCause: formState.rootCause || null,
       workarounds: formState.workarounds || null,
       dependencies: formState.dependencies || null,
       riskLevel: formState.riskLevel || null,
-      opportunityPotential: formState.opportunityPotential ? Number(formState.opportunityPotential) : null
+      effortSolving: formState.effortSolving ? Number(formState.effortSolving) : null
     };
 
     try {
@@ -208,8 +216,8 @@ export default function PainPointList() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Statement</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact Type</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Risk Level</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Magnitude</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Frequency</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact (1-10)</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Total Hrs/Month</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -218,10 +226,14 @@ export default function PainPointList() {
                   <tr key={pp.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4">{pp.statement}</td>
                     <td className="py-3 px-4">
-                      {pp.impactType ? (
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                          {IMPACT_TYPES.find((t) => t.value === pp.impactType)?.label ?? pp.impactType}
-                        </span>
+                      {pp.impactType && pp.impactType.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {pp.impactType.map((type) => (
+                            <span key={type} className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                              {IMPACT_TYPES.find((t) => t.value === type)?.label ?? type}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -246,7 +258,13 @@ export default function PainPointList() {
                       )}
                     </td>
                     <td className="py-3 px-4">{pp.magnitude ?? "-"}</td>
-                    <td className="py-3 px-4">{pp.frequency ?? "-"}</td>
+                    <td className="py-3 px-4">
+                      {pp.totalHoursPerMonth ? (
+                        <span className="font-medium text-gray-900">{Number(pp.totalHoursPerMonth).toFixed(1)}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right space-x-2">
                       <button
                         onClick={() => handleEdit(pp)}
@@ -297,20 +315,26 @@ export default function PainPointList() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="impactType">Impact Type</Label>
-                <Select
-                  id="impactType"
-                  value={formState.impactType}
-                  onChange={(e) => setFormState({ ...formState, impactType: e.target.value })}
-                  className="mt-1.5"
-                >
-                  <option value="">Select impact type</option>
+                <Label>Impact Type (Select all that apply)</Label>
+                <div className="mt-1.5 space-y-2">
                   {IMPACT_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
+                    <label key={type.value} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formState.impactType.includes(type.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormState({ ...formState, impactType: [...formState.impactType, type.value] });
+                          } else {
+                            setFormState({ ...formState, impactType: formState.impactType.filter(t => t !== type.value) });
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">{type.label}</span>
+                    </label>
                   ))}
-                </Select>
+                </div>
               </div>
 
               <div>
@@ -343,9 +367,10 @@ export default function PainPointList() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="magnitude">Magnitude (1-10)</Label>
+                <Label htmlFor="magnitude">Impact of Pain Point (1-10)</Label>
+                <p className="text-xs text-gray-500 mt-0.5">1 = Low impact, 10 = High impact</p>
                 <input
                   id="magnitude"
                   type="number"
@@ -359,11 +384,29 @@ export default function PainPointList() {
               </div>
 
               <div>
+                <Label htmlFor="effortSolving">Effort in Solving (1-10)</Label>
+                <p className="text-xs text-gray-500 mt-0.5">1 = Low effort, 10 = High effort</p>
+                <input
+                  id="effortSolving"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formState.effortSolving}
+                  onChange={(e) => setFormState({ ...formState, effortSolving: e.target.value })}
+                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="1-10"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
                 <Label htmlFor="frequency">Frequency (per month)</Label>
                 <input
                   id="frequency"
                   type="number"
                   min="0"
+                  step="0.01"
                   value={formState.frequency}
                   onChange={(e) => setFormState({ ...formState, frequency: e.target.value })}
                   className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -372,19 +415,43 @@ export default function PainPointList() {
               </div>
 
               <div>
-                <Label htmlFor="opportunityPotential">Opportunity Potential (1-10)</Label>
+                <Label htmlFor="timePerUnit">Time Required per unit (Hrs)</Label>
                 <input
-                  id="opportunityPotential"
+                  id="timePerUnit"
                   type="number"
-                  min="1"
-                  max="10"
-                  value={formState.opportunityPotential}
-                  onChange={(e) => setFormState({ ...formState, opportunityPotential: e.target.value })}
+                  min="0"
+                  step="0.01"
+                  value={formState.timePerUnit}
+                  onChange={(e) => setFormState({ ...formState, timePerUnit: e.target.value })}
                   className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder="1-10"
+                  placeholder="Hours per unit"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="fteCount"># FTE on painpoint</Label>
+                <input
+                  id="fteCount"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={formState.fteCount}
+                  onChange={(e) => setFormState({ ...formState, fteCount: e.target.value })}
+                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Number of FTEs"
                 />
               </div>
             </div>
+
+            {formState.frequency && formState.timePerUnit && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <Label className="text-blue-900">Total Hours per Month (Auto-calculated)</Label>
+                <p className="text-lg font-semibold text-blue-900 mt-1">
+                  {(Number(formState.frequency) * Number(formState.timePerUnit)).toFixed(2)} hours
+                </p>
+                <p className="text-xs text-blue-700 mt-1">This value is automatically calculated when you save</p>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="rootCause">Root Cause</Label>
