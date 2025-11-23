@@ -1,7 +1,5 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
 import "dotenv/config";
 import useCaseRouter from "./routes/useCases.js";
 import companiesRouter from "./routes/companies.js";
@@ -9,11 +7,8 @@ import businessUnitsRouter from "./routes/businessUnits.js";
 import processesRouter from "./routes/processes.js";
 import painPointsRouter from "./routes/painPoints.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
-const port = process.env.PORT ? Number(process.env.PORT) : 5000;
+const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 app.use(
   cors({
@@ -33,13 +28,6 @@ app.use("/api/companies", companiesRouter);
 app.use("/api/business-units", businessUnitsRouter);
 app.use("/api/processes", processesRouter);
 app.use("/api/pain-points", painPointsRouter);
-
-const frontendDist = path.join(__dirname, "../public");
-app.use(express.static(frontendDist));
-
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(frontendDist, "index.html"));
-});
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
