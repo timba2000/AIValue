@@ -24,6 +24,7 @@ Preferred communication style: Simple, everyday language.
   - Added `time_per_unit`, `total_hours_per_month`, and `fte_count` numeric columns
   - Applied migration to preserve existing data while converting to new schema
 - Enhanced pain points table display to show total hours per month and multiple impact type badges
+- Added "New Usecase" button to Use Cases page header for easy access to create new use cases (matches Pain Points page layout)
 
 **November 22, 2025:**
 - Fixed database schema sync issue: dropped and recreated use_cases table with correct "name" column
