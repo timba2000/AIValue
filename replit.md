@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 23, 2025:**
+- Enhanced Pain Points form with comprehensive updates:
+  - Renamed "Magnitude (1-10)" to "Impact of Pain Point (1-10)" with descriptive helper text (1 = Low impact, 10 = High impact)
+  - Renamed "Opportunity Potential (1-10)" to "Effort in Solving (1-10)" with helper text (1 = Low effort, 10 = High effort)
+  - Converted Impact Type from single-select to multi-select checkboxes (users can now select multiple impact types per pain point)
+  - Added "Time Required per unit (Hrs)" field for tracking time spent per occurrence
+  - Added "# FTE on painpoint" field for tracking full-time equivalents working on the issue
+  - Implemented automatic calculation of "Total Hours per Month" (Frequency × Time per unit) displayed in form and table
+- Updated database schema:
+  - Changed `impact_type` from text to text array to support multiple selections
+  - Renamed `opportunity_potential` column to `effort_solving`
+  - Added `time_per_unit`, `total_hours_per_month`, and `fte_count` numeric columns
+  - Applied migration to preserve existing data while converting to new schema
+- Enhanced pain points table display to show total hours per month and multiple impact type badges
+
 **November 22, 2025:**
 - Fixed database schema sync issue: dropped and recreated use_cases table with correct "name" column
 - Built complete Pain Points management feature with full CRUD functionality:
