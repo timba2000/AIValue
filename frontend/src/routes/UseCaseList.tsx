@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteUseCase, getUseCases } from "@/api/useCases";
 import { getProcesses } from "@/api/processes";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UseCaseForm } from "@/components/UseCaseForm";
 import { UseCaseList as UseCaseGrid } from "@/components/UseCaseList";
 import type { UseCase } from "@/types/useCase";
@@ -10,6 +11,8 @@ import type { UseCase } from "@/types/useCase";
 export default function UseCaseListPage() {
   const queryClient = useQueryClient();
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
+  const [showMobileForm, setShowMobileForm] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState({
     search: "",
     processId: "",
@@ -60,6 +63,20 @@ export default function UseCaseListPage() {
     }
   };
 
+  const handleNewUseCase = () => {
+    setSelectedUseCase(null);
+    if (window.innerWidth >= 1280) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      setShowMobileForm(true);
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setSelectedUseCase(null);
+    setShowMobileForm(false);
+  };
+
   const headerSubtitle = useMemo(() => {
     if (useCasesLoading) return "Loading use cases...";
     if (useCases.length === 0) return "Create your first use case to get started.";
@@ -75,7 +92,7 @@ export default function UseCaseListPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">AI Use Case Library</h1>
             <p className="text-sm text-gray-600">{headerSubtitle}</p>
           </div>
-          <Button onClick={() => setSelectedUseCase(null)} className="shrink-0">
+          <Button onClick={handleNewUseCase} className="shrink-0">
             New Usecase
           </Button>
         </div>
@@ -94,21 +111,34 @@ export default function UseCaseListPage() {
           />
         </div>
 
-        <div className="xl:w-[420px] xl:sticky xl:top-6 xl:self-start hidden xl:block">
+        <div ref={formRef} className="xl:w-[420px] xl:sticky xl:top-6 xl:self-start hidden xl:block">
           <UseCaseForm
             selectedUseCase={selectedUseCase}
             processes={processes}
-            onSuccess={() => setSelectedUseCase(null)}
+            onSuccess={handleFormSuccess}
           />
         </div>
       </div>
 
       <Button
         className="fixed bottom-6 right-6 shadow-lg xl:hidden z-50"
-        onClick={() => setSelectedUseCase(null)}
+        onClick={handleNewUseCase}
       >
         Add Use Case
       </Button>
+
+      <Dialog open={showMobileForm} onOpenChange={setShowMobileForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedUseCase ? "Edit Use Case" : "Create New Use Case"}</DialogTitle>
+          </DialogHeader>
+          <UseCaseForm
+            selectedUseCase={selectedUseCase}
+            processes={processes}
+            onSuccess={handleFormSuccess}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -25,6 +25,9 @@ Preferred communication style: Simple, everyday language.
   - Applied migration to preserve existing data while converting to new schema
 - Enhanced pain points table display to show total hours per month and multiple impact type badges
 - Added "New Usecase" button to Use Cases page header for easy access to create new use cases (matches Pain Points page layout)
+  - On desktop: Button scrolls to the form sidebar on the right
+  - On mobile/tablet: Button opens a modal dialog with the create form
+  - Both header button and floating bottom button trigger the same functionality
 
 **November 22, 2025:**
 - Fixed database schema sync issue: dropped and recreated use_cases table with correct "name" column
