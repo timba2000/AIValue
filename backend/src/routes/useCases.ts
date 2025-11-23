@@ -21,19 +21,16 @@ router.get("/", async (_req, res) => {
       .select({
         id: useCases.id,
         name: useCases.name,
-        description: useCases.description,
+        solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
         expectedBenefits: useCases.expectedBenefits,
-        valueDrivers: useCases.valueDrivers,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
         risks: useCases.risks,
-        estimatedFTEHours: useCases.estimatedFTEHours,
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
-        roiEstimate: useCases.roiEstimate,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
         createdAt: useCases.createdAt,
@@ -43,7 +40,12 @@ router.get("/", async (_req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .orderBy(desc(useCases.createdAt));
 
-    res.json(results);
+    const formatted = results.map((r) => ({
+      ...r,
+      expectedBenefits: r.expectedBenefits !== null ? Number(r.expectedBenefits) : null
+    }));
+
+    res.json(formatted);
   } catch (error) {
     console.error("Failed to fetch use cases", error);
     res.status(500).json({ message: "Failed to fetch use cases" });
@@ -53,19 +55,16 @@ router.get("/", async (_req, res) => {
 router.post("/", async (req, res) => {
   const {
     name: rawName,
-    description,
+    solutionProvider,
     problemToSolve,
     solutionOverview,
     expectedBenefits,
-    valueDrivers,
     complexity,
     dataRequirements,
     systemsImpacted,
     risks,
-    estimatedFTEHours,
     estimatedDeliveryTime,
     costRange,
-    roiEstimate,
     confidenceLevel,
     processId
   } = req.body ?? {};
@@ -76,14 +75,17 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ message: "name is required" });
   }
 
-  if (!problemToSolve || !solutionOverview || !complexity || !processId) {
+  if (!problemToSolve || !solutionOverview || !complexity) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let estimatedHours: number | null = null;
+  let benefitsValue: number | null = null;
 
   try {
-    estimatedHours = parseOptionalNumber(estimatedFTEHours, "estimatedFTEHours");
+    benefitsValue = parseOptionalNumber(expectedBenefits, "expectedBenefits");
+    if (benefitsValue !== null && (benefitsValue < 0 || benefitsValue > 100)) {
+      return res.status(400).json({ message: "expectedBenefits must be between 0 and 100" });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid numeric value";
     return res.status(400).json({ message });
@@ -94,21 +96,18 @@ router.post("/", async (req, res) => {
       .insert(useCases)
       .values({
         name,
-        description,
+        solutionProvider: solutionProvider || null,
         problemToSolve,
         solutionOverview,
-        expectedBenefits,
-        valueDrivers,
+        expectedBenefits: benefitsValue !== null ? String(benefitsValue) : null,
         complexity,
-        dataRequirements,
-        systemsImpacted,
-        risks,
-        estimatedFTEHours: estimatedHours != null ? String(estimatedHours) : null,
-        estimatedDeliveryTime,
-        costRange,
-        roiEstimate,
-        confidenceLevel,
-        processId
+        dataRequirements: dataRequirements || null,
+        systemsImpacted: systemsImpacted || null,
+        risks: risks || null,
+        estimatedDeliveryTime: estimatedDeliveryTime || null,
+        costRange: costRange || null,
+        confidenceLevel: confidenceLevel || null,
+        processId: processId || null
       })
       .returning();
 
@@ -116,19 +115,16 @@ router.post("/", async (req, res) => {
       .select({
         id: useCases.id,
         name: useCases.name,
-        description: useCases.description,
+        solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
         expectedBenefits: useCases.expectedBenefits,
-        valueDrivers: useCases.valueDrivers,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
         risks: useCases.risks,
-        estimatedFTEHours: useCases.estimatedFTEHours,
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
-        roiEstimate: useCases.roiEstimate,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
         createdAt: useCases.createdAt,
@@ -138,7 +134,10 @@ router.post("/", async (req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .where(eq(useCases.id, created.id));
 
-    res.status(201).json(withProcess);
+    res.status(201).json({
+      ...withProcess,
+      expectedBenefits: withProcess.expectedBenefits !== null ? Number(withProcess.expectedBenefits) : null
+    });
   } catch (error) {
     console.error("Failed to create use case", error);
     res.status(500).json({ message: "Failed to create use case" });
@@ -149,19 +148,16 @@ router.put("/:id", async (req, res) => {
   const { id } = req.params;
   const {
     name: rawName,
-    description,
+    solutionProvider,
     problemToSolve,
     solutionOverview,
     expectedBenefits,
-    valueDrivers,
     complexity,
     dataRequirements,
     systemsImpacted,
     risks,
-    estimatedFTEHours,
     estimatedDeliveryTime,
     costRange,
-    roiEstimate,
     confidenceLevel,
     processId
   } = req.body ?? {};
@@ -172,14 +168,17 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "name is required" });
   }
 
-  if (!problemToSolve || !solutionOverview || !complexity || !processId) {
+  if (!problemToSolve || !solutionOverview || !complexity) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let estimatedHours: number | null = null;
+  let benefitsValue: number | null = null;
 
   try {
-    estimatedHours = parseOptionalNumber(estimatedFTEHours, "estimatedFTEHours");
+    benefitsValue = parseOptionalNumber(expectedBenefits, "expectedBenefits");
+    if (benefitsValue !== null && (benefitsValue < 0 || benefitsValue > 100)) {
+      return res.status(400).json({ message: "expectedBenefits must be between 0 and 100" });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid numeric value";
     return res.status(400).json({ message });
@@ -196,41 +195,35 @@ router.put("/:id", async (req, res) => {
       .update(useCases)
       .set({
         name,
-        description,
+        solutionProvider: solutionProvider || null,
         problemToSolve,
         solutionOverview,
-        expectedBenefits,
-        valueDrivers,
+        expectedBenefits: benefitsValue !== null ? String(benefitsValue) : null,
         complexity,
-        dataRequirements,
-        systemsImpacted,
-        risks,
-        estimatedFTEHours: estimatedHours != null ? String(estimatedHours) : null,
-        estimatedDeliveryTime,
-        costRange,
-        roiEstimate,
-        confidenceLevel,
-        processId
+        dataRequirements: dataRequirements || null,
+        systemsImpacted: systemsImpacted || null,
+        risks: risks || null,
+        estimatedDeliveryTime: estimatedDeliveryTime || null,
+        costRange: costRange || null,
+        confidenceLevel: confidenceLevel || null,
+        processId: processId || null
       })
-      .where(and(eq(useCases.id, id), eq(useCases.processId, existing.processId)));
+      .where(eq(useCases.id, id));
 
     const [updated] = await db
       .select({
         id: useCases.id,
         name: useCases.name,
-        description: useCases.description,
+        solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
         expectedBenefits: useCases.expectedBenefits,
-        valueDrivers: useCases.valueDrivers,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
         risks: useCases.risks,
-        estimatedFTEHours: useCases.estimatedFTEHours,
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
-        roiEstimate: useCases.roiEstimate,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
         createdAt: useCases.createdAt,
@@ -240,7 +233,10 @@ router.put("/:id", async (req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .where(eq(useCases.id, id));
 
-    res.json(updated);
+    res.json({
+      ...updated,
+      expectedBenefits: updated.expectedBenefits !== null ? Number(updated.expectedBenefits) : null
+    });
   } catch (error) {
     console.error("Failed to update use case", error);
     res.status(500).json({ message: "Failed to update use case" });

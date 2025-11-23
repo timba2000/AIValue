@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteUseCase, getUseCases } from "@/api/useCases";
-import { getProcesses } from "@/api/processes";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UseCaseForm } from "@/components/UseCaseForm";
@@ -22,11 +21,6 @@ export default function UseCaseListPage() {
   const { data: useCases = [], isLoading: useCasesLoading } = useQuery({
     queryKey: ["use-cases"],
     queryFn: getUseCases
-  });
-
-  const { data: processes = [] } = useQuery({
-    queryKey: ["processes"],
-    queryFn: getProcesses
   });
 
   const deleteMutation = useMutation<void, unknown, string, { previous?: UseCase[] }>({
@@ -102,7 +96,6 @@ export default function UseCaseListPage() {
 
       <UseCaseGrid
         useCases={useCases}
-        processes={processes}
         filters={filters}
         onFiltersChange={setFilters}
         onEdit={(useCase) => {
@@ -120,7 +113,6 @@ export default function UseCaseListPage() {
           </DialogHeader>
           <UseCaseForm
             selectedUseCase={selectedUseCase}
-            processes={processes}
             onSuccess={handleFormSuccess}
           />
         </DialogContent>

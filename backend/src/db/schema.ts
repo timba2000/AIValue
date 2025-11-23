@@ -72,22 +72,18 @@ export const processPainPoints = pgTable("process_pain_points", {
 export const useCases = pgTable("use_cases", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  description: text("description"),
+  solutionProvider: text("solution_provider"),
   problemToSolve: text("problem_to_solve").notNull(),
   solutionOverview: text("solution_overview").notNull(),
-  expectedBenefits: text("expected_benefits"),
-  valueDrivers: text("value_drivers"),
+  expectedBenefits: numeric("expected_benefits"),
   complexity: text("complexity").notNull(),
-  dataRequirements: text("data_requirements"),
+  dataRequirements: text("data_requirements").array(),
   systemsImpacted: text("systems_impacted"),
   risks: text("risks"),
-  estimatedFTEHours: numeric("estimated_fte_hours"),
   estimatedDeliveryTime: text("estimated_delivery_time"),
   costRange: text("cost_range"),
-  roiEstimate: text("roi_estimate"),
   confidenceLevel: text("confidence_level"),
   processId: uuid("process_id")
-    .notNull()
     .references(() => processes.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()

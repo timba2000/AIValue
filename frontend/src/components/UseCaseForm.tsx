@@ -6,35 +6,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { ProcessRecord } from "@/types/process";
-import type { UseCase, UseCasePayload } from "@/types/useCase";
+import type { UseCase, UseCasePayload, DataRequirement, RiskLevel } from "@/types/useCase";
 
 interface UseCaseFormProps {
   selectedUseCase: UseCase | null;
-  processes: ProcessRecord[];
   onSuccess: () => void;
 }
 
+const DATA_REQUIREMENT_OPTIONS: DataRequirement[] = ["Structured", "Unstructured"];
+const RISK_LEVELS: RiskLevel[] = ["High", "Medium", "Low"];
+
 const DEFAULT_STATE: UseCasePayload = {
   name: "",
-  description: "",
+  solutionProvider: null,
   problemToSolve: "",
   solutionOverview: "",
-  expectedBenefits: "",
-  valueDrivers: "",
+  expectedBenefits: null,
   complexity: "Medium",
-  dataRequirements: "",
-  systemsImpacted: "",
-  risks: "",
-  estimatedFTEHours: null,
+  dataRequirements: null,
+  systemsImpacted: null,
+  risks: null,
   estimatedDeliveryTime: "Quick Win",
   costRange: "Medium",
-  roiEstimate: "",
   confidenceLevel: "Medium",
-  processId: ""
+  processId: null
 };
 
-export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFormProps) {
+export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<UseCasePayload>(DEFAULT_STATE);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,19 +41,16 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
     if (selectedUseCase) {
       setFormState({
         name: selectedUseCase.name,
-        description: selectedUseCase.description ?? "",
+        solutionProvider: selectedUseCase.solutionProvider,
         problemToSolve: selectedUseCase.problemToSolve,
         solutionOverview: selectedUseCase.solutionOverview,
-        expectedBenefits: selectedUseCase.expectedBenefits ?? "",
-        valueDrivers: selectedUseCase.valueDrivers ?? "",
+        expectedBenefits: selectedUseCase.expectedBenefits,
         complexity: selectedUseCase.complexity,
-        dataRequirements: selectedUseCase.dataRequirements ?? "",
-        systemsImpacted: selectedUseCase.systemsImpacted ?? "",
-        risks: selectedUseCase.risks ?? "",
-        estimatedFTEHours: selectedUseCase.estimatedFTEHours,
+        dataRequirements: selectedUseCase.dataRequirements,
+        systemsImpacted: selectedUseCase.systemsImpacted,
+        risks: selectedUseCase.risks,
         estimatedDeliveryTime: selectedUseCase.estimatedDeliveryTime ?? "Quick Win",
         costRange: selectedUseCase.costRange ?? "Medium",
-        roiEstimate: selectedUseCase.roiEstimate ?? "",
         confidenceLevel: selectedUseCase.confidenceLevel ?? "Medium",
         processId: selectedUseCase.processId
       });
@@ -87,13 +82,26 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
     if (!state.problemToSolve.trim()) newErrors.problemToSolve = "Problem to solve is required";
     if (!state.solutionOverview.trim()) newErrors.solutionOverview = "Solution overview is required";
     if (!state.complexity) newErrors.complexity = "Complexity is required";
-    if (!state.processId) newErrors.processId = "Process is required";
+    
+    if (state.expectedBenefits !== null && (state.expectedBenefits < 0 || state.expectedBenefits > 100)) {
+      newErrors.expectedBenefits = "Expected benefits must be between 0 and 100";
+    }
 
     return newErrors;
   };
 
-  const handleChange = (key: keyof UseCasePayload, value: string | number | null) => {
+  const handleChange = (key: keyof UseCasePayload, value: string | number | null | DataRequirement[]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleDataRequirementToggle = (requirement: DataRequirement) => {
+    setFormState((prev) => {
+      const current = prev.dataRequirements || [];
+      const updated = current.includes(requirement)
+        ? current.filter((r) => r !== requirement)
+        : [...current, requirement];
+      return { ...prev, dataRequirements: updated.length > 0 ? updated : null };
+    });
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -105,10 +113,9 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
 
     const payload: UseCasePayload = {
       ...formState,
-      estimatedFTEHours:
-        formState.estimatedFTEHours === null || formState.estimatedFTEHours === undefined
-          ? null
-          : Number(formState.estimatedFTEHours)
+      expectedBenefits: formState.expectedBenefits !== null && formState.expectedBenefits !== undefined
+        ? Number(formState.expectedBenefits)
+        : null
     };
 
     if (selectedUseCase) {
@@ -130,34 +137,15 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formState.name}
-                onChange={(event) => handleChange("name", event.target.value)}
-                placeholder="Summarize the use case"
-              />
-              {errors.name ? <p className="text-sm text-destructive">{errors.name}</p> : null}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="processId">Process</Label>
-              <select
-                id="processId"
-                value={formState.processId}
-                onChange={(event) => handleChange("processId", event.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="">Select a process</option>
-                {processes.map((process) => (
-                  <option key={process.id} value={process.id}>
-                    {process.name}
-                  </option>
-                ))}
-              </select>
-              {errors.processId ? <p className="text-sm text-destructive">{errors.processId}</p> : null}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={formState.name}
+              onChange={(event) => handleChange("name", event.target.value)}
+              placeholder="Summarize the use case"
+            />
+            {errors.name ? <p className="text-sm text-destructive">{errors.name}</p> : null}
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -189,68 +177,83 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formState.description ?? ""}
-                onChange={(event) => handleChange("description", event.target.value)}
-                placeholder="Add any narrative details"
+              <Label htmlFor="solutionProvider">Solution Provider</Label>
+              <Input
+                id="solutionProvider"
+                value={formState.solutionProvider ?? ""}
+                onChange={(event) => handleChange("solutionProvider", event.target.value || null)}
+                placeholder="e.g. OpenAI, Microsoft, Custom"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="expectedBenefits">Expected benefits</Label>
-              <Textarea
+              <Label htmlFor="expectedBenefits">
+                Expected Benefits (%)
+                <span className="ml-1 text-xs text-muted-foreground">0-100</span>
+              </Label>
+              <Input
                 id="expectedBenefits"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
                 value={formState.expectedBenefits ?? ""}
-                onChange={(event) => handleChange("expectedBenefits", event.target.value)}
-                placeholder="What outcomes are expected?"
+                onChange={(event) => handleChange("expectedBenefits", event.target.value ? Number(event.target.value) : null)}
+                placeholder="e.g. 25"
               />
+              {errors.expectedBenefits ? (
+                <p className="text-sm text-destructive">{errors.expectedBenefits}</p>
+              ) : null}
             </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="valueDrivers">Value drivers</Label>
-              <Textarea
-                id="valueDrivers"
-                value={formState.valueDrivers ?? ""}
-                onChange={(event) => handleChange("valueDrivers", event.target.value)}
-                placeholder="Key levers that create value"
-              />
+              <Label>Data Requirements</Label>
+              <div className="flex gap-4 pt-2">
+                {DATA_REQUIREMENT_OPTIONS.map((option) => (
+                  <label key={option} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formState.dataRequirements?.includes(option) ?? false}
+                      onChange={() => handleDataRequirementToggle(option)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <span className="text-sm">{option}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dataRequirements">Data requirements</Label>
-              <Textarea
-                id="dataRequirements"
-                value={formState.dataRequirements ?? ""}
-                onChange={(event) => handleChange("dataRequirements", event.target.value)}
-                placeholder="Data needed to deliver this use case"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="systemsImpacted">Systems impacted</Label>
-              <Textarea
+              <Label htmlFor="systemsImpacted">
+                Systems Impacted
+                <span className="ml-1 text-xs text-muted-foreground">Comma separated</span>
+              </Label>
+              <Input
                 id="systemsImpacted"
                 value={formState.systemsImpacted ?? ""}
-                onChange={(event) => handleChange("systemsImpacted", event.target.value)}
-                placeholder="Downstream or upstream systems"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="risks">Risks</Label>
-              <Textarea
-                id="risks"
-                value={formState.risks ?? ""}
-                onChange={(event) => handleChange("risks", event.target.value)}
-                placeholder="Potential risks or blockers"
+                onChange={(event) => handleChange("systemsImpacted", event.target.value || null)}
+                placeholder="e.g. SAP, Salesforce, Oracle"
               />
             </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="risks">Risks</Label>
+              <select
+                id="risks"
+                value={formState.risks ?? ""}
+                onChange={(event) => handleChange("risks", event.target.value ? event.target.value as RiskLevel : null)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select risk level</option>
+                {RISK_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="complexity">Complexity</Label>
               <select
@@ -283,6 +286,9 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="estimatedDeliveryTime">Estimated delivery time</Label>
               <select
@@ -301,20 +307,6 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
                 )}
               </select>
             </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="estimatedFTEHours">Estimated FTE hours</Label>
-              <Input
-                id="estimatedFTEHours"
-                type="number"
-                min="0"
-                value={formState.estimatedFTEHours ?? ""}
-                onChange={(event) => handleChange("estimatedFTEHours", event.target.value ? Number(event.target.value) : null)}
-                placeholder="e.g. 120"
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="costRange">Cost range</Label>
               <select
@@ -330,15 +322,6 @@ export function UseCaseForm({ selectedUseCase, processes, onSuccess }: UseCaseFo
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="roiEstimate">ROI estimate</Label>
-              <Input
-                id="roiEstimate"
-                value={formState.roiEstimate ?? ""}
-                onChange={(event) => handleChange("roiEstimate", event.target.value)}
-                placeholder="e.g. 120% or $250k"
-              />
             </div>
           </div>
 
