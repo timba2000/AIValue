@@ -11,6 +11,13 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **November 23, 2025:**
+- **Fixed deployment database migration conflicts:**
+  - Created programmatic migration runner (`backend/src/migrate.ts`) using Drizzle's migrate function
+  - Added startup script (`backend/start.sh`) that runs migrations before starting the app
+  - Updated deployment configuration to use startup script for automatic migration on publish
+  - Updated build process to copy migration files to dist folder for production deployment
+  - Added migration file (0007_use_case_schema_update.sql) to Drizzle migrations folder
+  - Production deployments now automatically apply all pending database migrations before starting
 - Restructured Use Cases form with significant field changes:
   - Removed Process dropdown and made `processId` optional (use cases no longer required to be linked to a process)
   - Renamed "Description" field to "Solution Provider" (text input)

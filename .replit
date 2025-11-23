@@ -50,7 +50,7 @@ outputType = "webview"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["node", "backend/dist/src/index.js"]
+run = ["sh", "-c", "cd backend && ./start.sh"]
 build = ["sh", "-c", "cd frontend && npm ci && npm run build && cd ../backend && npm ci && npm run build"]
 
 [nix]

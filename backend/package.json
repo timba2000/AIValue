@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json && cp -r ../frontend/dist ./dist/public",
+    "build": "tsc -p tsconfig.json && cp -r ../frontend/dist ./dist/public && cp -r drizzle ./dist/drizzle",
     "start": "node dist/src/index.js",
+    "migrate:run": "tsx src/migrate.ts",
     "migrate": "drizzle-kit migrate",
     "generate": "drizzle-kit generate:pg",
     "db:push": "drizzle-kit push:pg"
