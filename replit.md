@@ -11,6 +11,22 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **November 23, 2025:**
+- Restructured Use Cases form with significant field changes:
+  - Removed Process dropdown and made `processId` optional (use cases no longer required to be linked to a process)
+  - Renamed "Description" field to "Solution Provider" (text input)
+  - Changed "Expected Benefits" to percentage input (0-100%) with numeric storage
+  - Converted "Data Requirements" to multi-select checkboxes (Structured Data, Unstructured Data)
+  - Changed "Risks" to dropdown with predefined values (High, Medium, Low)
+  - Changed "Systems Impacted" from multi-select to comma-delimited text input
+  - Removed "Value Drivers", "FTE Hours", and "ROI Estimate" fields
+- Updated Use Cases database schema via manual SQL migration (0007):
+  - Renamed `description` → `solution_provider` (text)
+  - Renamed `expected_benefits` → numeric type (was text, now stores 0-100 percentage)
+  - Changed `data_requirements` to text array (supports multiple selections)
+  - Made `process_id` nullable (allows use cases without process association)
+  - Dropped `value_drivers`, `estimated_fte_hours`, and `roi_estimate` columns
+- Enhanced backend API to properly convert Drizzle numeric types to JavaScript numbers for `expectedBenefits` field across all endpoints (GET, POST, PUT)
+- Updated Use Cases table display: removed Process filter, added "Solution Provider" and "Expected Benefits (%)" columns
 - Enhanced Pain Points form with comprehensive updates:
   - Renamed "Magnitude (1-10)" to "Impact of Pain Point (1-10)" with descriptive helper text (1 = Low impact, 10 = High impact)
   - Renamed "Opportunity Potential (1-10)" to "Effort in Solving (1-10)" with helper text (1 = Low effort, 10 = High effort)
@@ -18,7 +34,7 @@ Preferred communication style: Simple, everyday language.
   - Added "Time Required per unit (Hrs)" field for tracking time spent per occurrence
   - Added "# FTE on painpoint" field for tracking full-time equivalents working on the issue
   - Implemented automatic calculation of "Total Hours per Month" (Frequency × Time per unit) displayed in form and table
-- Updated database schema:
+- Updated Pain Points database schema:
   - Changed `impact_type` from text to text array to support multiple selections
   - Renamed `opportunity_potential` column to `effort_solving`
   - Added `time_per_unit`, `total_hours_per_month`, and `fte_count` numeric columns
