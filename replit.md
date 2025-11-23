@@ -24,10 +24,12 @@ Preferred communication style: Simple, everyday language.
   - Added `time_per_unit`, `total_hours_per_month`, and `fte_count` numeric columns
   - Applied migration to preserve existing data while converting to new schema
 - Enhanced pain points table display to show total hours per month and multiple impact type badges
-- Added "New Usecase" button to Use Cases page header for easy access to create new use cases (matches Pain Points page layout)
-  - On desktop: Button scrolls to the form sidebar on the right
-  - On mobile/tablet: Button opens a modal dialog with the create form
-  - Both header button and floating bottom button trigger the same functionality
+- Updated Use Cases page layout for cleaner, modal-based form interaction:
+  - Removed always-visible sidebar form from desktop view for cleaner full-width layout
+  - Added "New Usecase" button in page header
+  - Form now only appears when needed - in a modal dialog when clicking "New Usecase" or editing an existing use case
+  - Modal properly manages state between create and edit modes
+  - Consistent behavior across all screen sizes
 
 **November 22, 2025:**
 - Fixed database schema sync issue: dropped and recreated use_cases table with correct "name" column
