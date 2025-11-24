@@ -13,6 +13,20 @@ const parseFte = (value: unknown) => {
   return Math.floor(parsed);
 };
 
+router.get("/", async (_req, res) => {
+  try {
+    const allBusinessUnits = await db
+      .select()
+      .from(businessUnits)
+      .orderBy(desc(businessUnits.createdAt));
+    
+    res.json(allBusinessUnits);
+  } catch (error) {
+    console.error("Failed to fetch business units", error);
+    res.status(500).json({ message: "Failed to fetch business units" });
+  }
+});
+
 router.post("/", async (req, res) => {
   const { companyId, name, fte, description } = req.body ?? {};
   const trimmedName = (name ?? "").trim();
