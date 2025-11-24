@@ -153,6 +153,7 @@ export default function OpportunitiesDashboard() {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
       setLinkModalOpen(false);
       resetLinkForm();
     }
@@ -178,6 +179,7 @@ export default function OpportunitiesDashboard() {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
       setLinkModalOpen(false);
       resetLinkForm();
     }
@@ -193,6 +195,7 @@ export default function OpportunitiesDashboard() {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
     }
   });
 
@@ -403,9 +406,17 @@ export default function OpportunitiesDashboard() {
     totalPainPoints: allPainPoints.data?.length || 0,
     totalUseCases: useCases.length,
     painPointsWithLinks: painPointsWithLinksCount,
-    totalHoursPerMonth: (allPainPoints.data || []).reduce((sum, pp) => sum + (pp.totalHoursPerMonth || 0), 0),
-    totalFTE: (allPainPoints.data || []).reduce((sum, pp) => sum + (pp.fteCount || 0), 0)
+    totalHoursPerMonth: Math.round((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.totalHoursPerMonth || 0), 0)),
+    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0))
   };
+
+  const { data: allLinks = [] } = useQuery<Array<{ painPointId: string; useCaseName: string }>>({
+    queryKey: ["allPainPointLinksDetails"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/pain-point-links/all`);
+      return response.data;
+    }
+  });
 
   const matrixData = (allPainPoints.data || []).map(pp => ({
     id: pp.id,
@@ -413,7 +424,8 @@ export default function OpportunitiesDashboard() {
     magnitude: pp.magnitude || 0,
     effortSolving: pp.effortSolving || 0,
     totalHoursPerMonth: pp.totalHoursPerMonth || 0,
-    hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0
+    hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
+    linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName)
   }));
 
   return (

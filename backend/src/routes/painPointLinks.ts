@@ -27,6 +27,24 @@ router.get("/pain-point-links/stats", async (_req, res) => {
   }
 });
 
+router.get("/pain-point-links/all", async (_req, res) => {
+  try {
+    const allLinks = await db
+      .select({
+        painPointId: painPointUseCases.painPointId,
+        useCaseId: painPointUseCases.useCaseId,
+        useCaseName: useCases.name
+      })
+      .from(painPointUseCases)
+      .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id));
+
+    res.json(allLinks);
+  } catch (error) {
+    console.error("Failed to fetch all pain point links", error);
+    res.status(500).json({ message: "Failed to fetch all pain point links" });
+  }
+});
+
 router.get("/pain-points/:painPointId/links", async (req, res) => {
   try {
     const { painPointId } = req.params;

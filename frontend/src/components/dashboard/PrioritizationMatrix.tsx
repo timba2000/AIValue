@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface PainPoint {
   id: string;
@@ -7,14 +7,23 @@ interface PainPoint {
   effortSolving: number;
   totalHoursPerMonth: number;
   hasLinks: boolean;
+  linkedUseCases: string[];
 }
 
 interface PrioritizationMatrixProps {
   painPoints: PainPoint[];
 }
 
+interface TooltipData {
+  point: PainPoint;
+  x: number;
+  y: number;
+}
+
 export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -117,6 +126,58 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
 
   }, [painPoints]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container || painPoints.length === 0) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 60;
+      const chartWidth = width - padding * 2;
+      const chartHeight = height - padding * 2;
+      const maxHours = Math.max(...painPoints.map(p => p.totalHoursPerMonth), 1);
+
+      let hoveredPoint: TooltipData | null = null;
+
+      for (const point of painPoints) {
+        const x = padding + (point.effortSolving / 10) * chartWidth;
+        const y = height - padding - (point.magnitude / 10) * chartHeight;
+        const radius = Math.max(5, Math.min(30, (point.totalHoursPerMonth / maxHours) * 30));
+
+        const distance = Math.sqrt((mouseX - x) ** 2 + (mouseY - y) ** 2);
+
+        if (distance <= radius) {
+          hoveredPoint = {
+            point,
+            x: e.clientX,
+            y: e.clientY
+          };
+          break;
+        }
+      }
+
+      setTooltip(hoveredPoint);
+    };
+
+    const handleMouseLeave = () => {
+      setTooltip(null);
+    };
+
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [painPoints]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -130,12 +191,36 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
           No pain points to visualize
         </div>
       ) : (
-        <div className="relative w-full" style={{ height: "500px" }}>
+        <div ref={containerRef} className="relative w-full" style={{ height: "500px" }}>
           <canvas
             ref={canvasRef}
-            className="w-full h-full"
+            className="w-full h-full cursor-pointer"
             style={{ width: "100%", height: "100%" }}
           />
+          {tooltip && (
+            <div
+              className="fixed z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm pointer-events-none"
+              style={{
+                left: tooltip.x + 15,
+                top: tooltip.y + 15,
+              }}
+            >
+              <div className="font-semibold mb-2 text-sm">{tooltip.point.statement}</div>
+              <div className="space-y-1 text-xs">
+                <div>Impact: {tooltip.point.magnitude}/10</div>
+                <div>Effort: {tooltip.point.effortSolving}/10</div>
+                <div>Hours/Month: {Math.round(tooltip.point.totalHoursPerMonth)}</div>
+                {tooltip.point.linkedUseCases.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-700">
+                    <div className="font-semibold mb-1">Linked Use Cases:</div>
+                    {tooltip.point.linkedUseCases.map((useCase, idx) => (
+                      <div key={idx} className="text-blue-300">• {useCase}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
