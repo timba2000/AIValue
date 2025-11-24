@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { painPoints } from "../db/schema.js";
+import { painPoints, processPainPoints } from "../db/schema.js";
 
 const router = Router();
 
@@ -22,7 +22,31 @@ router.get("/", async (_req, res) => {
       .from(painPoints)
       .orderBy(desc(painPoints.createdAt));
 
-    res.json(results);
+    const painPointIds = results.map((pp) => pp.id);
+    const processLinks = painPointIds.length > 0
+      ? await db
+          .select({
+            painPointId: processPainPoints.painPointId,
+            processId: processPainPoints.processId
+          })
+          .from(processPainPoints)
+          .where(inArray(processPainPoints.painPointId, painPointIds))
+      : [];
+
+    const processLinkMap = processLinks.reduce((acc, link) => {
+      if (!acc[link.painPointId]) {
+        acc[link.painPointId] = [];
+      }
+      acc[link.painPointId].push(link.processId);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    const resultsWithProcessIds = results.map((pp) => ({
+      ...pp,
+      processIds: processLinkMap[pp.id] || []
+    }));
+
+    res.json(resultsWithProcessIds);
   } catch (error) {
     console.error("Failed to fetch pain points", error);
     res.status(500).json({ message: "Failed to fetch pain points" });
@@ -42,7 +66,8 @@ router.post("/", async (req, res) => {
     workarounds,
     dependencies,
     riskLevel,
-    effortSolving
+    effortSolving,
+    processIds
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -76,26 +101,39 @@ router.post("/", async (req, res) => {
   const impactTypeArray = Array.isArray(impactType) ? impactType.filter(Boolean) : (impactType ? [impactType] : null);
 
   try {
-    const [created] = await db
-      .insert(painPoints)
-      .values({
-        statement: statementText,
-        impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
-        businessImpact: businessImpact || null,
-        magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
-        frequency: frequencyNum != null ? String(frequencyNum) : null,
-        timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
-        totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
-        fteCount: fteCountNum != null ? String(fteCountNum) : null,
-        rootCause: rootCause || null,
-        workarounds: workarounds || null,
-        dependencies: dependencies || null,
-        riskLevel: riskLevel || null,
-        effortSolving: effortNum != null ? String(effortNum) : null
-      })
-      .returning();
+    const processIdsArray = Array.isArray(processIds) ? processIds.filter(Boolean) : [];
+    
+    const result = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(painPoints)
+        .values({
+          statement: statementText,
+          impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
+          businessImpact: businessImpact || null,
+          magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
+          frequency: frequencyNum != null ? String(frequencyNum) : null,
+          timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
+          totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
+          fteCount: fteCountNum != null ? String(fteCountNum) : null,
+          rootCause: rootCause || null,
+          workarounds: workarounds || null,
+          dependencies: dependencies || null,
+          riskLevel: riskLevel || null,
+          effortSolving: effortNum != null ? String(effortNum) : null
+        })
+        .returning();
 
-    res.status(201).json(created);
+      if (processIdsArray.length > 0) {
+        const uniqueProcessIds = Array.from(new Set(processIdsArray));
+        await tx.insert(processPainPoints).values(
+          uniqueProcessIds.map((processId) => ({ painPointId: created.id, processId }))
+        );
+      }
+
+      return created;
+    });
+
+    res.status(201).json({ ...result, processIds: processIdsArray });
   } catch (error) {
     console.error("Failed to create pain point", error);
     res.status(500).json({ message: "Failed to create pain point" });
@@ -116,7 +154,8 @@ router.put("/:id", async (req, res) => {
     workarounds,
     dependencies,
     riskLevel,
-    effortSolving
+    effortSolving,
+    processIds
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -156,27 +195,42 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ message: "Pain point not found" });
     }
 
-    const [updated] = await db
-      .update(painPoints)
-      .set({
-        statement: statementText,
-        impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
-        businessImpact: businessImpact || null,
-        magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
-        frequency: frequencyNum != null ? String(frequencyNum) : null,
-        timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
-        totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
-        fteCount: fteCountNum != null ? String(fteCountNum) : null,
-        rootCause: rootCause || null,
-        workarounds: workarounds || null,
-        dependencies: dependencies || null,
-        riskLevel: riskLevel || null,
-        effortSolving: effortNum != null ? String(effortNum) : null
-      })
-      .where(eq(painPoints.id, id))
-      .returning();
+    const processIdsArray = Array.isArray(processIds) ? processIds.filter(Boolean) : [];
 
-    res.json(updated);
+    const result = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(painPoints)
+        .set({
+          statement: statementText,
+          impactType: impactTypeArray && impactTypeArray.length > 0 ? impactTypeArray : null,
+          businessImpact: businessImpact || null,
+          magnitude: magnitudeNum != null ? String(magnitudeNum) : null,
+          frequency: frequencyNum != null ? String(frequencyNum) : null,
+          timePerUnit: timePerUnitNum != null ? String(timePerUnitNum) : null,
+          totalHoursPerMonth: totalHoursPerMonth != null ? String(totalHoursPerMonth) : null,
+          fteCount: fteCountNum != null ? String(fteCountNum) : null,
+          rootCause: rootCause || null,
+          workarounds: workarounds || null,
+          dependencies: dependencies || null,
+          riskLevel: riskLevel || null,
+          effortSolving: effortNum != null ? String(effortNum) : null
+        })
+        .where(eq(painPoints.id, id))
+        .returning();
+
+      await tx.delete(processPainPoints).where(eq(processPainPoints.painPointId, id));
+
+      if (processIdsArray.length > 0) {
+        const uniqueProcessIds = Array.from(new Set(processIdsArray));
+        await tx.insert(processPainPoints).values(
+          uniqueProcessIds.map((processId) => ({ painPointId: id, processId }))
+        );
+      }
+
+      return updated;
+    });
+
+    res.json({ ...result, processIds: processIdsArray });
   } catch (error) {
     console.error("Failed to update pain point", error);
     res.status(500).json({ message: "Failed to update pain point" });

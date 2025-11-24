@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
+import type { ProcessRecord } from "@/types/process";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -37,6 +38,7 @@ interface FormState {
   dependencies: string;
   riskLevel: string;
   effortSolving: string;
+  processIds: string[];
 }
 
 const emptyForm: FormState = {
@@ -51,7 +53,8 @@ const emptyForm: FormState = {
   workarounds: "",
   dependencies: "",
   riskLevel: "",
-  effortSolving: ""
+  effortSolving: "",
+  processIds: []
 };
 
 export default function PainPointList() {
@@ -62,6 +65,7 @@ export default function PainPointList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingPainPoint, setEditingPainPoint] = useState<PainPoint | null>(null);
   const [formState, setFormState] = useState<FormState>(emptyForm);
+  const [processes, setProcesses] = useState<ProcessRecord[]>([]);
 
   const filteredPainPoints = painPoints.filter((pp) =>
     search.trim() === "" ? true : pp.statement.toLowerCase().includes(search.toLowerCase())
@@ -69,6 +73,7 @@ export default function PainPointList() {
 
   useEffect(() => {
     fetchPainPoints();
+    fetchProcesses();
   }, []);
 
   const fetchPainPoints = async () => {
@@ -82,6 +87,15 @@ export default function PainPointList() {
       setError("Failed to load pain points");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProcesses = async () => {
+    try {
+      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`);
+      setProcesses(response.data);
+    } catch (error) {
+      console.error("Failed to fetch processes", error);
     }
   };
 
@@ -105,7 +119,8 @@ export default function PainPointList() {
       workarounds: painPoint.workarounds ?? "",
       dependencies: painPoint.dependencies ?? "",
       riskLevel: painPoint.riskLevel ?? "",
-      effortSolving: painPoint.effortSolving?.toString() ?? ""
+      effortSolving: painPoint.effortSolving?.toString() ?? "",
+      processIds: painPoint.processIds ?? []
     });
     setFormOpen(true);
   };
@@ -131,7 +146,8 @@ export default function PainPointList() {
       workarounds: formState.workarounds || null,
       dependencies: formState.dependencies || null,
       riskLevel: formState.riskLevel || null,
-      effortSolving: formState.effortSolving ? Number(formState.effortSolving) : null
+      effortSolving: formState.effortSolving ? Number(formState.effortSolving) : null,
+      processIds: formState.processIds
     };
 
     try {
@@ -487,6 +503,44 @@ export default function PainPointList() {
                 className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="What other systems or processes are involved?"
               />
+            </div>
+
+            <div>
+              <Label>Linked Processes</Label>
+              <p className="text-xs text-gray-500 mt-0.5 mb-2">Select processes affected by this pain point</p>
+              <div className="mt-1.5 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 space-y-2">
+                {processes.length === 0 ? (
+                  <p className="text-sm text-gray-500">No processes available. Create processes first.</p>
+                ) : (
+                  processes.map((process) => (
+                    <label key={process.id} className="flex items-center space-x-2 hover:bg-gray-50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={formState.processIds.includes(process.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormState({ ...formState, processIds: [...formState.processIds, process.id] });
+                          } else {
+                            setFormState({ ...formState, processIds: formState.processIds.filter(id => id !== process.id) });
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm flex-1">
+                        {process.name}
+                        {process.description && (
+                          <span className="text-gray-500 text-xs ml-1">- {process.description}</span>
+                        )}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              {formState.processIds.length > 0 && (
+                <p className="text-xs text-gray-600 mt-2">
+                  {formState.processIds.length} process{formState.processIds.length > 1 ? 'es' : ''} selected
+                </p>
+              )}
             </div>
           </div>
 

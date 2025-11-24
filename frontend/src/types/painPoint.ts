@@ -13,6 +13,7 @@ export interface PainPoint {
   dependencies: string | null;
   riskLevel: string | null;
   effortSolving: number | null;
+  processIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +31,7 @@ export interface PainPointPayload {
   dependencies?: string | null;
   riskLevel?: string | null;
   effortSolving?: number | null;
+  processIds?: string[];
 }
 
 export type ImpactType = "time_waste" | "quality_issue" | "compliance_risk" | "cost_overrun" | "customer_impact" | "other";
