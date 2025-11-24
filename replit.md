@@ -11,18 +11,22 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 **November 24, 2025:**
-- **Built Opportunities Dashboard for linking use cases to pain points:**
-  - Created new page at `/dashboard` route with "Opportunities Dashboard" navigation menu item
-  - Implemented cascading filter system: Business → Business Unit → Process (downstream filters disabled until parent selected)
-  - Added pain point-to-use case linking functionality with percentage tracking (0-100% of pain point solved)
-  - Enhanced database schema with `percentage_solved` and `notes` columns in `pain_point_use_cases` junction table
-  - Created backend API endpoints (`/api/pain-points/:id/links`) for CRUD operations on pain point-use case relationships
-  - Implemented process-filtered pain points endpoint (`/api/processes/:processId/pain-points`) with proper join on `process_pain_points` table
-  - Built modal-based "Link Use Case" interface with use case selector, percentage input, and optional notes field
-  - Display linked use cases on pain point cards with badges showing percentage solved, edit, and remove actions
-  - Implemented real-time UI updates using React Query mutations with proper cache invalidation for both pain point links and parent pain points list
-  - Frontend guards pain point display until process is selected (shows "Select a process to view pain points" message)
-  - Task-oriented workflow: filter down to specific process, then link use cases to visible pain points with tracking
+- **Built tabbed Dashboard with Analytics and Opportunities views:**
+  - Renamed "Opportunities Dashboard" to "Dashboard" in navigation and created tab-based interface
+  - **Analytics Tab** displays executive summary metrics and prioritization matrix:
+    - Created MetricsCards component showing: Total Pain Points, Total Use Cases, Coverage % (pain points with linked solutions), Total Hours/Month being addressed, and Total FTE Impacted
+    - Built PrioritizationMatrix component with canvas-based scatter plot visualization
+    - X-axis: Effort to Solve (1-10), Y-axis: Impact of Pain Point (1-10), bubble size represents total hours per month
+    - Color coding: blue bubbles for pain points with linked use cases, red for those without solutions
+    - Created optimized backend endpoint `/api/pain-point-links/stats` that returns aggregated link counts in a single query (eliminates N+1 query pattern)
+  - **Opportunities Tab** contains the linking functionality:
+    - Cascading filter system: Business → Business Unit → Process (downstream filters disabled until parent selected)
+    - Process-filtered pain points display with visual cards showing impact, effort, and total hours
+    - Modal-based "Link Use Case" interface with use case selector, percentage solved input (0-100%), and optional notes
+    - Real-time UI updates using React Query mutations with proper cache invalidation
+  - Added GET endpoint for business units (`/api/business-units`) to enable dropdown population
+  - All link mutations (create, update, delete) now invalidate stats query for immediate analytics refresh
+  - Task-oriented workflow: view analytics to identify priorities, switch to opportunities tab to link solutions to specific pain points
 
 **November 23, 2025:**
 - **Fixed deployment database migration conflicts:**
