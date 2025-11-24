@@ -16,10 +16,11 @@ Preferred communication style: Simple, everyday language.
 - Edit schema in `backend/src/db/schema.ts` and push changes automatically
 
 **For Production Deployment:**
-- Deployment automatically runs `npm run db:push --force` to sync schema
-- No manual intervention required - schema syncs automatically
-- No migration files to manage - changes are detected and applied automatically
-- Deployments complete without any schema conflict questions
+- Replit automatically detects schema differences between development and production databases
+- **First deployment after schema changes**: Replit will ask you to resolve detected differences (rename vs. create new)
+- **Answer "Create new" for all questions** - this ensures your production database gets the latest schema
+- After this one-time sync, all future deployments will be automatic with no questions
+- No migration files needed - Replit handles all schema syncing automatically
 
 ## Recent Changes
 
