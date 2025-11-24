@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asc, desc, eq, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { painPoints, processPainPoints } from "../db/schema.js";
+import { painPoints, processPainPoints, processes, businessUnits } from "../db/schema.js";
 
 const router = Router();
 
@@ -15,12 +15,58 @@ const parseOptionalNumber = (value: unknown, field: string): number | null => {
   return parsed;
 };
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const results = await db
-      .select()
-      .from(painPoints)
-      .orderBy(desc(painPoints.createdAt));
+    const { companyId, businessUnitId, processIds } = req.query;
+
+    let query = db
+      .selectDistinct({
+        id: painPoints.id,
+        statement: painPoints.statement,
+        impactType: painPoints.impactType,
+        businessImpact: painPoints.businessImpact,
+        magnitude: painPoints.magnitude,
+        frequency: painPoints.frequency,
+        timePerUnit: painPoints.timePerUnit,
+        totalHoursPerMonth: painPoints.totalHoursPerMonth,
+        fteCount: painPoints.fteCount,
+        rootCause: painPoints.rootCause,
+        workarounds: painPoints.workarounds,
+        dependencies: painPoints.dependencies,
+        riskLevel: painPoints.riskLevel,
+        effortSolving: painPoints.effortSolving,
+        createdAt: painPoints.createdAt,
+        updatedAt: painPoints.updatedAt
+      })
+      .from(painPoints);
+
+    if (companyId || businessUnitId || processIds) {
+      query = query
+        .innerJoin(processPainPoints, eq(painPoints.id, processPainPoints.painPointId))
+        .innerJoin(processes, eq(processPainPoints.processId, processes.id));
+
+      if (businessUnitId || companyId) {
+        query = query.innerJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id));
+      }
+
+      if (companyId && typeof companyId === 'string') {
+        query = query.where(eq(businessUnits.companyId, companyId));
+      }
+
+      if (businessUnitId && typeof businessUnitId === 'string') {
+        query = query.where(eq(processes.businessUnitId, businessUnitId));
+      }
+
+      if (processIds) {
+        const processIdsArray = Array.isArray(processIds) ? processIds : [processIds];
+        const validProcessIds = processIdsArray.filter((id): id is string => typeof id === 'string');
+        if (validProcessIds.length > 0) {
+          query = query.where(inArray(processes.id, validProcessIds));
+        }
+      }
+    }
+
+    const results = await query.orderBy(desc(painPoints.createdAt));
 
     const painPointIds = results.map((pp) => pp.id);
     const processLinks = painPointIds.length > 0
