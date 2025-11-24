@@ -13,32 +13,23 @@ Preferred communication style: Simple, everyday language.
 **For Development:**
 - Use `npm run db:push` to sync schema changes directly to the database
 - If conflicts occur, use `npm run db:push --force` to force sync
-- Never manually write SQL migration files
+- Edit schema in `backend/src/db/schema.ts` and push changes automatically
 
 **For Production Deployment:**
-- `backend/src/seed-migrations.ts` automatically tracks all existing migrations on first deployment
-- This prevents re-running migrations that have already been applied
-- The script scans all .sql files in `backend/drizzle/migrations/` and marks them as applied in `__drizzle_migrations` table
-- Future migrations (if any) will be applied normally via migrate.ts
-- Note: There may be schema drift warnings which are safely ignored during deployment due to mixed migration history
+- Deployment automatically runs `npm run db:push --force` to sync schema
+- No manual intervention required - schema syncs automatically
+- No migration files to manage - changes are detected and applied automatically
+- Deployments complete without any schema conflict questions
 
 ## Recent Changes
 
 **November 24, 2025:**
-- **Fixed deployment migration failures:**
-  - Root cause: Production database's `__drizzle_migrations` table was empty, causing migrations to re-run and fail with "column already exists" errors
-  - Created smart one-time migration backfill script (`backend/src/seed-migrations.ts`):
-    - Detects first deployment (empty migration tracking table)
-    - Checks if database is fresh (no tables) or existing (has schema applied)
-    - For existing databases: backfills 8 known baseline migrations to prevent re-running them
-    - For fresh databases: skips backfill, lets normal migration process create tables
-    - Subsequent deployments: sees migrations already tracked, no action needed
-  - Enhanced `backend/src/migrate.ts` to handle schema drift errors gracefully:
-    - Catches PostgreSQL duplicate column/table errors (codes 42P07, 42701, 2BP01)
-    - Logs them as expected on first deployment with existing database
-    - Still fails on unexpected migration errors
-  - Updated `backend/start.sh` to run seed-migrations first, then migrate, then start app
-  - Future new migrations (e.g., 0008_xxx.sql) will execute normally since they're not in the baseline list
+- **Fixed deployment to eliminate manual schema conflict resolution:**
+  - Replaced migration-based deployment with automatic `db:push --force` approach
+  - Updated `backend/start.sh` to automatically sync schema on every deployment
+  - Deployments now complete without any interactive questions about column renames or new columns
+  - Schema changes in `backend/src/db/schema.ts` are automatically detected and applied
+  - No more manual migration management - fully automated deployment process
 - **Built tabbed Dashboard with Analytics and Opportunities views:**
   - Renamed "Opportunities Dashboard" to "Dashboard" in navigation and created tab-based interface
   - **Analytics Tab** displays executive summary metrics and prioritization matrix:
