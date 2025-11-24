@@ -385,9 +385,26 @@ export default function OpportunitiesDashboard() {
   };
 
   const allPainPoints = useQuery<PainPoint[]>({
-    queryKey: ["allPainPoints"],
+    queryKey: ["allPainPoints", selectedCompanyId, selectedBusinessUnitId, selectedProcessId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/pain-points`);
+      const params = new URLSearchParams();
+      
+      if (selectedCompanyId) {
+        params.append('companyId', selectedCompanyId);
+      }
+      
+      if (selectedBusinessUnitId) {
+        params.append('businessUnitId', selectedBusinessUnitId);
+      }
+      
+      if (selectedProcessId) {
+        params.append('processIds', selectedProcessId);
+      }
+      
+      const queryString = params.toString();
+      const url = `${API_URL}/api/pain-points${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await axios.get(url);
       return response.data;
     }
   });
