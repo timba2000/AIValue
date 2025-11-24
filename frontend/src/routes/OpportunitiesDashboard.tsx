@@ -148,6 +148,7 @@ export default function OpportunitiesDashboard() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
       setLinkModalOpen(false);
       resetLinkForm();
     }
@@ -172,6 +173,7 @@ export default function OpportunitiesDashboard() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
       setLinkModalOpen(false);
       resetLinkForm();
     }
@@ -186,6 +188,7 @@ export default function OpportunitiesDashboard() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
       queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
     }
   });
 
@@ -379,23 +382,12 @@ export default function OpportunitiesDashboard() {
     }
   });
 
-  const allPainPointLinks = useQuery({
+  const allPainPointLinks = useQuery<Record<string, number>>({
     queryKey: ["allPainPointLinksStats"],
     queryFn: async () => {
-      if (!allPainPoints.data) return {};
-      const linksByPainPoint: Record<string, number> = {};
-      
-      for (const pp of allPainPoints.data) {
-        try {
-          const response = await axios.get(`${API_URL}/api/pain-points/${pp.id}/links`);
-          linksByPainPoint[pp.id] = response.data.length;
-        } catch (error) {
-          linksByPainPoint[pp.id] = 0;
-        }
-      }
-      return linksByPainPoint;
-    },
-    enabled: !!allPainPoints.data && allPainPoints.data.length > 0
+      const response = await axios.get(`${API_URL}/api/pain-point-links/stats`);
+      return response.data;
+    }
   });
 
   const painPointsWithLinksCount = Object.values(allPainPointLinks.data || {}).filter(count => count > 0).length;

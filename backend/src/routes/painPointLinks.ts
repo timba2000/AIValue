@@ -1,9 +1,31 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
 import { painPointUseCases, painPoints, useCases, processPainPoints } from "../db/schema.js";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 const router = Router();
+
+router.get("/pain-point-links/stats", async (_req, res) => {
+  try {
+    const stats = await db
+      .select({
+        painPointId: painPointUseCases.painPointId,
+        linkCount: sql<number>`count(*)::int`
+      })
+      .from(painPointUseCases)
+      .groupBy(painPointUseCases.painPointId);
+
+    const statsMap = stats.reduce((acc, stat) => {
+      acc[stat.painPointId] = Number(stat.linkCount);
+      return acc;
+    }, {} as Record<string, number>);
+
+    res.json(statsMap);
+  } catch (error) {
+    console.error("Failed to fetch pain point link stats", error);
+    res.status(500).json({ message: "Failed to fetch pain point link stats" });
+  }
+});
 
 router.get("/pain-points/:painPointId/links", async (req, res) => {
   try {
