@@ -450,9 +450,19 @@ export default function OpportunitiesDashboard() {
 
   const potentialHoursSaved = Math.round(
     (() => {
+      // Create a set of pain point IDs from the filtered pain points
+      const filteredPainPointIds = new Set(
+        (allPainPoints.data || []).map(pp => pp.id)
+      );
+      
+      // Filter links to only include those for filtered pain points
+      const filteredLinks = allLinks.filter(link => 
+        filteredPainPointIds.has(link.painPointId)
+      );
+      
       const painPointSavings = new Map<string, { hours: number; totalPercentage: number }>();
       
-      allLinks.forEach((link) => {
+      filteredLinks.forEach((link) => {
         if (link.percentageSolved !== null && link.totalHoursPerMonth !== null) {
           const existing = painPointSavings.get(link.painPointId) || { hours: link.totalHoursPerMonth, totalPercentage: 0 };
           painPointSavings.set(link.painPointId, {
