@@ -33,12 +33,21 @@ router.get("/pain-point-links/all", async (_req, res) => {
       .select({
         painPointId: painPointUseCases.painPointId,
         useCaseId: painPointUseCases.useCaseId,
-        useCaseName: useCases.name
+        useCaseName: useCases.name,
+        percentageSolved: painPointUseCases.percentageSolved,
+        totalHoursPerMonth: painPoints.totalHoursPerMonth
       })
       .from(painPointUseCases)
-      .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id));
+      .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
+      .leftJoin(painPoints, eq(painPointUseCases.painPointId, painPoints.id));
 
-    res.json(allLinks);
+    const formatted = allLinks.map((link) => ({
+      ...link,
+      percentageSolved: link.percentageSolved !== null ? Number(link.percentageSolved) : null,
+      totalHoursPerMonth: link.totalHoursPerMonth !== null ? Number(link.totalHoursPerMonth) : null
+    }));
+
+    res.json(formatted);
   } catch (error) {
     console.error("Failed to fetch all pain point links", error);
     res.status(500).json({ message: "Failed to fetch all pain point links" });
