@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**November 24, 2025:**
+- **Built Opportunities Dashboard for linking use cases to pain points:**
+  - Created new page at `/dashboard` route with "Opportunities Dashboard" navigation menu item
+  - Implemented cascading filter system: Business → Business Unit → Process (downstream filters disabled until parent selected)
+  - Added pain point-to-use case linking functionality with percentage tracking (0-100% of pain point solved)
+  - Enhanced database schema with `percentage_solved` and `notes` columns in `pain_point_use_cases` junction table
+  - Created backend API endpoints (`/api/pain-points/:id/links`) for CRUD operations on pain point-use case relationships
+  - Implemented process-filtered pain points endpoint (`/api/processes/:processId/pain-points`) with proper join on `process_pain_points` table
+  - Built modal-based "Link Use Case" interface with use case selector, percentage input, and optional notes field
+  - Display linked use cases on pain point cards with badges showing percentage solved, edit, and remove actions
+  - Implemented real-time UI updates using React Query mutations with proper cache invalidation for both pain point links and parent pain points list
+  - Frontend guards pain point display until process is selected (shows "Select a process to view pain points" message)
+  - Task-oriented workflow: filter down to specific process, then link use cases to visible pain points with tracking
+
 **November 23, 2025:**
 - **Fixed deployment database migration conflicts:**
   - Created programmatic migration runner (`backend/src/migrate.ts`) using Drizzle's migrate function
