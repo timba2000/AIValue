@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/client.js";
-import { painPointUseCases, painPoints, useCases } from "../db/schema.js";
+import { painPointUseCases, painPoints, useCases, processPainPoints } from "../db/schema.js";
 import { eq, and, desc } from "drizzle-orm";
 
 const router = Router();
@@ -184,7 +184,13 @@ router.get("/processes/:processId/pain-points", async (req, res) => {
         effortSolving: painPoints.effortSolving,
         createdAt: painPoints.createdAt
       })
-      .from(painPoints);
+      .from(painPoints)
+      .innerJoin(
+        processPainPoints,
+        eq(painPoints.id, processPainPoints.painPointId)
+      )
+      .where(eq(processPainPoints.processId, processId))
+      .orderBy(desc(painPoints.createdAt));
 
     const formatted = painPointsData.map((pp) => ({
       ...pp,

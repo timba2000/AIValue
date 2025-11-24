@@ -3,7 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
-import DashboardHome from "@/routes/DashboardHome";
+import OpportunitiesDashboard from "@/routes/OpportunitiesDashboard";
 import PainPointList from "@/routes/PainPointList";
 import ProcessList from "@/routes/ProcessList";
 import UseCaseList from "@/routes/UseCaseList";
@@ -57,8 +57,8 @@ function App() {
       <main className={`flex-1 ${shouldShowSidebar ? "pt-24 md:pt-0 md:pl-64" : ""}`}>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <Switch>
-            <Route path="/" component={DashboardHome} />
-            <Route path="/dashboard" component={DashboardHome} />
+            <Route path="/" component={OpportunitiesDashboard} />
+            <Route path="/dashboard" component={OpportunitiesDashboard} />
             <Route path="/business" component={BusinessesPage} />
             <Route path="/businesses" component={BusinessesPage} />
             <Route path="/processes" component={ProcessList} />
