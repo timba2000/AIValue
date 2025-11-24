@@ -449,12 +449,27 @@ export default function OpportunitiesDashboard() {
   });
 
   const potentialHoursSaved = Math.round(
-    allLinks.reduce((sum, link) => {
-      if (link.percentageSolved !== null && link.totalHoursPerMonth !== null) {
-        return sum + (link.totalHoursPerMonth * (link.percentageSolved / 100));
-      }
-      return sum;
-    }, 0)
+    (() => {
+      const painPointSavings = new Map<string, { hours: number; totalPercentage: number }>();
+      
+      allLinks.forEach((link) => {
+        if (link.percentageSolved !== null && link.totalHoursPerMonth !== null) {
+          const existing = painPointSavings.get(link.painPointId) || { hours: link.totalHoursPerMonth, totalPercentage: 0 };
+          painPointSavings.set(link.painPointId, {
+            hours: link.totalHoursPerMonth,
+            totalPercentage: existing.totalPercentage + link.percentageSolved
+          });
+        }
+      });
+      
+      let totalSavings = 0;
+      painPointSavings.forEach(({ hours, totalPercentage }) => {
+        const cappedPercentage = Math.min(totalPercentage, 100);
+        totalSavings += hours * (cappedPercentage / 100);
+      });
+      
+      return totalSavings;
+    })()
   );
 
   const metricsData = {
