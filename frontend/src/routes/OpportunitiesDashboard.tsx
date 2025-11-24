@@ -58,8 +58,12 @@ interface PainPointLink {
 
 export default function OpportunitiesDashboard() {
   const queryClient = useQueryClient();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() => {
+    return localStorage.getItem("dashboard_selectedCompanyId") || "";
+  });
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>(() => {
+    return localStorage.getItem("dashboard_selectedBusinessUnitId") || "";
+  });
   const [selectedProcessId, setSelectedProcessId] = useState<string>("");
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPoint, setSelectedPainPoint] = useState<PainPoint | null>(null);
@@ -196,11 +200,14 @@ export default function OpportunitiesDashboard() {
     setSelectedCompanyId(companyId);
     setSelectedBusinessUnitId("");
     setSelectedProcessId("");
+    localStorage.setItem("dashboard_selectedCompanyId", companyId);
+    localStorage.removeItem("dashboard_selectedBusinessUnitId");
   };
 
   const handleBusinessUnitChange = (businessUnitId: string) => {
     setSelectedBusinessUnitId(businessUnitId);
     setSelectedProcessId("");
+    localStorage.setItem("dashboard_selectedBusinessUnitId", businessUnitId);
   };
 
   const handleOpenLinkModal = (painPoint: PainPoint) => {
@@ -420,20 +427,8 @@ export default function OpportunitiesDashboard() {
         </p>
       </div>
 
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <MetricsCards {...metricsData} />
-          <PrioritizationMatrix painPoints={matrixData} />
-        </TabsContent>
-
-        <TabsContent value="opportunities" className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -493,7 +488,19 @@ export default function OpportunitiesDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <Tabs defaultValue="analytics" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <MetricsCards {...metricsData} />
+          <PrioritizationMatrix painPoints={matrixData} />
+        </TabsContent>
+
+        <TabsContent value="opportunities" className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Pain Points
           {selectedProcessId &&
