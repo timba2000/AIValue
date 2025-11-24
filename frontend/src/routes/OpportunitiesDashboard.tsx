@@ -267,6 +267,7 @@ export default function OpportunitiesDashboard() {
 
   const PainPointCard = ({ painPoint }: { painPoint: PainPoint }) => {
     const { data: links = [] } = linksQuery(painPoint.id);
+    const hasLinks = links.length > 0;
 
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -275,6 +276,21 @@ export default function OpportunitiesDashboard() {
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
               <h3 className="font-semibold text-gray-900">{painPoint.statement}</h3>
+              {hasLinks ? (
+                <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-md flex items-center gap-1">
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Linked
+                </span>
+              ) : (
+                <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-md flex items-center gap-1">
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                  </svg>
+                  Not Linked
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-3 mb-3">
@@ -530,31 +546,49 @@ export default function OpportunitiesDashboard() {
 
         <TabsContent value="opportunities" className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Pain Points
-          {selectedProcessId &&
-            ` for ${processes.find((p) => p.id === selectedProcessId)?.name}`}
-        </h2>
-
-        {!selectedProcessId ? (
-          <div className="text-center py-12">
-            <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Select a process to view pain points</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Use the filters above to choose a business, business unit, and process
-            </p>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Pain Points
+            {selectedCompanyId && !selectedBusinessUnitId && !selectedProcessId &&
+              ` for ${companies.find((c) => c.id === selectedCompanyId)?.name}`}
+            {selectedBusinessUnitId && !selectedProcessId &&
+              ` for ${businessUnits.find((bu) => bu.id === selectedBusinessUnitId)?.name}`}
+            {selectedProcessId &&
+              ` for ${processes.find((p) => p.id === selectedProcessId)?.name}`}
+          </h2>
+          <div className="flex gap-2 text-xs">
+            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md flex items-center gap-1">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+              </svg>
+              Linked to Use Case
+            </span>
+            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-md flex items-center gap-1">
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+              </svg>
+              Not Yet Linked
+            </span>
           </div>
-        ) : painPoints.length === 0 ? (
+        </div>
+
+        {!allPainPoints.data || allPainPoints.data.length === 0 ? (
           <div className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No pain points found for this process</p>
+            <p className="text-gray-600">
+              {selectedCompanyId || selectedBusinessUnitId || selectedProcessId
+                ? "No pain points found for the selected filters"
+                : "No pain points found in the system"}
+            </p>
             <p className="text-sm text-gray-500 mt-1">
-              Link pain points to this process to start tracking opportunities
+              {selectedCompanyId || selectedBusinessUnitId || selectedProcessId
+                ? "Try adjusting your filters or add pain points to processes in this context"
+                : "Create pain points and link them to processes to get started"}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {painPoints.map((painPoint) => (
+            {allPainPoints.data.map((painPoint) => (
               <PainPointCard key={painPoint.id} painPoint={painPoint} />
             ))}
           </div>
