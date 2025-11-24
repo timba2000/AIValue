@@ -4,6 +4,9 @@ import axios from "axios";
 import { AlertTriangle, Link as LinkIcon, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+import { MetricsCards } from "@/components/dashboard/MetricsCards";
+import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -368,19 +371,77 @@ export default function OpportunitiesDashboard() {
     );
   };
 
+  const allPainPoints = useQuery<PainPoint[]>({
+    queryKey: ["allPainPoints"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/pain-points`);
+      return response.data;
+    }
+  });
+
+  const allPainPointLinks = useQuery({
+    queryKey: ["allPainPointLinksStats"],
+    queryFn: async () => {
+      if (!allPainPoints.data) return {};
+      const linksByPainPoint: Record<string, number> = {};
+      
+      for (const pp of allPainPoints.data) {
+        try {
+          const response = await axios.get(`${API_URL}/api/pain-points/${pp.id}/links`);
+          linksByPainPoint[pp.id] = response.data.length;
+        } catch (error) {
+          linksByPainPoint[pp.id] = 0;
+        }
+      }
+      return linksByPainPoint;
+    },
+    enabled: !!allPainPoints.data && allPainPoints.data.length > 0
+  });
+
+  const painPointsWithLinksCount = Object.values(allPainPointLinks.data || {}).filter(count => count > 0).length;
+
+  const metricsData = {
+    totalPainPoints: allPainPoints.data?.length || 0,
+    totalUseCases: useCases.length,
+    painPointsWithLinks: painPointsWithLinksCount,
+    totalHoursPerMonth: (allPainPoints.data || []).reduce((sum, pp) => sum + (pp.totalHoursPerMonth || 0), 0),
+    totalFTE: (allPainPoints.data || []).reduce((sum, pp) => sum + (pp.fteCount || 0), 0)
+  };
+
+  const matrixData = (allPainPoints.data || []).map(pp => ({
+    id: pp.id,
+    statement: pp.statement,
+    magnitude: pp.magnitude || 0,
+    effortSolving: pp.effortSolving || 0,
+    totalHoursPerMonth: pp.totalHoursPerMonth || 0,
+    hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0
+  }));
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
-          Opportunities Dashboard
+          Dashboard
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Link use cases to pain points and track solution coverage
+          Analytics and opportunity management
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
+      <Tabs defaultValue="analytics" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <MetricsCards {...metricsData} />
+          <PrioritizationMatrix painPoints={matrixData} />
+        </TabsContent>
+
+        <TabsContent value="opportunities" className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -471,6 +532,8 @@ export default function OpportunitiesDashboard() {
           </div>
         )}
       </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
         <DialogContent>
