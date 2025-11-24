@@ -45,7 +45,7 @@ export function MetricsCards({
     {
       label: "Total Hours/Month",
       value: totalHoursPerMonth.toLocaleString(),
-      subtitle: "hrs being addressed",
+      subtitle: "potential hours saved",
       icon: TrendingUp,
       color: "text-purple-600",
       bgColor: "bg-purple-50"

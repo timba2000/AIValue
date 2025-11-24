@@ -435,21 +435,35 @@ export default function OpportunitiesDashboard() {
 
   const painPointsWithLinksCount = Object.values(allPainPointLinks.data || {}).filter(count => count > 0).length;
 
-  const metricsData = {
-    totalPainPoints: allPainPoints.data?.length || 0,
-    totalUseCases: useCases.length,
-    painPointsWithLinks: painPointsWithLinksCount,
-    totalHoursPerMonth: Math.round((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.totalHoursPerMonth || 0), 0)),
-    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0))
-  };
-
-  const { data: allLinks = [] } = useQuery<Array<{ painPointId: string; useCaseName: string }>>({
+  const { data: allLinks = [] } = useQuery<Array<{ 
+    painPointId: string; 
+    useCaseName: string;
+    percentageSolved: number | null;
+    totalHoursPerMonth: number | null;
+  }>>({
     queryKey: ["allPainPointLinksDetails"],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/pain-point-links/all`);
       return response.data;
     }
   });
+
+  const potentialHoursSaved = Math.round(
+    allLinks.reduce((sum, link) => {
+      if (link.percentageSolved !== null && link.totalHoursPerMonth !== null) {
+        return sum + (link.totalHoursPerMonth * (link.percentageSolved / 100));
+      }
+      return sum;
+    }, 0)
+  );
+
+  const metricsData = {
+    totalPainPoints: allPainPoints.data?.length || 0,
+    totalUseCases: useCases.length,
+    painPointsWithLinks: painPointsWithLinksCount,
+    totalHoursPerMonth: potentialHoursSaved,
+    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0))
+  };
 
   const matrixData = (allPainPoints.data || []).map(pp => ({
     id: pp.id,
