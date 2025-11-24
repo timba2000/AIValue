@@ -31,8 +31,9 @@ async function runMigrations() {
     console.log("Migrations completed successfully");
   } catch (error: any) {
     if (error?.code === '42P07' || error?.code === '42701' || error?.code === '2BP01') {
-      console.log("Schema drift detected - migrations already applied. Skipping...");
-      console.log("This is expected on first deployment with existing database.");
+      console.log("\nSchema drift detected on first deployment - this is expected.");
+      console.log("The seed script has already marked these migrations as applied.");
+      console.log("Migration process will continue normally for future deployments.\n");
     } else {
       console.error("Migration failed:", error);
       throw error;

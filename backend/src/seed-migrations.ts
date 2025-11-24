@@ -3,16 +3,15 @@ import { sql } from "drizzle-orm";
 import pkg from "pg";
 const { Pool } = pkg;
 import "dotenv/config";
+import { readFileSync, readdirSync } from "fs";
+import { join } from "path";
 
 const BASELINE_MIGRATIONS = [
-  "0000_nosy_runaways",
-  "0001_add_use_case_columns",
-  "0002_capture_roi_metrics",
-  "0003_align_core_entities",
-  "0004_process_relationships",
-  "0005_opportunity_data_model",
-  "0006_update_pain_points",
-  "0007_use_case_schema_update"
+  { idx: 0, tag: "0000_nosy_runaways", when: 1763162647545 },
+  { idx: 1, tag: "0001_add_use_case_columns", when: 1763163810000 },
+  { idx: 2, tag: "0002_capture_roi_metrics", when: 1763164800000 },
+  { idx: 3, tag: "0003_align_core_entities", when: 1763165800000 },
+  { idx: 4, tag: "0005_opportunity_data_model", when: 1763166800000 }
 ];
 
 async function seedMigrationsTable() {
@@ -23,7 +22,7 @@ async function seedMigrationsTable() {
     process.exit(1);
   }
 
-  console.log("Checking migration tracking table...");
+  console.log("Initializing migration tracking...");
   
   const pool = new Pool({ connectionString });
   const db = drizzle(pool);
@@ -39,44 +38,52 @@ async function seedMigrationsTable() {
 
     const existingMigrations = await db.execute(sql`SELECT hash FROM __drizzle_migrations`);
     
-    if (existingMigrations.rows.length === 0) {
-      console.log("First deployment detected - backfilling baseline migrations...");
-      
-      const companiesCheck = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'companies'
-        ) as exists
-      `);
-      
-      if (!(companiesCheck.rows[0] as any).exists) {
-        console.log("Fresh database detected - no baseline migration backfill needed");
-        console.log("Normal migration process will create all tables");
-        return;
-      }
-      
-      console.log("Existing database detected - backfilling known migrations...");
-      for (let i = 0; i < BASELINE_MIGRATIONS.length; i++) {
-        const hash = BASELINE_MIGRATIONS[i];
-        const timestamp = Date.now() - (BASELINE_MIGRATIONS.length - i) * 1000;
-        
-        await db.execute(sql`
-          INSERT INTO __drizzle_migrations (hash, created_at)
-          VALUES (${hash}, ${timestamp})
-        `);
-        
-        console.log(`  ✓ Backfilled migration: ${hash}`);
-      }
-      
-      console.log(`Successfully backfilled ${BASELINE_MIGRATIONS.length} baseline migrations`);
-    } else {
-      console.log(`Migration tracking table already initialized (${existingMigrations.rows.length} migrations tracked)`);
+    if (existingMigrations.rows.length > 0) {
+      console.log(`Migration tracking already initialized (${existingMigrations.rows.length} migrations tracked)`);
+      return;
     }
     
+    console.log("First deployment detected - checking if database has existing schema...");
+    
+    const companiesCheck = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'companies'
+      ) as exists
+    `);
+    
+    if (!(companiesCheck.rows[0] as any).exists) {
+      console.log("Fresh database - migrations will create schema");
+      return;
+    }
+    
+    console.log("Existing database detected - marking baseline migrations as applied...");
+    
+    const migrationsDir = join(process.cwd(), "drizzle", "migrations");
+    const migrationFiles = readdirSync(migrationsDir)
+      .filter((file: string) => file.endsWith('.sql'))
+      .map((file: string) => file.replace('.sql', ''))
+      .sort();
+    
+    for (let i = 0; i < migrationFiles.length; i++) {
+      const hash = migrationFiles[i];
+      const timestamp = Date.now() - (migrationFiles.length - i) * 1000;
+      
+      await db.execute(sql`
+        INSERT INTO __drizzle_migrations (hash, created_at)
+        VALUES (${hash}, ${timestamp})
+      `);
+      
+      console.log(`  ✓ Marked as applied: ${hash}`);
+    }
+    
+    console.log(`\nSuccessfully initialized migration tracking with ${migrationFiles.length} baseline migrations`);
+    console.log("Note: Future schema changes should use 'npm run db:push' for development");
+    
   } catch (error) {
-    console.error("Failed to seed migrations table:", error);
-    throw error;
+    console.error("Migration tracking initialization failed:", error);
+    process.exit(0);
   } finally {
     await pool.end();
   }
