@@ -8,9 +8,37 @@ AIValue Use Case Tracker is a full-stack TypeScript application for managing bus
 
 Preferred communication style: Simple, everyday language.
 
+## Database Schema Management
+
+**For Development:**
+- Use `npm run db:push` to sync schema changes directly to the database
+- If conflicts occur, use `npm run db:push --force` to force sync
+- Never manually write SQL migration files
+
+**For Production Deployment:**
+- `backend/src/seed-migrations.ts` automatically tracks all existing migrations on first deployment
+- This prevents re-running migrations that have already been applied
+- The script scans all .sql files in `backend/drizzle/migrations/` and marks them as applied in `__drizzle_migrations` table
+- Future migrations (if any) will be applied normally via migrate.ts
+- Note: There may be schema drift warnings which are safely ignored during deployment due to mixed migration history
+
 ## Recent Changes
 
 **November 24, 2025:**
+- **Fixed deployment migration failures:**
+  - Root cause: Production database's `__drizzle_migrations` table was empty, causing migrations to re-run and fail with "column already exists" errors
+  - Created smart one-time migration backfill script (`backend/src/seed-migrations.ts`):
+    - Detects first deployment (empty migration tracking table)
+    - Checks if database is fresh (no tables) or existing (has schema applied)
+    - For existing databases: backfills 8 known baseline migrations to prevent re-running them
+    - For fresh databases: skips backfill, lets normal migration process create tables
+    - Subsequent deployments: sees migrations already tracked, no action needed
+  - Enhanced `backend/src/migrate.ts` to handle schema drift errors gracefully:
+    - Catches PostgreSQL duplicate column/table errors (codes 42P07, 42701, 2BP01)
+    - Logs them as expected on first deployment with existing database
+    - Still fails on unexpected migration errors
+  - Updated `backend/start.sh` to run seed-migrations first, then migrate, then start app
+  - Future new migrations (e.g., 0008_xxx.sql) will execute normally since they're not in the baseline list
 - **Built tabbed Dashboard with Analytics and Opportunities views:**
   - Renamed "Opportunities Dashboard" to "Dashboard" in navigation and created tab-based interface
   - **Analytics Tab** displays executive summary metrics and prioritization matrix:
