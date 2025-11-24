@@ -6,6 +6,7 @@ import companiesRouter from "./routes/companies.js";
 import businessUnitsRouter from "./routes/businessUnits.js";
 import processesRouter from "./routes/processes.js";
 import painPointsRouter from "./routes/painPoints.js";
+import painPointLinksRouter from "./routes/painPointLinks.js";
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -28,6 +29,7 @@ app.use("/api/companies", companiesRouter);
 app.use("/api/business-units", businessUnitsRouter);
 app.use("/api/processes", processesRouter);
 app.use("/api/pain-points", painPointsRouter);
+app.use("/api", painPointLinksRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);

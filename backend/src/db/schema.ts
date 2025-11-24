@@ -96,7 +96,11 @@ export const painPointUseCases = pgTable("pain_point_use_cases", {
     .references(() => painPoints.id, { onDelete: "cascade" }),
   useCaseId: uuid("use_case_id")
     .notNull()
-    .references(() => useCases.id, { onDelete: "cascade" })
+    .references(() => useCases.id, { onDelete: "cascade" }),
+  percentageSolved: numeric("percentage_solved"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
 export const processUseCases = pgTable("process_use_cases", {
