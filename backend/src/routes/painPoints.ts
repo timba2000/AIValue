@@ -19,54 +19,63 @@ router.get("/", async (req, res) => {
   try {
     const { companyId, businessUnitId, processIds } = req.query;
 
-    let query = db
-      .selectDistinct({
-        id: painPoints.id,
-        statement: painPoints.statement,
-        impactType: painPoints.impactType,
-        businessImpact: painPoints.businessImpact,
-        magnitude: painPoints.magnitude,
-        frequency: painPoints.frequency,
-        timePerUnit: painPoints.timePerUnit,
-        totalHoursPerMonth: painPoints.totalHoursPerMonth,
-        fteCount: painPoints.fteCount,
-        rootCause: painPoints.rootCause,
-        workarounds: painPoints.workarounds,
-        dependencies: painPoints.dependencies,
-        riskLevel: painPoints.riskLevel,
-        effortSolving: painPoints.effortSolving,
-        createdAt: painPoints.createdAt,
-        updatedAt: painPoints.updatedAt
-      })
-      .from(painPoints);
+    let results;
 
     if (companyId || businessUnitId || processIds) {
-      query = query
-        .innerJoin(processPainPoints, eq(painPoints.id, processPainPoints.painPointId))
-        .innerJoin(processes, eq(processPainPoints.processId, processes.id));
+      const processIdsArray = processIds 
+        ? (Array.isArray(processIds) ? processIds : [processIds]).filter((id): id is string => typeof id === 'string')
+        : [];
 
-      if (businessUnitId || companyId) {
-        query = query.innerJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id));
-      }
+      const query = db
+        .selectDistinct({
+          id: painPoints.id,
+          statement: painPoints.statement,
+          impactType: painPoints.impactType,
+          businessImpact: painPoints.businessImpact,
+          magnitude: painPoints.magnitude,
+          frequency: painPoints.frequency,
+          timePerUnit: painPoints.timePerUnit,
+          totalHoursPerMonth: painPoints.totalHoursPerMonth,
+          fteCount: painPoints.fteCount,
+          rootCause: painPoints.rootCause,
+          workarounds: painPoints.workarounds,
+          dependencies: painPoints.dependencies,
+          riskLevel: painPoints.riskLevel,
+          effortSolving: painPoints.effortSolving,
+          createdAt: painPoints.createdAt,
+          updatedAt: painPoints.updatedAt
+        })
+        .from(painPoints)
+        .innerJoin(processPainPoints, eq(painPoints.id, processPainPoints.painPointId))
+        .innerJoin(processes, eq(processPainPoints.processId, processes.id))
+        .innerJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id))
+        .$dynamic();
+
+      const conditions = [];
 
       if (companyId && typeof companyId === 'string') {
-        query = query.where(eq(businessUnits.companyId, companyId));
+        conditions.push(eq(businessUnits.companyId, companyId));
       }
 
       if (businessUnitId && typeof businessUnitId === 'string') {
-        query = query.where(eq(processes.businessUnitId, businessUnitId));
+        conditions.push(eq(processes.businessUnitId, businessUnitId));
       }
 
-      if (processIds) {
-        const processIdsArray = Array.isArray(processIds) ? processIds : [processIds];
-        const validProcessIds = processIdsArray.filter((id): id is string => typeof id === 'string');
-        if (validProcessIds.length > 0) {
-          query = query.where(inArray(processes.id, validProcessIds));
-        }
+      if (processIdsArray.length > 0) {
+        conditions.push(inArray(processes.id, processIdsArray));
       }
+
+      if (conditions.length > 0) {
+        results = await query.where(sql`${sql.join(conditions, sql` AND `)}`).orderBy(desc(painPoints.createdAt));
+      } else {
+        results = await query.orderBy(desc(painPoints.createdAt));
+      }
+    } else {
+      results = await db
+        .select()
+        .from(painPoints)
+        .orderBy(desc(painPoints.createdAt));
     }
-
-    const results = await query.orderBy(desc(painPoints.createdAt));
 
     const painPointIds = results.map((pp) => pp.id);
     const processLinks = painPointIds.length > 0
