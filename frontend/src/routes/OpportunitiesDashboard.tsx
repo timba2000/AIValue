@@ -434,7 +434,11 @@ export default function OpportunitiesDashboard() {
     }
   });
 
-  const painPointsWithLinksCount = Object.values(allPainPointLinks.data || {}).filter(count => count > 0).length;
+  // Filter to only count pain points that match current filters AND have links
+  const currentFilteredPainPointIds = new Set((allPainPoints.data || []).map(pp => pp.id));
+  const painPointsWithLinksCount = Object.entries(allPainPointLinks.data || {})
+    .filter(([id, count]) => currentFilteredPainPointIds.has(id) && count > 0)
+    .length;
 
   const { data: allLinks = [], isLoading: linksLoading } = useQuery<Array<{ 
     painPointId: string; 
