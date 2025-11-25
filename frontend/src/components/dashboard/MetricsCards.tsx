@@ -1,4 +1,4 @@
-import { TrendingUp, AlertTriangle, Target, Users } from "lucide-react";
+import { TrendingUp, AlertTriangle, Target, Users, Link2 } from "lucide-react";
 
 interface MetricsCardsProps {
   totalPainPoints: number;
@@ -6,6 +6,7 @@ interface MetricsCardsProps {
   painPointsWithLinks: number;
   totalHoursPerMonth: number;
   totalFTE: number;
+  totalProcessLinks: number;
 }
 
 export function MetricsCards({
@@ -13,7 +14,8 @@ export function MetricsCards({
   totalUseCases,
   painPointsWithLinks,
   totalHoursPerMonth,
-  totalFTE
+  totalFTE,
+  totalProcessLinks
 }: MetricsCardsProps) {
   const coveragePercentage = totalPainPoints > 0 
     ? Math.round((painPointsWithLinks / totalPainPoints) * 100) 
@@ -33,6 +35,14 @@ export function MetricsCards({
       icon: Target,
       color: "text-blue-600",
       bgColor: "bg-blue-50"
+    },
+    {
+      label: "Process Links",
+      value: totalProcessLinks,
+      subtitle: "processes affected",
+      icon: Link2,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50"
     },
     {
       label: "Coverage",
@@ -61,7 +71,7 @@ export function MetricsCards({
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {metrics.map((metric, index) => (
         <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">

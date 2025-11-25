@@ -40,6 +40,7 @@ interface PainPoint {
   fteCount: number | null;
   riskLevel: string | null;
   effortSolving: number | null;
+  processIds: string[];
 }
 
 interface UseCase {
@@ -492,12 +493,19 @@ export default function OpportunitiesDashboard() {
     })()
   );
 
+  // Count total process links (how many processes are affected by pain points)
+  const totalProcessLinks = (allPainPoints.data || []).reduce(
+    (sum, pp) => sum + (pp.processIds?.length || 0), 
+    0
+  );
+
   const metricsData = {
     totalPainPoints: allPainPoints.data?.length || 0,
     totalUseCases: useCases.length,
     painPointsWithLinks: painPointsWithLinksCount,
     totalHoursPerMonth: potentialHoursSaved,
-    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0))
+    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0)),
+    totalProcessLinks
   };
 
   const matrixData = (allPainPoints.data || []).map(pp => ({
