@@ -102,6 +102,17 @@ export default function OpportunitiesDashboard() {
     enabled: !!selectedBusinessUnitId
   });
 
+  // Get all processes for the company (used for filtering Process Links metric)
+  const businessUnitIds = new Set(businessUnits.map(bu => bu.id));
+  const { data: companyProcesses = [] } = useQuery<Process[]>({
+    queryKey: ["companyProcesses", selectedCompanyId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/processes`);
+      return response.data;
+    },
+    enabled: !!selectedCompanyId
+  });
+
   const { data: painPoints = [] } = useQuery<PainPoint[]>({
     queryKey: ["painPoints", selectedProcessId],
     queryFn: async () => {
@@ -493,9 +504,33 @@ export default function OpportunitiesDashboard() {
     })()
   );
 
+  // Build set of valid process IDs based on current filter
+  const validProcessIds = (() => {
+    if (selectedProcessId) {
+      // Specific process selected - only count that process
+      return new Set([selectedProcessId]);
+    } else if (selectedBusinessUnitId) {
+      // Specific business unit selected - only count processes in that business unit
+      return new Set(processes.map(p => p.id));
+    } else if (selectedCompanyId) {
+      // Company selected with "All Business Units" - count all processes in company's business units
+      const companyBuIds = new Set(businessUnits.map(bu => bu.id));
+      return new Set(companyProcesses.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
+    }
+    // No filter - count all
+    return null;
+  })();
+
   // Count total process links (how many processes are affected by pain points)
   const totalProcessLinks = (allPainPoints.data || []).reduce(
-    (sum, pp) => sum + (pp.processIds?.length || 0), 
+    (sum, pp) => {
+      const processIds = pp.processIds || [];
+      if (validProcessIds === null) {
+        return sum + processIds.length;
+      }
+      // Only count processIds that match the current filter
+      return sum + processIds.filter(id => validProcessIds.has(id)).length;
+    }, 
     0
   );
 
