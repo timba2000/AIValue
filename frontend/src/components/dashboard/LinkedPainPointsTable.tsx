@@ -5,6 +5,7 @@ interface LinkedPainPointData {
   totalHoursPerMonth: number | null;
   fteCount: number | null;
   percentageSolved: number | null;
+  expectedBenefits: number | null;
 }
 
 interface LinkedPainPointsTableProps {
@@ -65,8 +66,9 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {data.map((row, index) => {
-              const potentialHoursSaved = row.totalHoursPerMonth && row.percentageSolved
-                ? Math.round(row.totalHoursPerMonth * (row.percentageSolved / 100))
+              const addressedPercentage = row.expectedBenefits ?? 0;
+              const potentialHoursSaved = row.totalHoursPerMonth && addressedPercentage > 0
+                ? Math.round(row.totalHoursPerMonth * (addressedPercentage / 100))
                 : 0;
 
               return (
@@ -86,9 +88,9 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
                     {row.fteCount?.toLocaleString() || '-'}
                   </td>
                   <td className="px-4 py-4 text-sm text-right">
-                    {row.percentageSolved !== null ? (
+                    {row.expectedBenefits !== null ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {row.percentageSolved}%
+                        {row.expectedBenefits}%
                       </span>
                     ) : '-'}
                   </td>
@@ -104,8 +106,9 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
 
       <div className="md:hidden space-y-4">
         {data.map((row, index) => {
-          const potentialHoursSaved = row.totalHoursPerMonth && row.percentageSolved
-            ? Math.round(row.totalHoursPerMonth * (row.percentageSolved / 100))
+          const addressedPercentage = row.expectedBenefits ?? 0;
+          const potentialHoursSaved = row.totalHoursPerMonth && addressedPercentage > 0
+            ? Math.round(row.totalHoursPerMonth * (addressedPercentage / 100))
             : 0;
 
           return (
@@ -139,9 +142,9 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
                 <div>
                   <div className="text-xs font-medium text-gray-500 uppercase">% Addressed</div>
                   <div className="mt-1">
-                    {row.percentageSolved !== null ? (
+                    {row.expectedBenefits !== null ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {row.percentageSolved}%
+                        {row.expectedBenefits}%
                       </span>
                     ) : '-'}
                   </div>

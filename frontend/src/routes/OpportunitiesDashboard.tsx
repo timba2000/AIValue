@@ -440,6 +440,7 @@ export default function OpportunitiesDashboard() {
     painPointId: string; 
     useCaseName: string | null;
     percentageSolved: number | null;
+    expectedBenefits: number | null;
     totalHoursPerMonth: number | null;
     painPointStatement: string | null;
     fteCount: number | null;
@@ -466,11 +467,13 @@ export default function OpportunitiesDashboard() {
       const painPointSavings = new Map<string, { hours: number; totalPercentage: number }>();
       
       filteredLinks.forEach((link) => {
-        if (link.percentageSolved !== null && link.totalHoursPerMonth !== null) {
+        // Use expectedBenefits from the use case for the percentage calculation
+        const benefitsPercentage = link.expectedBenefits !== null ? link.expectedBenefits : 0;
+        if (link.totalHoursPerMonth !== null) {
           const existing = painPointSavings.get(link.painPointId) || { hours: link.totalHoursPerMonth, totalPercentage: 0 };
           painPointSavings.set(link.painPointId, {
             hours: link.totalHoursPerMonth,
-            totalPercentage: existing.totalPercentage + link.percentageSolved
+            totalPercentage: existing.totalPercentage + benefitsPercentage
           });
         }
       });
