@@ -82,7 +82,7 @@ export default function OpportunitiesDashboard() {
     }
   });
 
-  const { data: businessUnits = [] } = useQuery<BusinessUnit[]>({
+  const { data: businessUnits = [], isLoading: businessUnitsLoading } = useQuery<BusinessUnit[]>({
     queryKey: ["businessUnits", selectedCompanyId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/business-units`);
@@ -91,7 +91,7 @@ export default function OpportunitiesDashboard() {
     enabled: !!selectedCompanyId
   });
 
-  const { data: processes = [] } = useQuery<Process[]>({
+  const { data: processes = [], isLoading: processesLoading } = useQuery<Process[]>({
     queryKey: ["processes", selectedBusinessUnitId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/processes`);
@@ -103,8 +103,7 @@ export default function OpportunitiesDashboard() {
   });
 
   // Get all processes for the company (used for filtering Process Links metric)
-  const businessUnitIds = new Set(businessUnits.map(bu => bu.id));
-  const { data: companyProcesses = [] } = useQuery<Process[]>({
+  const { data: companyProcesses = [], isLoading: companyProcessesLoading } = useQuery<Process[]>({
     queryKey: ["companyProcesses", selectedCompanyId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/processes`);
@@ -446,12 +445,6 @@ export default function OpportunitiesDashboard() {
     }
   });
 
-  // Filter to only count pain points that match current filters AND have links
-  const currentFilteredPainPointIds = new Set((allPainPoints.data || []).map(pp => pp.id));
-  const painPointsWithLinksCount = Object.entries(allPainPointLinks.data || {})
-    .filter(([id, count]) => currentFilteredPainPointIds.has(id) && count > 0)
-    .length;
-
   const { data: allLinks = [], isLoading: linksLoading } = useQuery<Array<{ 
     painPointId: string; 
     useCaseName: string | null;
@@ -468,22 +461,25 @@ export default function OpportunitiesDashboard() {
     }
   });
 
+  // Single source of truth for filtered pain point IDs (used in multiple calculations)
+  const filteredPainPointIds = new Set((allPainPoints.data || []).map(pp => pp.id));
+
+  // Count pain points that match current filters AND have links
+  const painPointsWithLinksCount = Object.entries(allPainPointLinks.data || {})
+    .filter(([id, count]) => filteredPainPointIds.has(id) && count > 0)
+    .length;
+
+  // Filter links to only include those for filtered pain points
+  const filteredLinksData = allLinks.filter(link => 
+    filteredPainPointIds.has(link.painPointId)
+  );
+
+  // Calculate potential hours saved based on filtered data
   const potentialHoursSaved = Math.round(
     (() => {
-      // Create a set of pain point IDs from the filtered pain points
-      const filteredPainPointIds = new Set(
-        (allPainPoints.data || []).map(pp => pp.id)
-      );
-      
-      // Filter links to only include those for filtered pain points
-      const filteredLinks = allLinks.filter(link => 
-        filteredPainPointIds.has(link.painPointId)
-      );
-      
       const painPointSavings = new Map<string, { hours: number; totalPercentage: number }>();
       
-      filteredLinks.forEach((link) => {
-        // Use expectedBenefits from the use case for the percentage calculation
+      filteredLinksData.forEach((link) => {
         const benefitsPercentage = link.expectedBenefits !== null ? link.expectedBenefits : 0;
         if (link.totalHoursPerMonth !== null) {
           const existing = painPointSavings.get(link.painPointId) || { hours: link.totalHoursPerMonth, totalPercentage: 0 };
@@ -505,19 +501,22 @@ export default function OpportunitiesDashboard() {
   );
 
   // Build set of valid process IDs based on current filter
+  // Handle loading states to avoid showing incorrect counts
   const validProcessIds = (() => {
     if (selectedProcessId) {
-      // Specific process selected - only count that process
       return new Set([selectedProcessId]);
     } else if (selectedBusinessUnitId) {
-      // Specific business unit selected - only count processes in that business unit
+      // Wait for processes to load before filtering
+      if (processesLoading) return null;
+      // If loaded but empty, return empty Set (shows 0 correctly)
       return new Set(processes.map(p => p.id));
     } else if (selectedCompanyId) {
-      // Company selected with "All Business Units" - count all processes in company's business units
+      // Wait for both businessUnits and companyProcesses to load
+      if (businessUnitsLoading || companyProcessesLoading) return null;
+      // If loaded, filter processes by company's business units
       const companyBuIds = new Set(businessUnits.map(bu => bu.id));
       return new Set(companyProcesses.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
     }
-    // No filter - count all
     return null;
   })();
 
@@ -528,7 +527,6 @@ export default function OpportunitiesDashboard() {
       if (validProcessIds === null) {
         return sum + processIds.length;
       }
-      // Only count processIds that match the current filter
       return sum + processIds.filter(id => validProcessIds.has(id)).length;
     }, 
     0
@@ -552,14 +550,6 @@ export default function OpportunitiesDashboard() {
     hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
     linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
   }));
-
-  const filteredPainPointIds = new Set(
-    (allPainPoints.data || []).map(pp => pp.id)
-  );
-
-  const filteredLinksData = allLinks.filter(link => 
-    filteredPainPointIds.has(link.painPointId)
-  );
 
   return (
     <div className="space-y-6">
