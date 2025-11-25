@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
+import { LinkedPainPointsTable } from "@/components/dashboard/LinkedPainPointsTable";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -435,11 +436,13 @@ export default function OpportunitiesDashboard() {
 
   const painPointsWithLinksCount = Object.values(allPainPointLinks.data || {}).filter(count => count > 0).length;
 
-  const { data: allLinks = [] } = useQuery<Array<{ 
+  const { data: allLinks = [], isLoading: linksLoading } = useQuery<Array<{ 
     painPointId: string; 
-    useCaseName: string;
+    useCaseName: string | null;
     percentageSolved: number | null;
     totalHoursPerMonth: number | null;
+    painPointStatement: string | null;
+    fteCount: number | null;
   }>>({
     queryKey: ["allPainPointLinksDetails"],
     queryFn: async () => {
@@ -497,8 +500,16 @@ export default function OpportunitiesDashboard() {
     effortSolving: pp.effortSolving || 0,
     totalHoursPerMonth: pp.totalHoursPerMonth || 0,
     hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
-    linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName)
+    linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
   }));
+
+  const filteredPainPointIds = new Set(
+    (allPainPoints.data || []).map(pp => pp.id)
+  );
+
+  const filteredLinksData = allLinks.filter(link => 
+    filteredPainPointIds.has(link.painPointId)
+  );
 
   return (
     <div className="space-y-6">
@@ -581,6 +592,7 @@ export default function OpportunitiesDashboard() {
         <TabsContent value="analytics" className="space-y-6">
           <MetricsCards {...metricsData} />
           <PrioritizationMatrix painPoints={matrixData} />
+          <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
         </TabsContent>
 
         <TabsContent value="opportunities" className="space-y-6">

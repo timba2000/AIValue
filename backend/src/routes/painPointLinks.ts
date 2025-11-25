@@ -35,7 +35,9 @@ router.get("/pain-point-links/all", async (_req, res) => {
         useCaseId: painPointUseCases.useCaseId,
         useCaseName: useCases.name,
         percentageSolved: painPointUseCases.percentageSolved,
-        totalHoursPerMonth: painPoints.totalHoursPerMonth
+        totalHoursPerMonth: painPoints.totalHoursPerMonth,
+        painPointStatement: painPoints.statement,
+        fteCount: painPoints.fteCount
       })
       .from(painPointUseCases)
       .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
@@ -44,7 +46,8 @@ router.get("/pain-point-links/all", async (_req, res) => {
     const formatted = allLinks.map((link) => ({
       ...link,
       percentageSolved: link.percentageSolved !== null ? Number(link.percentageSolved) : null,
-      totalHoursPerMonth: link.totalHoursPerMonth !== null ? Number(link.totalHoursPerMonth) : null
+      totalHoursPerMonth: link.totalHoursPerMonth !== null ? Number(link.totalHoursPerMonth) : null,
+      fteCount: link.fteCount !== null ? Number(link.fteCount) : null
     }));
 
     res.json(formatted);
