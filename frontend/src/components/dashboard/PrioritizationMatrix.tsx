@@ -50,6 +50,21 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.fillStyle = "#f9fafb";
     ctx.fillRect(0, 0, width, height);
 
+    const midX = padding + chartWidth / 2;
+    const midY = padding + chartHeight / 2;
+
+    ctx.fillStyle = "rgba(34, 197, 94, 0.12)";
+    ctx.fillRect(padding, padding, chartWidth / 2, chartHeight / 2);
+
+    ctx.fillStyle = "rgba(59, 130, 246, 0.12)";
+    ctx.fillRect(midX, padding, chartWidth / 2, chartHeight / 2);
+
+    ctx.fillStyle = "rgba(251, 191, 36, 0.12)";
+    ctx.fillRect(padding, midY, chartWidth / 2, chartHeight / 2);
+
+    ctx.fillStyle = "rgba(239, 68, 68, 0.12)";
+    ctx.fillRect(midX, midY, chartWidth / 2, chartHeight / 2);
+
     ctx.strokeStyle = "#e5e7eb";
     ctx.lineWidth = 1;
 
@@ -67,6 +82,34 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
       ctx.lineTo(width - padding, y);
       ctx.stroke();
     }
+
+    ctx.strokeStyle = "#6b7280";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo(midX, padding);
+    ctx.lineTo(midX, height - padding);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(padding, midY);
+    ctx.lineTo(width - padding, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = "bold 14px sans-serif";
+    ctx.textAlign = "center";
+
+    ctx.fillStyle = "rgba(22, 163, 74, 0.9)";
+    ctx.fillText("Do Now", padding + chartWidth / 4, padding + 25);
+
+    ctx.fillStyle = "rgba(37, 99, 235, 0.9)";
+    ctx.fillText("Do Next", midX + chartWidth / 4, padding + 25);
+
+    ctx.fillStyle = "rgba(180, 130, 0, 0.9)";
+    ctx.fillText("Do if you have Time", padding + chartWidth / 4, midY + 25);
+
+    ctx.fillStyle = "rgba(220, 38, 38, 0.9)";
+    ctx.fillText("Don't do", midX + chartWidth / 4, midY + 25);
 
     ctx.strokeStyle = "#9ca3af";
     ctx.lineWidth = 2;
