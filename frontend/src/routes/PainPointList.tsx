@@ -312,7 +312,7 @@ export default function PainPointList() {
                       {pp.impactType && pp.impactType.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {pp.impactType.map((type) => (
-                            <span key={type} className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                            <span key={type} className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                               {IMPACT_TYPES.find((t) => t.value === type)?.label ?? type}
                             </span>
                           ))}
@@ -326,12 +326,12 @@ export default function PainPointList() {
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             pp.riskLevel === "critical"
-                              ? "bg-red-100 text-red-800"
+                              ? "bg-red-500/10 text-red-600 dark:text-red-400"
                               : pp.riskLevel === "high"
-                              ? "bg-orange-100 text-orange-800"
+                              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
                               : pp.riskLevel === "medium"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-green-100 text-green-800"
+                              ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                              : "bg-green-500/10 text-green-600 dark:text-green-400"
                           }`}
                         >
                           {RISK_LEVELS.find((r) => r.value === pp.riskLevel)?.label ?? pp.riskLevel}
@@ -352,7 +352,7 @@ export default function PainPointList() {
                       {linkStats[pp.id] && linkStats[pp.id] > 0 ? (
                         <button
                           onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs font-medium"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors text-xs font-medium"
                         >
                           <Check className="h-3.5 w-3.5" />
                           {linkStats[pp.id]} linked
@@ -360,7 +360,7 @@ export default function PainPointList() {
                       ) : (
                         <button
                           onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors text-xs font-medium border border-amber-500/20"
                         >
                           <AlertCircle className="h-3.5 w-3.5" />
                           Not linked
@@ -371,7 +371,7 @@ export default function PainPointList() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors"
                           title="Link solutions"
                         >
                           <Link2 className="h-3.5 w-3.5" />
@@ -379,13 +379,13 @@ export default function PainPointList() {
                         </button>
                         <button
                           onClick={() => handleEdit(pp)}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-xs px-2 py-1 hover:bg-blue-50 rounded transition-colors"
+                          className="text-primary hover:text-primary/80 font-medium text-xs px-2 py-1 hover:bg-primary/10 rounded-lg transition-colors"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(pp.id)}
-                          className="text-red-600 hover:text-red-800 font-medium text-xs px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                          className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium text-xs px-2 py-1 hover:bg-red-500/10 rounded-lg transition-colors"
                         >
                           Delete
                         </button>

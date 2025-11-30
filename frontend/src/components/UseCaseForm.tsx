@@ -182,7 +182,7 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
                       type="checkbox"
                       checked={formState.dataRequirements?.includes(option) ?? false}
                       onChange={() => handleDataRequirementToggle(option)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                     />
                     <span className="text-sm">{option}</span>
                   </label>

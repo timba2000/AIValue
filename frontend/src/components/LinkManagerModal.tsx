@@ -220,10 +220,10 @@ export function LinkManagerModal({
 
   const getRiskColor = (risk: string | null) => {
     switch (risk?.toLowerCase()) {
-      case "critical": return "bg-red-100 text-red-700 border-red-200";
-      case "high": return "bg-orange-100 text-orange-700 border-orange-200";
-      case "medium": return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "low": return "bg-green-100 text-green-700 border-green-200";
+      case "critical": return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+      case "high": return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20";
+      case "medium": return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
+      case "low": return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20";
       default: return "bg-accent text-muted-foreground border-border";
     }
   };
@@ -242,7 +242,7 @@ export function LinkManagerModal({
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-blue-600" />
+            <Link2 className="h-5 w-5 text-primary" />
             {mode === "pain-point" ? "Link Solutions" : "Link Pain Points"}
           </DialogTitle>
           <div className="mt-2 p-3 bg-primary/10 rounded-xl border border-primary/20">
@@ -295,7 +295,7 @@ export function LinkManagerModal({
                             </p>
                             {link?.percentageSolved && (
                               <div className="mt-1 flex items-center gap-2">
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                                   {link.percentageSolved}% solved
                                 </span>
                               </div>
@@ -341,7 +341,7 @@ export function LinkManagerModal({
                                     </span>
                                   )}
                                   {(item as UseCase).estimatedDeliveryTime && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center gap-1">
                                       <Clock className="h-3 w-3" />
                                       {(item as UseCase).estimatedDeliveryTime}
                                     </span>
@@ -350,7 +350,7 @@ export function LinkManagerModal({
                               ) : (
                                 <>
                                   {(item as PainPoint).totalHoursPerMonth && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
                                       <Clock className="h-3 w-3" />
                                       {parseFloat((item as PainPoint).totalHoursPerMonth!).toFixed(0)} hrs/month
                                     </span>
@@ -362,7 +362,7 @@ export function LinkManagerModal({
                                     </span>
                                   )}
                                   {(item as PainPoint).magnitude && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                       <Zap className="h-3 w-3" />
                                       Impact: {(item as PainPoint).magnitude}/10
                                     </span>
@@ -416,7 +416,7 @@ export function LinkManagerModal({
                     ) : (
                       <>
                         {(selectedItem as PainPoint).totalHoursPerMonth && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                          <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                             {parseFloat((selectedItem as PainPoint).totalHoursPerMonth!).toFixed(0)} hrs/month
                           </span>
                         )}
@@ -432,22 +432,22 @@ export function LinkManagerModal({
 
                 <div className="space-y-4">
                   {mode === "pain-point" && totalAllocatedPercentage > 0 && (
-                    <div className={`p-3 border rounded-lg ${isOverAllocated ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <div className={`p-3 border rounded-xl ${isOverAllocated ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                        <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
                           {isOverAllocated ? 'Over-Allocated!' : 'Current Coverage'}
                         </span>
-                        <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                        <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
                           {totalAllocatedPercentage}% allocated
                         </span>
                       </div>
-                      <div className={`w-full rounded-full h-2.5 ${isOverAllocated ? 'bg-red-200' : 'bg-amber-200'}`}>
+                      <div className={`w-full rounded-full h-2.5 ${isOverAllocated ? 'bg-red-500/20' : 'bg-amber-500/20'}`}>
                         <div 
                           className={`h-2.5 rounded-full transition-all ${isOverAllocated ? 'bg-red-500' : 'bg-amber-500'}`}
                           style={{ width: `${Math.min(totalAllocatedPercentage, 100)}%` }}
                         />
                       </div>
-                      <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-700' : 'text-amber-700'}`}>
+                      <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
                         {isOverAllocated
                           ? `This pain point exceeds 100% coverage by ${totalAllocatedPercentage - 100}%. Please reduce existing allocations.`
                           : remainingPercentage > 0 
@@ -523,7 +523,7 @@ export function LinkManagerModal({
               <Button 
                 onClick={handleCreateLink}
                 disabled={createLinkMutation.isPending || !canCreateLink}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="gradient-bg text-white"
               >
                 {createLinkMutation.isPending ? (
                   "Linking..."
