@@ -7,7 +7,7 @@ const navItems = [
   { label: "Businesses", href: "/businesses", icon: Briefcase },
   { label: "Processes", href: "/processes", icon: Workflow },
   { label: "Pain Points", href: "/pain-points", icon: AlertTriangle },
-  { label: "Use Cases", href: "/use-cases", icon: Lightbulb }
+  { label: "Solutions", href: "/use-cases", icon: Lightbulb }
 ];
 
 interface SidebarProps {

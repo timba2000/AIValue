@@ -102,7 +102,7 @@ export function CompanyModal({ open, onOpenChange, onSubmit, initialCompany }: C
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="company-name">Company Name</Label>
+            <Label htmlFor="company-name">Company Name <span className="text-red-500">*</span></Label>
             <Input
               id="company-name"
               value={name}

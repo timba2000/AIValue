@@ -52,9 +52,9 @@ export function UseCaseList({
 
   return (
     <div className="space-y-4">
-        {isLoading ? <p className="text-sm text-muted-foreground">Loading use cases...</p> : null}
+        {isLoading ? <p className="text-sm text-muted-foreground">Loading solutions...</p> : null}
         {filtered.length === 0 && !isLoading ? (
-          <p className="text-sm text-muted-foreground">No use cases match the current filters.</p>
+          <p className="text-sm text-muted-foreground">No solutions match the current filters.</p>
         ) : null}
 
         {filtered.length > 0 && !isLoading ? (

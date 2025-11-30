@@ -112,7 +112,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.fillStyle = "#374151";
     ctx.font = "12px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("Has Linked Use Cases", width - 135, legendY + 4);
+    ctx.fillText("Has Linked Solutions", width - 135, legendY + 4);
 
     ctx.fillStyle = "rgba(239, 68, 68, 0.6)";
     ctx.strokeStyle = "rgba(239, 68, 68, 1)";
@@ -122,7 +122,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.stroke();
 
     ctx.fillStyle = "#374151";
-    ctx.fillText("No Linked Use Cases", width - 135, legendY + 29);
+    ctx.fillText("No Linked Solutions", width - 135, legendY + 29);
 
   }, [painPoints]);
 
@@ -212,7 +212,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
                 <div>Hours/Month: {Math.round(tooltip.point.totalHoursPerMonth)}</div>
                 {tooltip.point.linkedUseCases.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-gray-700">
-                    <div className="font-semibold mb-1">Linked Use Cases:</div>
+                    <div className="font-semibold mb-1">Linked Solutions:</div>
                     {tooltip.point.linkedUseCases.map((useCase, idx) => (
                       <div key={idx} className="text-blue-300">• {useCase}</div>
                     ))}

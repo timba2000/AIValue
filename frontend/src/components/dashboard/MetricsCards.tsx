@@ -30,7 +30,7 @@ export function MetricsCards({
       bgColor: "bg-orange-50"
     },
     {
-      label: "Total Use Cases",
+      label: "Total Solutions",
       value: totalUseCases,
       icon: Target,
       color: "text-blue-600",

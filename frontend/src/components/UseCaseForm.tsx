@@ -120,36 +120,36 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle>{selectedUseCase ? "Edit use case" : "Create a new use case"}</CardTitle>
+        <CardTitle>{selectedUseCase ? "Edit solution" : "Create a new solution"}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
             <Input
               id="name"
               value={formState.name}
               onChange={(event) => handleChange("name", event.target.value)}
-              placeholder="Summarize the use case"
+              placeholder="Summarize the solution"
             />
             {errors.name ? <p className="text-sm text-destructive">{errors.name}</p> : null}
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="problemToSolve">Problem to solve</Label>
+              <Label htmlFor="problemToSolve">Problem to solve <span className="text-red-500">*</span></Label>
               <Textarea
                 id="problemToSolve"
                 value={formState.problemToSolve}
                 onChange={(event) => handleChange("problemToSolve", event.target.value)}
-                placeholder="What challenge does this use case address?"
+                placeholder="What challenge does this solution address?"
               />
               {errors.problemToSolve ? (
                 <p className="text-sm text-destructive">{errors.problemToSolve}</p>
               ) : null}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="solutionOverview">Solution overview</Label>
+              <Label htmlFor="solutionOverview">Solution overview <span className="text-red-500">*</span></Label>
               <Textarea
                 id="solutionOverview"
                 value={formState.solutionOverview}
@@ -221,7 +221,7 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="complexity">Complexity</Label>
+              <Label htmlFor="complexity">Complexity <span className="text-red-500">*</span></Label>
               <select
                 id="complexity"
                 value={formState.complexity}
@@ -293,7 +293,7 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
 
           <div className="flex justify-end gap-3">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : selectedUseCase ? "Update use case" : "Create use case"}
+              {isSubmitting ? "Saving..." : selectedUseCase ? "Update solution" : "Create solution"}
             </Button>
           </div>
         </form>

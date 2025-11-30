@@ -220,7 +220,7 @@ export function LinkManagerModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="h-5 w-5 text-blue-600" />
-            {mode === "pain-point" ? "Link Use Cases" : "Link Pain Points"}
+            {mode === "pain-point" ? "Link Solutions" : "Link Pain Points"}
           </DialogTitle>
           <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
             <p className="text-sm text-gray-600">Linking to:</p>
@@ -234,7 +234,7 @@ export function LinkManagerModal({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder={`Search ${mode === "pain-point" ? "use cases" : "pain points"}...`}
+                placeholder={`Search ${mode === "pain-point" ? "solutions" : "pain points"}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -361,7 +361,7 @@ export function LinkManagerModal({
               {unlinkedItems.length === 0 && linkedItems.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Link2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No {mode === "pain-point" ? "use cases" : "pain points"} found</p>
+                  <p>No {mode === "pain-point" ? "solutions" : "pain points"} found</p>
                 </div>
               )}
             </div>
@@ -372,7 +372,7 @@ export function LinkManagerModal({
               <div className="space-y-4">
                 <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
                   <h4 className="text-sm font-medium text-gray-500 mb-1">
-                    {mode === "pain-point" ? "Use Case" : "Pain Point"}
+                    {mode === "pain-point" ? "Solution" : "Pain Point"}
                   </h4>
                   <p className="font-medium text-gray-900">
                     {mode === "pain-point" 
@@ -428,7 +428,7 @@ export function LinkManagerModal({
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">%</span>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
-                      How much of this pain point does the use case address?
+                      How much of this pain point does the solution address?
                     </p>
                   </div>
 
@@ -440,7 +440,7 @@ export function LinkManagerModal({
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
-                      placeholder="Add context about how this use case addresses the pain point..."
+                      placeholder="Add context about how this solution addresses the pain point..."
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
                   </div>

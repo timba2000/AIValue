@@ -75,7 +75,7 @@ export function BusinessUnitModal({ open, onOpenChange, onSubmit, initialUnit, c
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="bu-name">Business Unit Name</Label>
+            <Label htmlFor="bu-name">Business Unit Name <span className="text-red-500">*</span></Label>
             <Input
               id="bu-name"
               value={name}

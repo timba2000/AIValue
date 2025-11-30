@@ -144,7 +144,7 @@ export default function UseCaseListPage() {
   });
 
   const handleDelete = (id: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this use case?");
+    const confirmed = window.confirm("Are you sure you want to delete this solution?");
     if (confirmed) {
       deleteMutation.mutate(id);
       if (selectedUseCase?.id === id) {
@@ -171,14 +171,14 @@ export default function UseCaseListPage() {
   };
 
   const headerSubtitle = useMemo(() => {
-    if (useCasesLoading) return "Loading use cases...";
+    if (useCasesLoading) return "Loading solutions...";
     if (contextFilteredUseCases.length === 0) {
       if (validProcessIds) {
-        return "No use cases match the current filter.";
+        return "No solutions match the current filter.";
       }
-      return "Create your first use case to get started.";
+      return "Create your first solution to get started.";
     }
-    return `${contextFilteredUseCases.length} use cases available`;
+    return `${contextFilteredUseCases.length} solutions available`;
   }, [contextFilteredUseCases.length, useCasesLoading, validProcessIds]);
 
   return (
@@ -186,12 +186,12 @@ export default function UseCaseListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Use cases</p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">AI Use Case Library</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Solutions</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Solutions Library</h1>
             <p className="text-sm text-gray-600">{headerSubtitle}</p>
           </div>
           <Button onClick={handleNewUseCase} className="shrink-0">
-            New Usecase
+            New Solution
           </Button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export default function UseCaseListPage() {
       <Dialog open={showForm} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedUseCase ? "Edit Use Case" : "Create New Use Case"}</DialogTitle>
+            <DialogTitle>{selectedUseCase ? "Edit Solution" : "Create New Solution"}</DialogTitle>
           </DialogHeader>
           <UseCaseForm
             selectedUseCase={selectedUseCase}

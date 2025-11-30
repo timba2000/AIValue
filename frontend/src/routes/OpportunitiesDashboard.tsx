@@ -330,7 +330,7 @@ export default function OpportunitiesDashboard() {
 
             {links.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Linked Use Cases:</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Linked Solutions:</h4>
                 <div className="space-y-2">
                   {links.map((link) => (
                     <div
@@ -379,7 +379,7 @@ export default function OpportunitiesDashboard() {
             className="w-full"
           >
             <LinkIcon className="h-4 w-4 mr-2" />
-            Link Use Case
+            Link Solution
           </Button>
         </div>
       </div>
@@ -567,7 +567,7 @@ export default function OpportunitiesDashboard() {
               <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
               </svg>
-              Linked to Use Case
+              Linked to Solution
             </span>
             <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-md flex items-center gap-1">
               <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -607,7 +607,7 @@ export default function OpportunitiesDashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingLink ? "Update" : "Link"} Use Case
+              {editingLink ? "Update" : "Link"} Solution
             </DialogTitle>
           </DialogHeader>
           {selectedPainPoint && (
@@ -621,7 +621,7 @@ export default function OpportunitiesDashboard() {
             {!editingLink && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Use Case
+                  Solution
                 </label>
                 <select
                   value={selectedUseCaseId}
@@ -629,7 +629,7 @@ export default function OpportunitiesDashboard() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select a use case...</option>
+                  <option value="">Select a solution...</option>
                   {useCases.map((useCase) => (
                     <option key={useCase.id} value={useCase.id}>
                       {useCase.name}

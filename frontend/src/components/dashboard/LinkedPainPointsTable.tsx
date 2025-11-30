@@ -16,7 +16,7 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Use Cases</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Solutions</h2>
         <div className="animate-pulse space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-12 bg-gray-100 rounded" />
@@ -29,15 +29,15 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
   if (data.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Use Cases</h2>
-        <p className="text-gray-500 text-center py-8">No linked pain points and use cases found</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Solutions</h2>
+        <p className="text-gray-500 text-center py-8">No linked pain points and solutions found</p>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Use Cases</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Linked Pain Points & Solutions</h2>
       
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -47,7 +47,7 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
                 Pain Point
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Use Case
+                Solution
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Hours/Month
@@ -120,7 +120,7 @@ export function LinkedPainPointsTable({ data, isLoading }: LinkedPainPointsTable
                 <div className="text-sm text-gray-900 mt-1">{row.painPointStatement || '-'}</div>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase">Use Case</div>
+                <div className="text-xs font-medium text-gray-500 uppercase">Solution</div>
                 <div className="text-sm text-gray-900 mt-1">{row.useCaseName || '-'}</div>
               </div>
               <div className="grid grid-cols-2 gap-4">

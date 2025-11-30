@@ -300,7 +300,7 @@ export default function PainPointList() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Risk Level</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact (1-10)</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Total Hrs/Month</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-700">Linked Use Cases</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700">Linked Solutions</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -372,7 +372,7 @@ export default function PainPointList() {
                         <button
                           onClick={() => handleOpenLinkModal(pp)}
                           className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                          title="Link use cases"
+                          title="Link solutions"
                         >
                           <Link2 className="h-3.5 w-3.5" />
                           Link

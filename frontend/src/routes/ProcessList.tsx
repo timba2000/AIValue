@@ -270,7 +270,7 @@ export default function ProcessList() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Processes</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Manage processes within each business unit and link them to pain points and use cases.
+              Manage processes within each business unit and link them to pain points and solutions.
             </p>
           </div>
           <Button onClick={openCreateForm} disabled={!selectedUnitId} className="sm:mt-0">
@@ -306,7 +306,7 @@ export default function ProcessList() {
                   <TableHead>Volume</TableHead>
                   <TableHead>FTE</TableHead>
                   <TableHead>Pain Points</TableHead>
-                  <TableHead>Use Cases</TableHead>
+                  <TableHead>Solutions</TableHead>
                   <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -471,10 +471,10 @@ export default function ProcessList() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Link Use Cases</p>
+                <p className="text-sm font-semibold">Link Solutions</p>
                 <div className="space-y-2 max-h-48 overflow-y-auto rounded border p-2">
                   {options.useCases.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No use cases available</p>
+                    <p className="text-sm text-muted-foreground">No solutions available</p>
                   ) : (
                     options.useCases.map((item: UseCaseOption) => (
                       <label key={item.id} className="flex items-center gap-2 text-sm">
