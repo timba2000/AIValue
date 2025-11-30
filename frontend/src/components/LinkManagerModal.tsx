@@ -95,6 +95,29 @@ export function LinkManagerModal({
     ));
   }, [existingLinks, mode]);
 
+  const totalAllocatedPercentage = useMemo(() => {
+    if (mode !== "pain-point") return 0;
+    return existingLinks.reduce((sum, link) => {
+      return sum + (link.percentageSolved ? Number(link.percentageSolved) : 0);
+    }, 0);
+  }, [existingLinks, mode]);
+
+  const remainingPercentage = Math.max(0, 100 - totalAllocatedPercentage);
+  const isOverAllocated = totalAllocatedPercentage > 100;
+
+  const isPercentageValid = useMemo(() => {
+    if (!percentageSolved) return true;
+    const value = Number(percentageSolved);
+    if (value < 0) return false;
+    return value <= remainingPercentage;
+  }, [percentageSolved, remainingPercentage]);
+
+  const canCreateLink = useMemo(() => {
+    if (!isPercentageValid) return false;
+    if (mode === "pain-point" && isOverAllocated) return false;
+    return true;
+  }, [isPercentageValid, mode, isOverAllocated]);
+
   const createLinkMutation = useMutation({
     mutationFn: async (data: { 
       painPointId: string; 
@@ -408,25 +431,66 @@ export function LinkManagerModal({
                 </div>
 
                 <div className="space-y-4">
+                  {mode === "pain-point" && totalAllocatedPercentage > 0 && (
+                    <div className={`p-3 border rounded-lg ${isOverAllocated ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                          {isOverAllocated ? 'Over-Allocated!' : 'Current Coverage'}
+                        </span>
+                        <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                          {totalAllocatedPercentage}% allocated
+                        </span>
+                      </div>
+                      <div className={`w-full rounded-full h-2.5 ${isOverAllocated ? 'bg-red-200' : 'bg-amber-200'}`}>
+                        <div 
+                          className={`h-2.5 rounded-full transition-all ${isOverAllocated ? 'bg-red-500' : 'bg-amber-500'}`}
+                          style={{ width: `${Math.min(totalAllocatedPercentage, 100)}%` }}
+                        />
+                      </div>
+                      <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-700' : 'text-amber-700'}`}>
+                        {isOverAllocated
+                          ? `This pain point exceeds 100% coverage by ${totalAllocatedPercentage - 100}%. Please reduce existing allocations.`
+                          : remainingPercentage > 0 
+                            ? `You can allocate up to ${remainingPercentage}% more to this pain point.`
+                            : "This pain point is fully addressed by existing solutions."}
+                      </p>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-blue-500" />
                         Percentage of Pain Point Solved
+                        {mode === "pain-point" && remainingPercentage < 100 && (
+                          <span className="text-xs font-normal text-gray-500">
+                            (max {remainingPercentage}% available)
+                          </span>
+                        )}
                       </div>
                     </label>
                     <div className="relative">
                       <input
                         type="number"
                         min="0"
-                        max="100"
+                        max={mode === "pain-point" ? remainingPercentage : 100}
                         value={percentageSolved}
                         onChange={(e) => setPercentageSolved(e.target.value)}
-                        placeholder="e.g., 80"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                        placeholder={mode === "pain-point" ? `e.g., ${Math.min(80, remainingPercentage)}` : "e.g., 80"}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent text-lg ${
+                          !isPercentageValid 
+                            ? "border-red-300 focus:ring-red-500 bg-red-50" 
+                            : "border-gray-200 focus:ring-blue-500"
+                        }`}
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">%</span>
                     </div>
+                    {!isPercentageValid && (
+                      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Cannot exceed {remainingPercentage}% (total would be over 100%)
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-gray-500">
                       How much of this pain point does the solution address?
                     </p>
@@ -458,7 +522,7 @@ export function LinkManagerModal({
               </Button>
               <Button 
                 onClick={handleCreateLink}
-                disabled={createLinkMutation.isPending}
+                disabled={createLinkMutation.isPending || !canCreateLink}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {createLinkMutation.isPending ? (

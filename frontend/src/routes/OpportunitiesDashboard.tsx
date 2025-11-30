@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { AlertTriangle, Link as LinkIcon, Pencil, Trash2 } from "lucide-react";
@@ -73,6 +73,38 @@ export default function OpportunitiesDashboard() {
   const [percentageSolved, setPercentageSolved] = useState("");
   const [notes, setNotes] = useState("");
   const [editingLink, setEditingLink] = useState<PainPointLink | null>(null);
+
+  const { data: selectedPainPointLinks = [] } = useQuery<PainPointLink[]>({
+    queryKey: ["painPointLinks", selectedPainPoint?.id],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/pain-points/${selectedPainPoint!.id}/links`);
+      return response.data;
+    },
+    enabled: !!selectedPainPoint?.id && linkModalOpen
+  });
+
+  const totalAllocatedPercentage = useMemo(() => {
+    return selectedPainPointLinks.reduce((sum, link) => {
+      if (editingLink && link.id === editingLink.id) return sum;
+      return sum + (link.percentageSolved ? Number(link.percentageSolved) : 0);
+    }, 0);
+  }, [selectedPainPointLinks, editingLink]);
+
+  const remainingPercentage = Math.max(0, 100 - totalAllocatedPercentage);
+  const isOverAllocated = totalAllocatedPercentage > 100;
+
+  const isPercentageValid = useMemo(() => {
+    if (!percentageSolved) return true;
+    const value = Number(percentageSolved);
+    if (value < 0) return false;
+    return value <= remainingPercentage;
+  }, [percentageSolved, remainingPercentage]);
+
+  const canSubmit = useMemo(() => {
+    if (!isPercentageValid) return false;
+    if (!editingLink && isOverAllocated) return false;
+    return true;
+  }, [isPercentageValid, editingLink, isOverAllocated]);
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies"],
@@ -687,19 +719,60 @@ export default function OpportunitiesDashboard() {
               </div>
             )}
 
+            {totalAllocatedPercentage > 0 && (
+              <div className={`p-3 border rounded-lg ${isOverAllocated ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                    {isOverAllocated ? 'Over-Allocated!' : 'Current Coverage'}
+                  </span>
+                  <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                    {totalAllocatedPercentage}% allocated
+                  </span>
+                </div>
+                <div className={`w-full rounded-full h-2 ${isOverAllocated ? 'bg-red-200' : 'bg-amber-200'}`}>
+                  <div 
+                    className={`h-2 rounded-full transition-all ${isOverAllocated ? 'bg-red-500' : 'bg-amber-500'}`}
+                    style={{ width: `${Math.min(totalAllocatedPercentage, 100)}%` }}
+                  />
+                </div>
+                <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-700' : 'text-amber-700'}`}>
+                  {isOverAllocated
+                    ? `This pain point exceeds 100% coverage by ${totalAllocatedPercentage - 100}%. Please reduce existing allocations.`
+                    : remainingPercentage > 0 
+                      ? `You can allocate up to ${remainingPercentage}% more to this pain point.`
+                      : "This pain point is fully addressed by existing solutions."}
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                % of Pain Point Solved (0-100)
+                % of Pain Point Solved
+                {remainingPercentage < 100 && (
+                  <span className="text-xs font-normal text-gray-500 ml-2">
+                    (max {remainingPercentage}% allowed)
+                  </span>
+                )}
               </label>
               <input
                 type="number"
                 min="0"
-                max="100"
+                max={remainingPercentage}
                 value={percentageSolved}
                 onChange={(e) => setPercentageSolved(e.target.value)}
-                placeholder="e.g., 80"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={`e.g., ${Math.min(80, remainingPercentage)}`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                  !isPercentageValid 
+                    ? "border-red-300 focus:ring-red-500 bg-red-50" 
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {!isPercentageValid && (
+                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Cannot exceed {remainingPercentage}%
+                </p>
+              )}
             </div>
 
             <div>
@@ -716,7 +789,11 @@ export default function OpportunitiesDashboard() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={!canSubmit}
+              >
                 {editingLink ? "Update Link" : "Create Link"}
               </Button>
               <Button
