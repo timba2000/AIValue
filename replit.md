@@ -113,3 +113,9 @@ Preferred communication style: Simple, everyday language.
 - Added theme toggle in sidebar with light/dark/system mode options
 - Enhanced animations and transitions throughout the application
 - Updated PrioritizationMatrix canvas to render appropriately in both themes
+- **Code Quality Improvements (Nov 2025):**
+  - Created shared API hooks (`useApiData.ts`) for companies, business units, and processes
+  - Refactored PainPointList, ProcessList, and BusinessesPage to use React Query consistently
+  - Removed all console.error statements from production code
+  - Added proper error handling with user-visible error messages
+  - Enhanced theme transitions with 200ms animations and reduced-motion support
