@@ -52,6 +52,29 @@ export default function UseCaseListPage() {
     }
   });
 
+  const { data: useCaseAvgSolved = {} } = useQuery<Record<string, number>>({
+    queryKey: ["useCaseAvgSolved"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/pain-point-links/all`);
+      const links = response.data as Array<{ useCaseId: string; percentageSolved: number | null }>;
+      const statsMap: Record<string, { sum: number; count: number }> = {};
+      links.forEach(link => {
+        if (link.useCaseId && link.percentageSolved !== null) {
+          if (!statsMap[link.useCaseId]) {
+            statsMap[link.useCaseId] = { sum: 0, count: 0 };
+          }
+          statsMap[link.useCaseId].sum += Number(link.percentageSolved);
+          statsMap[link.useCaseId].count += 1;
+        }
+      });
+      const avgStats: Record<string, number> = {};
+      Object.entries(statsMap).forEach(([id, { sum, count }]) => {
+        avgStats[id] = Math.round(sum / count);
+      });
+      return avgStats;
+    }
+  });
+
   const handleOpenLinkModal = (useCase: UseCase) => {
     setSelectedUseCaseForLink(useCase);
     setLinkModalOpen(true);
@@ -186,6 +209,7 @@ export default function UseCaseListPage() {
         onDelete={handleDelete}
         onLink={handleOpenLinkModal}
         linkStats={useCaseLinkStats}
+        avgSolvedStats={useCaseAvgSolved}
         isLoading={useCasesLoading}
       />
 

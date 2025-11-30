@@ -21,7 +21,6 @@ interface PainPoint {
 interface UseCase {
   id: string;
   name: string;
-  expectedBenefits: string | null;
   complexity: string | null;
   confidenceLevel: string | null;
   estimatedDeliveryTime: string | null;
@@ -313,12 +312,6 @@ export function LinkManagerModal({
                             <div className="mt-2 flex flex-wrap gap-2">
                               {mode === "pain-point" ? (
                                 <>
-                                  {(item as UseCase).expectedBenefits && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-1">
-                                      <TrendingUp className="h-3 w-3" />
-                                      {(item as UseCase).expectedBenefits}% benefit
-                                    </span>
-                                  )}
                                   {(item as UseCase).complexity && (
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${getComplexityColor((item as UseCase).complexity)}`}>
                                       {(item as UseCase).complexity} complexity
@@ -391,11 +384,6 @@ export function LinkManagerModal({
                   <div className="mt-3 flex flex-wrap gap-2">
                     {mode === "pain-point" ? (
                       <>
-                        {(selectedItem as UseCase).expectedBenefits && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                            Expected benefit: {(selectedItem as UseCase).expectedBenefits}%
-                          </span>
-                        )}
                         {(selectedItem as UseCase).complexity && (
                           <span className={`text-xs px-2 py-1 rounded-full ${getComplexityColor((selectedItem as UseCase).complexity)}`}>
                             {(selectedItem as UseCase).complexity} complexity
@@ -443,23 +431,6 @@ export function LinkManagerModal({
                       How much of this pain point does the use case address?
                     </p>
                   </div>
-
-                  {mode === "pain-point" && selectedItem && (selectedItem as UseCase).expectedBenefits && percentageSolved && (
-                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                      <div className="flex items-center gap-2 text-green-700">
-                        <TrendingUp className="h-5 w-5" />
-                        <span className="font-medium">Projected Impact</span>
-                      </div>
-                      <p className="mt-1 text-sm text-green-600">
-                        With {percentageSolved}% coverage and {(selectedItem as UseCase).expectedBenefits}% expected benefits, 
-                        this solution could achieve approximately{" "}
-                        <strong>
-                          {Math.round(Number(percentageSolved) * Number((selectedItem as UseCase).expectedBenefits) / 100)}%
-                        </strong>{" "}
-                        overall improvement.
-                      </p>
-                    </div>
-                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -11,7 +11,6 @@ export interface UseCase {
   solutionProvider: string | null;
   problemToSolve: string;
   solutionOverview: string;
-  expectedBenefits: number | null;
   complexity: ComplexityLevel;
   dataRequirements: DataRequirement[] | null;
   systemsImpacted: string | null;

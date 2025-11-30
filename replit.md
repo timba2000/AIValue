@@ -38,7 +38,8 @@ Preferred communication style: Simple, everyday language.
 - Pain points can be linked to use cases with percentage solved and notes
 - Link management available from Pain Points page, Use Cases page, and Dashboard
 - Visual indicators show linked/not linked status with color-coded badges
-- Impact calculations show projected benefits based on expected benefits and percentage solved
+- Impact calculations use percentageSolved from links (set when linking) to calculate potential hours saved
+- Use Cases table shows average % solved across all linked pain points
 
 ### Backend Architecture
 

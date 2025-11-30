@@ -24,7 +24,6 @@ router.get("/", async (_req, res) => {
         solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
-        expectedBenefits: useCases.expectedBenefits,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
@@ -40,12 +39,7 @@ router.get("/", async (_req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .orderBy(desc(useCases.createdAt));
 
-    const formatted = results.map((r) => ({
-      ...r,
-      expectedBenefits: r.expectedBenefits !== null ? Number(r.expectedBenefits) : null
-    }));
-
-    res.json(formatted);
+    res.json(results);
   } catch (error) {
     console.error("Failed to fetch use cases", error);
     res.status(500).json({ message: "Failed to fetch use cases" });
@@ -58,7 +52,6 @@ router.post("/", async (req, res) => {
     solutionProvider,
     problemToSolve,
     solutionOverview,
-    expectedBenefits,
     complexity,
     dataRequirements,
     systemsImpacted,
@@ -79,18 +72,6 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let benefitsValue: number | null = null;
-
-  try {
-    benefitsValue = parseOptionalNumber(expectedBenefits, "expectedBenefits");
-    if (benefitsValue !== null && (benefitsValue < 0 || benefitsValue > 100)) {
-      return res.status(400).json({ message: "expectedBenefits must be between 0 and 100" });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid numeric value";
-    return res.status(400).json({ message });
-  }
-
   try {
     const [created] = await db
       .insert(useCases)
@@ -99,7 +80,6 @@ router.post("/", async (req, res) => {
         solutionProvider: solutionProvider || null,
         problemToSolve,
         solutionOverview,
-        expectedBenefits: benefitsValue !== null ? String(benefitsValue) : null,
         complexity,
         dataRequirements: dataRequirements || null,
         systemsImpacted: systemsImpacted || null,
@@ -118,7 +98,6 @@ router.post("/", async (req, res) => {
         solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
-        expectedBenefits: useCases.expectedBenefits,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
@@ -134,10 +113,7 @@ router.post("/", async (req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .where(eq(useCases.id, created.id));
 
-    res.status(201).json({
-      ...withProcess,
-      expectedBenefits: withProcess.expectedBenefits !== null ? Number(withProcess.expectedBenefits) : null
-    });
+    res.status(201).json(withProcess);
   } catch (error) {
     console.error("Failed to create use case", error);
     res.status(500).json({ message: "Failed to create use case" });
@@ -151,7 +127,6 @@ router.put("/:id", async (req, res) => {
     solutionProvider,
     problemToSolve,
     solutionOverview,
-    expectedBenefits,
     complexity,
     dataRequirements,
     systemsImpacted,
@@ -172,18 +147,6 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let benefitsValue: number | null = null;
-
-  try {
-    benefitsValue = parseOptionalNumber(expectedBenefits, "expectedBenefits");
-    if (benefitsValue !== null && (benefitsValue < 0 || benefitsValue > 100)) {
-      return res.status(400).json({ message: "expectedBenefits must be between 0 and 100" });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid numeric value";
-    return res.status(400).json({ message });
-  }
-
   try {
     const [existing] = await db.select().from(useCases).where(eq(useCases.id, id));
 
@@ -198,7 +161,6 @@ router.put("/:id", async (req, res) => {
         solutionProvider: solutionProvider || null,
         problemToSolve,
         solutionOverview,
-        expectedBenefits: benefitsValue !== null ? String(benefitsValue) : null,
         complexity,
         dataRequirements: dataRequirements || null,
         systemsImpacted: systemsImpacted || null,
@@ -217,7 +179,6 @@ router.put("/:id", async (req, res) => {
         solutionProvider: useCases.solutionProvider,
         problemToSolve: useCases.problemToSolve,
         solutionOverview: useCases.solutionOverview,
-        expectedBenefits: useCases.expectedBenefits,
         complexity: useCases.complexity,
         dataRequirements: useCases.dataRequirements,
         systemsImpacted: useCases.systemsImpacted,
@@ -233,10 +194,7 @@ router.put("/:id", async (req, res) => {
       .leftJoin(processes, eq(useCases.processId, processes.id))
       .where(eq(useCases.id, id));
 
-    res.json({
-      ...updated,
-      expectedBenefits: updated.expectedBenefits !== null ? Number(updated.expectedBenefits) : null
-    });
+    res.json(updated);
   } catch (error) {
     console.error("Failed to update use case", error);
     res.status(500).json({ message: "Failed to update use case" });

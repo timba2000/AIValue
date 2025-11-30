@@ -21,7 +21,6 @@ const DEFAULT_STATE: UseCasePayload = {
   solutionProvider: null,
   problemToSolve: "",
   solutionOverview: "",
-  expectedBenefits: null,
   complexity: "Medium",
   dataRequirements: null,
   systemsImpacted: null,
@@ -44,7 +43,6 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
         solutionProvider: selectedUseCase.solutionProvider,
         problemToSolve: selectedUseCase.problemToSolve,
         solutionOverview: selectedUseCase.solutionOverview,
-        expectedBenefits: selectedUseCase.expectedBenefits,
         complexity: selectedUseCase.complexity,
         dataRequirements: selectedUseCase.dataRequirements,
         systemsImpacted: selectedUseCase.systemsImpacted,
@@ -82,10 +80,6 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
     if (!state.problemToSolve.trim()) newErrors.problemToSolve = "Problem to solve is required";
     if (!state.solutionOverview.trim()) newErrors.solutionOverview = "Solution overview is required";
     if (!state.complexity) newErrors.complexity = "Complexity is required";
-    
-    if (state.expectedBenefits !== null && (state.expectedBenefits < 0 || state.expectedBenefits > 100)) {
-      newErrors.expectedBenefits = "Expected benefits must be between 0 and 100";
-    }
 
     return newErrors;
   };
@@ -111,17 +105,10 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
 
     if (Object.keys(validationErrors).length > 0) return;
 
-    const payload: UseCasePayload = {
-      ...formState,
-      expectedBenefits: formState.expectedBenefits !== null && formState.expectedBenefits !== undefined
-        ? Number(formState.expectedBenefits)
-        : null
-    };
-
     if (selectedUseCase) {
-      updateMutation.mutate({ id: selectedUseCase.id, payload });
+      updateMutation.mutate({ id: selectedUseCase.id, payload: formState });
     } else {
-      createMutation.mutate(payload);
+      createMutation.mutate(formState);
     }
   };
 
@@ -175,35 +162,14 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="solutionProvider">Solution Provider</Label>
-              <Input
-                id="solutionProvider"
-                value={formState.solutionProvider ?? ""}
-                onChange={(event) => handleChange("solutionProvider", event.target.value || null)}
-                placeholder="e.g. OpenAI, Microsoft, Custom"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expectedBenefits">
-                Expected Benefits (%)
-                <span className="ml-1 text-xs text-muted-foreground">0-100</span>
-              </Label>
-              <Input
-                id="expectedBenefits"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                value={formState.expectedBenefits ?? ""}
-                onChange={(event) => handleChange("expectedBenefits", event.target.value ? Number(event.target.value) : null)}
-                placeholder="e.g. 25"
-              />
-              {errors.expectedBenefits ? (
-                <p className="text-sm text-destructive">{errors.expectedBenefits}</p>
-              ) : null}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="solutionProvider">Solution Provider</Label>
+            <Input
+              id="solutionProvider"
+              value={formState.solutionProvider ?? ""}
+              onChange={(event) => handleChange("solutionProvider", event.target.value || null)}
+              placeholder="e.g. OpenAI, Microsoft, Custom"
+            />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">

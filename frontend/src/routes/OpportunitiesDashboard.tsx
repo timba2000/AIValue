@@ -423,7 +423,6 @@ export default function OpportunitiesDashboard() {
     painPointId: string; 
     useCaseName: string | null;
     percentageSolved: number | null;
-    expectedBenefits: number | null;
     totalHoursPerMonth: number | null;
     painPointStatement: string | null;
     fteCount: number | null;
@@ -449,17 +448,18 @@ export default function OpportunitiesDashboard() {
   );
 
   // Calculate potential hours saved based on filtered data
+  // Uses percentageSolved from links (set when linking pain points to use cases)
   const potentialHoursSaved = Math.round(
     (() => {
       const painPointSavings = new Map<string, { hours: number; totalPercentage: number }>();
       
       filteredLinksData.forEach((link) => {
-        const benefitsPercentage = link.expectedBenefits !== null ? link.expectedBenefits : 0;
+        const solvedPercentage = link.percentageSolved !== null ? Number(link.percentageSolved) : 0;
         if (link.totalHoursPerMonth !== null) {
-          const existing = painPointSavings.get(link.painPointId) || { hours: link.totalHoursPerMonth, totalPercentage: 0 };
+          const existing = painPointSavings.get(link.painPointId) || { hours: Number(link.totalHoursPerMonth), totalPercentage: 0 };
           painPointSavings.set(link.painPointId, {
-            hours: link.totalHoursPerMonth,
-            totalPercentage: existing.totalPercentage + benefitsPercentage
+            hours: Number(link.totalHoursPerMonth),
+            totalPercentage: existing.totalPercentage + solvedPercentage
           });
         }
       });

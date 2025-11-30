@@ -19,6 +19,7 @@ interface UseCaseListProps {
   onDelete: (useCaseId: string) => void;
   onLink?: (useCase: UseCase) => void;
   linkStats?: Record<string, number>;
+  avgSolvedStats?: Record<string, number>;
   isLoading: boolean;
 }
 
@@ -30,6 +31,7 @@ export function UseCaseList({
   onDelete,
   onLink,
   linkStats = {},
+  avgSolvedStats = {},
   isLoading
 }: UseCaseListProps) {
   const filtered = useMemo(() => {
@@ -65,7 +67,7 @@ export function UseCaseList({
                     <TableHead>Solution Provider</TableHead>
                     <TableHead>Complexity</TableHead>
                     <TableHead>Confidence</TableHead>
-                    <TableHead>Expected Benefits (%)</TableHead>
+                    <TableHead>Avg % Solved</TableHead>
                     <TableHead>Delivery Time</TableHead>
                     <TableHead className="text-center">Linked Pain Points</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -78,7 +80,7 @@ export function UseCaseList({
                       <TableCell>{useCase.solutionProvider ?? "-"}</TableCell>
                       <TableCell>{useCase.complexity}</TableCell>
                       <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>
-                      <TableCell>{useCase.expectedBenefits !== null ? `${useCase.expectedBenefits}%` : "-"}</TableCell>
+                      <TableCell>{avgSolvedStats[useCase.id] !== undefined ? `${avgSolvedStats[useCase.id]}%` : "-"}</TableCell>
                       <TableCell>{useCase.estimatedDeliveryTime ?? "-"}</TableCell>
                       <TableCell className="text-center">
                         {linkStats[useCase.id] && linkStats[useCase.id] > 0 ? (

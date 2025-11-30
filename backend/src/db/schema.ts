@@ -75,7 +75,6 @@ export const useCases = pgTable("use_cases", {
   solutionProvider: text("solution_provider"),
   problemToSolve: text("problem_to_solve").notNull(),
   solutionOverview: text("solution_overview").notNull(),
-  expectedBenefits: numeric("expected_benefits"),
   complexity: text("complexity").notNull(),
   dataRequirements: text("data_requirements").array(),
   systemsImpacted: text("systems_impacted"),
