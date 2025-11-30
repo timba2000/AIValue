@@ -28,14 +28,14 @@ Preferred communication style: Simple, everyday language.
 - Feature-specific component organization
 - Type-safe API layer with centralized axios instances
 - Responsive mobile-first design with collapsible sidebar navigation
-- Dashboard with Analytics and Opportunities views, including a prioritization matrix visualization.
-- Tab-based interface for different views, with localStorage persistence for selections.
+- Consolidated Dashboard with single scrollable layout (MetricsCards, PrioritizationMatrix, LinkedPainPointsTable, Pain Points Overview)
 - Modal-based forms for cleaner interaction and consistent UX across screen sizes.
 - Global filter context using Zustand with localStorage persistence for cross-page filter synchronization.
-- LinkManagerModal component for visually managing pain point to use case relationships.
+- Link management modal with inline edit/delete controls for existing linked solutions.
 
 **Linking System:**
 - Pain points can be linked to use cases with percentage solved and notes
+- 100% allocation cap: validates that total percentage solved across all linked solutions cannot exceed 100% per pain point
 - Link management available from Pain Points page, Use Cases page, and Dashboard
 - Visual indicators show linked/not linked status with color-coded badges
 - Impact calculations use percentageSolved from links (set when linking) to calculate potential hours saved
