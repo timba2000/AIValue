@@ -2,6 +2,8 @@ export interface ProcessRecord {
   id: string;
   businessId: string;
   businessUnitId: string;
+  businessUnitName: string | null;
+  companyName: string | null;
   name: string;
   description: string | null;
   volume: number | null;

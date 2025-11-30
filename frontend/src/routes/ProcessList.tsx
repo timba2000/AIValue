@@ -90,7 +90,6 @@ export default function ProcessList() {
   useEffect(() => {
     if (!selectedCompanyId) {
       setBusinessUnits([]);
-      setProcesses([]);
       return;
     }
 
@@ -100,9 +99,6 @@ export default function ProcessList() {
           `${API_BASE}/api/companies/${selectedCompanyId}/business-units`
         );
         setBusinessUnits(response.data);
-        if (!selectedUnitId) {
-          setProcesses([]);
-        }
       } catch (error) {
         console.error(error);
         setError("Failed to load business units");
@@ -110,16 +106,19 @@ export default function ProcessList() {
     };
 
     fetchUnits();
-  }, [selectedCompanyId, selectedUnitId]);
+  }, [selectedCompanyId]);
 
-  const fetchProcesses = async (businessUnitId: string) => {
-    if (!businessUnitId) return;
+  const fetchProcesses = async (companyId?: string, businessUnitId?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`, {
-        params: { businessUnitId }
-      });
+      const params: Record<string, string> = {};
+      if (businessUnitId) {
+        params.businessUnitId = businessUnitId;
+      } else if (companyId) {
+        params.companyId = companyId;
+      }
+      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`, { params });
       setProcesses(response.data);
     } catch (error) {
       console.error(error);
@@ -130,10 +129,8 @@ export default function ProcessList() {
   };
 
   useEffect(() => {
-    if (selectedUnitId) {
-      fetchProcesses(selectedUnitId);
-    }
-  }, [selectedUnitId]);
+    fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
+  }, [selectedCompanyId, selectedUnitId]);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -222,7 +219,7 @@ export default function ProcessList() {
         await axios.post(`${API_BASE}/api/processes`, payload);
       }
 
-      await fetchProcesses(selectedUnitId);
+      await fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
       setFormOpen(false);
       setEditingProcess(null);
       setFormState(emptyForm);
@@ -242,7 +239,7 @@ export default function ProcessList() {
 
     try {
       await axios.delete(`${API_BASE}/api/processes/${process.id}`);
-      await fetchProcesses(process.businessUnitId);
+      await fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
     } catch (error) {
       console.error(error);
       setError("Failed to delete process");
@@ -299,6 +296,7 @@ export default function ProcessList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  {!selectedUnitId && <TableHead>Business Unit</TableHead>}
                   <TableHead>Owner</TableHead>
                   <TableHead>Volume</TableHead>
                   <TableHead>FTE</TableHead>
@@ -310,14 +308,24 @@ export default function ProcessList() {
               <TableBody>
                 {filteredProcesses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
-                      No processes found for this business unit.
+                    <TableCell colSpan={selectedUnitId ? 7 : 8} className="text-center text-sm text-muted-foreground">
+                      {loading ? "Loading processes..." : "No processes found. Create your first process to get started."}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredProcesses.map((process) => (
                     <TableRow key={process.id}>
                       <TableCell className="font-medium">{process.name}</TableCell>
+                      {!selectedUnitId && (
+                        <TableCell>
+                          <div className="text-sm">
+                            <span className="font-medium">{process.businessUnitName ?? "-"}</span>
+                            {process.companyName && (
+                              <span className="text-muted-foreground ml-1">({process.companyName})</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell>{process.owner ?? "-"}</TableCell>
                       <TableCell>
                         {process.volume ?? "-"} {process.volumeUnit ?? ""}
