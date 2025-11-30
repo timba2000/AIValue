@@ -74,14 +74,14 @@ router.get("/", async (req, res) => {
       })
       .from(processes)
       .leftJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id))
-      .leftJoin(companies, eq(businessUnits.companyId, companies.id))
+      .leftJoin(companies, eq(processes.businessId, companies.id))
       .orderBy(asc(processes.name));
 
     const conditions = [];
     if (businessUnitId) {
       conditions.push(eq(processes.businessUnitId, businessUnitId));
     } else if (companyId) {
-      conditions.push(eq(businessUnits.companyId, companyId));
+      conditions.push(eq(processes.businessId, companyId));
     }
 
     const records = conditions.length > 0
