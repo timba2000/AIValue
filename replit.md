@@ -28,7 +28,7 @@ Preferred communication style: Simple, everyday language.
 - Feature-specific component organization
 - Type-safe API layer with centralized axios instances
 - Responsive mobile-first design with collapsible sidebar navigation
-- Consolidated Dashboard with single scrollable layout (MetricsCards, PrioritizationMatrix, LinkedPainPointsTable, Pain Points Overview)
+- Consolidated Dashboard with single scrollable layout (MetricsCards, PrioritizationMatrix, PainPointsOverviewTable)
 - Modal-based forms for cleaner interaction and consistent UX across screen sizes.
 - Global filter context using Zustand with localStorage persistence for cross-page filter synchronization.
 - Link management modal with inline edit/delete controls for existing linked solutions.
@@ -119,3 +119,4 @@ Preferred communication style: Simple, everyday language.
   - Removed all console.error statements from production code
   - Added proper error handling with user-visible error messages
   - Enhanced theme transitions with 200ms animations and reduced-motion support
+  - Combined "Linked Pain Points & Solutions" table and "Pain Points Overview" cards into a unified PainPointsOverviewTable component showing all metrics in one place
