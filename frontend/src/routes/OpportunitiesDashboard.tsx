@@ -547,6 +547,54 @@ export default function OpportunitiesDashboard() {
         <TabsContent value="analytics" className="space-y-6">
           <MetricsCards {...metricsData} />
           <PrioritizationMatrix painPoints={matrixData} />
+          
+          {matrixData.filter(p => !p.hasLinks).length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Unlinked Pain Points
+                </h2>
+                <span className="text-sm text-gray-500">
+                  ({matrixData.filter(p => !p.hasLinks).length} items need solutions)
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                These pain points don't have any linked solutions yet. Consider linking them to existing solutions or creating new ones.
+              </p>
+              <div className="space-y-3">
+                {matrixData.filter(p => !p.hasLinks).map((painPoint) => (
+                  <div key={painPoint.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-lg">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{painPoint.statement}</p>
+                      <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                        <span>Benefit: {painPoint.magnitude}/10</span>
+                        <span>Effort: {painPoint.effortSolving}/10</span>
+                        <span>Hours/Month: {Math.round(painPoint.totalHoursPerMonth)}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const pp = allPainPoints.data?.find(p => p.id === painPoint.id);
+                        if (pp) {
+                          setSelectedPainPoint(pp);
+                          setEditingLink(null);
+                          setSelectedUseCaseId("");
+                          setPercentageSolved("");
+                          setNotes("");
+                          setLinkModalOpen(true);
+                        }
+                      }}
+                      className="ml-4 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                    >
+                      Link Solution
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
         </TabsContent>
 
