@@ -318,7 +318,7 @@ export default function PainPointList() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -337,15 +337,15 @@ export default function PainPointList() {
                           {RISK_LEVELS.find((r) => r.value === pp.riskLevel)?.label ?? pp.riskLevel}
                         </span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 px-4">{pp.magnitude ?? "-"}</td>
                     <td className="py-3 px-4">
                       {pp.totalHoursPerMonth ? (
-                        <span className="font-medium text-gray-900">{Number(pp.totalHoursPerMonth).toFixed(1)}</span>
+                        <span className="font-medium text-foreground">{Number(pp.totalHoursPerMonth).toFixed(1)}</span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -420,7 +420,7 @@ export default function PainPointList() {
                 value={formState.statement}
                 onChange={(e) => setFormState({ ...formState, statement: e.target.value })}
                 rows={3}
-                className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="Describe the pain point"
               />
             </div>
@@ -441,7 +441,7 @@ export default function PainPointList() {
                             setFormState({ ...formState, impactType: formState.impactType.filter(t => t !== type.value) });
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-border text-primary focus:ring-primary"
                       />
                       <span className="text-sm">{type.label}</span>
                     </label>
@@ -474,7 +474,7 @@ export default function PainPointList() {
                 value={formState.businessImpact}
                 onChange={(e) => setFormState({ ...formState, businessImpact: e.target.value })}
                 rows={2}
-                className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="How does this affect the business?"
               />
             </div>
@@ -482,7 +482,7 @@ export default function PainPointList() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="magnitude">Impact of Pain Point (1-10)</Label>
-                <p className="text-xs text-gray-500 mt-0.5">1 = Low impact, 10 = High impact</p>
+                <p className="text-xs text-muted-foreground mt-0.5">1 = Low impact, 10 = High impact</p>
                 <input
                   id="magnitude"
                   type="number"
@@ -490,14 +490,14 @@ export default function PainPointList() {
                   max="10"
                   value={formState.magnitude}
                   onChange={(e) => setFormState({ ...formState, magnitude: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                   placeholder="1-10"
                 />
               </div>
 
               <div>
                 <Label htmlFor="effortSolving">Effort in Solving (1-10)</Label>
-                <p className="text-xs text-gray-500 mt-0.5">1 = Low effort, 10 = High effort</p>
+                <p className="text-xs text-muted-foreground mt-0.5">1 = Low effort, 10 = High effort</p>
                 <input
                   id="effortSolving"
                   type="number"
@@ -505,7 +505,7 @@ export default function PainPointList() {
                   max="10"
                   value={formState.effortSolving}
                   onChange={(e) => setFormState({ ...formState, effortSolving: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                   placeholder="1-10"
                 />
               </div>
@@ -521,7 +521,7 @@ export default function PainPointList() {
                   step="0.01"
                   value={formState.frequency}
                   onChange={(e) => setFormState({ ...formState, frequency: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                   placeholder="Times per month"
                 />
               </div>
@@ -535,7 +535,7 @@ export default function PainPointList() {
                   step="0.01"
                   value={formState.timePerUnit}
                   onChange={(e) => setFormState({ ...formState, timePerUnit: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                   placeholder="Hours per unit"
                 />
               </div>
@@ -549,19 +549,19 @@ export default function PainPointList() {
                   step="0.1"
                   value={formState.fteCount}
                   onChange={(e) => setFormState({ ...formState, fteCount: e.target.value })}
-                  className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                   placeholder="Number of FTEs"
                 />
               </div>
             </div>
 
             {formState.frequency && formState.timePerUnit && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <Label className="text-blue-900">Total Hours per Month (Auto-calculated)</Label>
-                <p className="text-lg font-semibold text-blue-900 mt-1">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                <Label className="text-primary">Total Hours per Month (Auto-calculated)</Label>
+                <p className="text-lg font-semibold text-primary mt-1">
                   {(Number(formState.frequency) * Number(formState.timePerUnit)).toFixed(2)} hours
                 </p>
-                <p className="text-xs text-blue-700 mt-1">This value is automatically calculated when you save</p>
+                <p className="text-xs text-primary/80 mt-1">This value is automatically calculated when you save</p>
               </div>
             )}
 
@@ -572,7 +572,7 @@ export default function PainPointList() {
                 value={formState.rootCause}
                 onChange={(e) => setFormState({ ...formState, rootCause: e.target.value })}
                 rows={2}
-                className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="Why is this happening?"
               />
             </div>
@@ -584,7 +584,7 @@ export default function PainPointList() {
                 value={formState.workarounds}
                 onChange={(e) => setFormState({ ...formState, workarounds: e.target.value })}
                 rows={2}
-                className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="What temporary fixes exist?"
               />
             </div>
@@ -596,20 +596,20 @@ export default function PainPointList() {
                 value={formState.dependencies}
                 onChange={(e) => setFormState({ ...formState, dependencies: e.target.value })}
                 rows={2}
-                className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="What other systems or processes are involved?"
               />
             </div>
 
             <div>
               <Label>Linked Processes</Label>
-              <p className="text-xs text-gray-500 mt-0.5 mb-2">Select processes affected by this pain point</p>
-              <div className="mt-1.5 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3 space-y-2">
+              <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select processes affected by this pain point</p>
+              <div className="mt-1.5 max-h-48 overflow-y-auto border border-border rounded-xl p-3 space-y-2">
                 {processes.length === 0 ? (
-                  <p className="text-sm text-gray-500">No processes available. Create processes first.</p>
+                  <p className="text-sm text-muted-foreground">No processes available. Create processes first.</p>
                 ) : (
                   processes.map((process) => (
-                    <label key={process.id} className="flex items-center space-x-2 hover:bg-gray-50 p-1 rounded">
+                    <label key={process.id} className="flex items-center space-x-2 hover:bg-accent/50 p-1 rounded-lg transition-colors">
                       <input
                         type="checkbox"
                         checked={formState.processIds.includes(process.id)}
@@ -620,12 +620,12 @@ export default function PainPointList() {
                             setFormState({ ...formState, processIds: formState.processIds.filter(id => id !== process.id) });
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-border text-primary focus:ring-primary"
                       />
                       <span className="text-sm flex-1">
                         {process.name}
                         {process.description && (
-                          <span className="text-gray-500 text-xs ml-1">- {process.description}</span>
+                          <span className="text-muted-foreground text-xs ml-1">- {process.description}</span>
                         )}
                       </span>
                     </label>
@@ -633,7 +633,7 @@ export default function PainPointList() {
                 )}
               </div>
               {formState.processIds.length > 0 && (
-                <p className="text-xs text-gray-600 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   {formState.processIds.length} process{formState.processIds.length > 1 ? 'es' : ''} selected
                 </p>
               )}

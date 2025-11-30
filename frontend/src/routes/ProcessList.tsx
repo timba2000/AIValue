@@ -264,12 +264,12 @@ export default function ProcessList() {
   };
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+    <section className="space-y-4 sm:space-y-6 fade-in">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Processes</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Processes</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage processes within each business unit and link them to pain points and solutions.
             </p>
           </div>
@@ -277,15 +277,15 @@ export default function ProcessList() {
             New process
           </Button>
         </div>
-        {error ? <p className="text-sm text-red-600 font-medium mt-3">{error}</p> : null}
+        {error ? <p className="text-sm text-red-500 font-medium mt-3">{error}</p> : null}
       </div>
 
       <FilterByContext />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold">Processes</h2>
+            <h2 className="text-xl font-semibold text-foreground">Processes</h2>
             {loading && <span className="text-sm text-muted-foreground">Loading...</span>}
           </div>
           <div className="w-full sm:w-64">
@@ -293,10 +293,11 @@ export default function ProcessList() {
               placeholder="Search by name..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              className="rounded-xl"
             />
           </div>
         </div>
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-xl border border-border">
           <Table>
               <TableHeader>
                 <TableRow>

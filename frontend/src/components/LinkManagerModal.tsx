@@ -224,16 +224,16 @@ export function LinkManagerModal({
       case "high": return "bg-orange-100 text-orange-700 border-orange-200";
       case "medium": return "bg-yellow-100 text-yellow-700 border-yellow-200";
       case "low": return "bg-green-100 text-green-700 border-green-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
+      default: return "bg-accent text-muted-foreground border-border";
     }
   };
 
   const getComplexityColor = (complexity: string | null) => {
     switch (complexity?.toLowerCase()) {
-      case "high": return "bg-red-100 text-red-700";
-      case "medium": return "bg-yellow-100 text-yellow-700";
-      case "low": return "bg-green-100 text-green-700";
-      default: return "bg-gray-100 text-gray-700";
+      case "high": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      case "medium": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
+      case "low": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+      default: return "bg-accent text-muted-foreground";
     }
   };
 
@@ -245,27 +245,27 @@ export function LinkManagerModal({
             <Link2 className="h-5 w-5 text-blue-600" />
             {mode === "pain-point" ? "Link Solutions" : "Link Pain Points"}
           </DialogTitle>
-          <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-            <p className="text-sm text-gray-600">Linking to:</p>
-            <p className="font-medium text-gray-900 line-clamp-2">{sourceName}</p>
+          <div className="mt-2 p-3 bg-primary/10 rounded-xl border border-primary/20">
+            <p className="text-sm text-muted-foreground">Linking to:</p>
+            <p className="font-medium text-foreground line-clamp-2">{sourceName}</p>
           </div>
         </DialogHeader>
 
         {step === "select" ? (
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder={`Search ${mode === "pain-point" ? "solutions" : "pain points"}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -275,7 +275,7 @@ export function LinkManagerModal({
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
               {linkedItems.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-500" />
                     Currently Linked ({linkedItems.length})
                   </h4>
@@ -287,10 +287,10 @@ export function LinkManagerModal({
                       return (
                         <div
                           key={item.id}
-                          className="p-3 rounded-lg border-2 border-green-200 bg-green-50 flex items-start justify-between gap-3"
+                          className="p-3 rounded-xl border-2 border-green-500/30 bg-green-500/10 flex items-start justify-between gap-3"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 line-clamp-2">
+                            <p className="font-medium text-foreground line-clamp-2">
                               {mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}
                             </p>
                             {link?.percentageSolved && (
@@ -317,7 +317,7 @@ export function LinkManagerModal({
 
               {unlinkedItems.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">
                     Available to Link ({unlinkedItems.length})
                   </h4>
                   <div className="space-y-2">
@@ -325,11 +325,11 @@ export function LinkManagerModal({
                       <button
                         key={item.id}
                         onClick={() => handleSelectItem(item.id)}
-                        className="w-full p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all text-left group"
+                        className="w-full p-3 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 line-clamp-2 group-hover:text-blue-700">
+                            <p className="font-medium text-foreground line-clamp-2 group-hover:text-primary">
                               {mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -371,7 +371,7 @@ export function LinkManagerModal({
                               )}
                             </div>
                           </div>
-                          <div className="p-2 rounded-full bg-blue-100 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="p-2 rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                             <Link2 className="h-4 w-4" />
                           </div>
                         </div>
@@ -382,7 +382,7 @@ export function LinkManagerModal({
               )}
 
               {unlinkedItems.length === 0 && linkedItems.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <Link2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>No {mode === "pain-point" ? "solutions" : "pain points"} found</p>
                 </div>
@@ -393,11 +393,11 @@ export function LinkManagerModal({
           <div className="flex-1 overflow-y-auto">
             {selectedItem && (
               <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">
+                <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
                     {mode === "pain-point" ? "Solution" : "Pain Point"}
                   </h4>
-                  <p className="font-medium text-gray-900">
+                  <p className="font-medium text-foreground">
                     {mode === "pain-point" 
                       ? (selectedItem as UseCase).name 
                       : (selectedItem as PainPoint).statement
@@ -458,12 +458,12 @@ export function LinkManagerModal({
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                        <TrendingUp className="h-4 w-4 text-primary" />
                         Percentage of Pain Point Solved
                         {mode === "pain-point" && remainingPercentage < 100 && (
-                          <span className="text-xs font-normal text-gray-500">
+                          <span className="text-xs font-normal text-muted-foreground">
                             (max {remainingPercentage}% available)
                           </span>
                         )}
@@ -477,27 +477,27 @@ export function LinkManagerModal({
                         value={percentageSolved}
                         onChange={(e) => setPercentageSolved(e.target.value)}
                         placeholder={mode === "pain-point" ? `e.g., ${Math.min(80, remainingPercentage)}` : "e.g., 80"}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent text-lg ${
+                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:border-transparent text-lg bg-background text-foreground transition-all duration-200 ${
                           !isPercentageValid 
-                            ? "border-red-300 focus:ring-red-500 bg-red-50" 
-                            : "border-gray-200 focus:ring-blue-500"
+                            ? "border-red-500 focus:ring-red-500 bg-red-500/10" 
+                            : "border-border focus:ring-primary"
                         }`}
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">%</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">%</span>
                     </div>
                     {!isPercentageValid && (
-                      <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                      <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
                         Cannot exceed {remainingPercentage}% (total would be over 100%)
                       </p>
                     )}
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       How much of this pain point does the solution address?
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Notes (Optional)
                     </label>
                     <textarea
@@ -505,7 +505,7 @@ export function LinkManagerModal({
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
                       placeholder="Add context about how this solution addresses the pain point..."
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none transition-all duration-200"
                     />
                   </div>
                 </div>
