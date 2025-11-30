@@ -123,7 +123,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.save();
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText("Impact of Pain Point (1=Low, 10=High)", 0, 0);
+    ctx.fillText("Benefit of Remediating (1=Low, 10=High)", 0, 0);
     ctx.restore();
 
     ctx.fillStyle = "#6b7280";
@@ -243,7 +243,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
         Prioritization Matrix
       </h2>
       <p className="text-sm text-gray-600 mb-6">
-        Impact vs. Effort - Bubble size represents total hours per month
+        Benefit vs. Effort - Bubble size represents total hours per month
       </p>
       {painPoints.length === 0 ? (
         <div className="flex items-center justify-center h-96 text-gray-500">
@@ -266,7 +266,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
             >
               <div className="font-semibold mb-2 text-sm">{tooltip.point.statement}</div>
               <div className="space-y-1 text-xs">
-                <div>Impact: {tooltip.point.magnitude}/10</div>
+                <div>Benefit: {tooltip.point.magnitude}/10</div>
                 <div>Effort: {tooltip.point.effortSolving}/10</div>
                 <div>Hours/Month: {Math.round(tooltip.point.totalHoursPerMonth)}</div>
                 {tooltip.point.linkedUseCases.length > 0 && (
