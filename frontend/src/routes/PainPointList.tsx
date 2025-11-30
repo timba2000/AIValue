@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -8,10 +8,9 @@ import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
+import { useAllBusinessUnits, useAllProcesses } from "../hooks/useApiData";
 import { Link2, Check, AlertCircle } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
-import type { ProcessRecord } from "@/types/process";
-import type { BusinessUnit } from "@/types/business";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -64,22 +63,31 @@ const emptyForm: FormState = {
 };
 
 export default function PainPointList() {
+  const queryClient = useQueryClient();
   const {
     selectedCompanyId,
     selectedBusinessUnitId,
     selectedProcessId,
   } = useFilterStore();
-  const [painPoints, setPainPoints] = useState<PainPoint[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingPainPoint, setEditingPainPoint] = useState<PainPoint | null>(null);
   const [formState, setFormState] = useState<FormState>(emptyForm);
-  const [processes, setProcesses] = useState<ProcessRecord[]>([]);
-  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPointForLink, setSelectedPainPointForLink] = useState<PainPoint | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: businessUnits = [] } = useAllBusinessUnits();
+  const { data: processes = [] } = useAllProcesses();
+
+  const { data: painPoints = [], isLoading: loading, refetch: refetchPainPoints } = useQuery<PainPoint[]>({
+    queryKey: ["painPoints"],
+    queryFn: async () => {
+      const response = await axios.get<PainPoint[]>(`${API_BASE}/api/pain-points`);
+      return response.data;
+    }
+  });
 
   const { data: linkStats = {} } = useQuery<Record<string, number>>({
     queryKey: ["allPainPointLinksStats"],
@@ -124,43 +132,6 @@ export default function PainPointList() {
     return filtered;
   }, [painPoints, validProcessIds, search]);
 
-  useEffect(() => {
-    fetchPainPoints();
-    fetchProcesses();
-    fetchBusinessUnits();
-  }, []);
-
-  const fetchBusinessUnits = async () => {
-    try {
-      const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/business-units`);
-      setBusinessUnits(response.data);
-    } catch (error) {
-      console.error("Failed to fetch business units", error);
-    }
-  };
-
-  const fetchPainPoints = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get<PainPoint[]>(`${API_BASE}/api/pain-points`);
-      setPainPoints(response.data);
-    } catch (error) {
-      console.error(error);
-      setError("Failed to load pain points");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchProcesses = async () => {
-    try {
-      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`);
-      setProcesses(response.data);
-    } catch (error) {
-      console.error("Failed to fetch processes", error);
-    }
-  };
 
   const handleCreate = () => {
     setEditingPainPoint(null);
@@ -194,7 +165,7 @@ export default function PainPointList() {
       return;
     }
 
-    setLoading(true);
+    setIsSaving(true);
     setError(null);
 
     const payload: PainPointPayload = {
@@ -220,29 +191,27 @@ export default function PainPointList() {
         await axios.post(`${API_BASE}/api/pain-points`, payload);
       }
       setFormOpen(false);
-      await fetchPainPoints();
-    } catch (error) {
-      console.error(error);
+      await refetchPainPoints();
+    } catch {
       setError("Failed to save pain point");
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this pain point?")) return;
 
-    setLoading(true);
+    setIsSaving(true);
     setError(null);
 
     try {
       await axios.delete(`${API_BASE}/api/pain-points/${id}`);
-      await fetchPainPoints();
-    } catch (error) {
-      console.error(error);
+      await refetchPainPoints();
+    } catch {
       setError("Failed to delete pain point");
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 

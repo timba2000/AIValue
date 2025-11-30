@@ -1,25 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useFilterStore } from "../stores/filterStore";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
-
-interface Company {
-  id: string;
-  name: string;
-}
-
-interface BusinessUnit {
-  id: string;
-  name: string;
-  companyId: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  businessUnitId: string;
-}
+import { useCompanies, useBusinessUnitsByCompany, useProcessesByBusinessUnit } from "../hooks/useApiData";
 
 export function FilterByContext() {
   const {
@@ -31,31 +11,9 @@ export function FilterByContext() {
     setSelectedProcessId,
   } = useFilterStore();
 
-  const { data: companies = [] } = useQuery<Company[]>({
-    queryKey: ["companies"],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/companies`);
-      return response.data;
-    },
-  });
-
-  const { data: businessUnits = [] } = useQuery<BusinessUnit[]>({
-    queryKey: ["businessUnits", selectedCompanyId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/business-units`);
-      return response.data.filter((bu: BusinessUnit) => bu.companyId === selectedCompanyId);
-    },
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: processes = [] } = useQuery<Process[]>({
-    queryKey: ["processes", selectedBusinessUnitId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/processes`);
-      return response.data.filter((p: Process) => p.businessUnitId === selectedBusinessUnitId);
-    },
-    enabled: !!selectedBusinessUnitId,
-  });
+  const { data: companies = [] } = useCompanies();
+  const { data: businessUnits = [] } = useBusinessUnitsByCompany(selectedCompanyId);
+  const { data: processes = [] } = useProcessesByBusinessUnit(selectedBusinessUnitId);
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
