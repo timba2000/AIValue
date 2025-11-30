@@ -126,6 +126,22 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.fillText("Impact of Pain Point (1=Low, 10=High)", 0, 0);
     ctx.restore();
 
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let i = 1; i <= 10; i++) {
+      const x = padding + (i / 10) * chartWidth - (chartWidth / 20);
+      ctx.fillText(String(i), x, height - padding + 5);
+    }
+
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let i = 1; i <= 10; i++) {
+      const y = height - padding - (i / 10) * chartHeight + (chartHeight / 20);
+      ctx.fillText(String(i), padding - 8, y);
+    }
+
     const maxHours = Math.max(...painPoints.map(p => p.totalHoursPerMonth), 1);
 
     painPoints.forEach((point) => {
