@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,8 +16,8 @@ import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
-import type { BusinessUnit, Company } from "@/types/business";
-import type { PainPointOption, ProcessOptionsResponse, ProcessPayload, ProcessRecord, UseCaseOption } from "@/types/process";
+import { useCompanies, useBusinessUnits } from "../hooks/useApiData";
+import type { ProcessOptionsResponse, ProcessPayload, ProcessRecord, PainPointOption, UseCaseOption } from "@/types/process";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -47,16 +48,45 @@ export default function ProcessList() {
     selectedCompanyId,
     selectedBusinessUnitId: selectedUnitId,
   } = useFilterStore();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-  const [processes, setProcesses] = useState<ProcessRecord[]>([]);
-  const [options, setOptions] = useState<ProcessOptionsResponse>({ painPoints: [], useCases: [] });
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingProcess, setEditingProcess] = useState<ProcessRecord | null>(null);
   const [formState, setFormState] = useState<FormState>(emptyForm);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: companies = [] } = useCompanies();
+  const { data: businessUnits = [] } = useBusinessUnits(selectedCompanyId || undefined);
+
+  const { data: processes = [], isLoading: loading, refetch: refetchProcesses, error: processesError } = useQuery<ProcessRecord[]>({
+    queryKey: ["processes", selectedCompanyId, selectedUnitId],
+    queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (selectedUnitId) {
+        params.businessUnitId = selectedUnitId;
+      } else if (selectedCompanyId) {
+        params.companyId = selectedCompanyId;
+      }
+      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`, { params });
+      return response.data;
+    }
+  });
+
+  const { data: options = { painPoints: [], useCases: [] }, error: optionsError } = useQuery<ProcessOptionsResponse>({
+    queryKey: ["processOptions"],
+    queryFn: async () => {
+      const response = await axios.get<ProcessOptionsResponse>(`${API_BASE}/api/processes/options`);
+      return response.data;
+    }
+  });
+
+  useEffect(() => {
+    if (processesError) {
+      setError("Failed to load processes");
+    } else if (optionsError) {
+      setError("Failed to load linking options");
+    }
+  }, [processesError, optionsError]);
 
   const selectedCompany = useMemo(
     () => companies.find((company) => company.id === selectedCompanyId) ?? null,
@@ -72,79 +102,6 @@ export default function ProcessList() {
     if (!search.trim()) return processes;
     return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
   }, [processes, search]);
-
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const response = await axios.get<Company[]>(`${API_BASE}/api/companies`);
-        setCompanies(response.data);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load businesses");
-      }
-    };
-
-    fetchCompanies();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedCompanyId) {
-      setBusinessUnits([]);
-      return;
-    }
-
-    const fetchUnits = async () => {
-      try {
-        const response = await axios.get<BusinessUnit[]>(
-          `${API_BASE}/api/companies/${selectedCompanyId}/business-units`
-        );
-        setBusinessUnits(response.data);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load business units");
-      }
-    };
-
-    fetchUnits();
-  }, [selectedCompanyId]);
-
-  const fetchProcesses = async (companyId?: string, businessUnitId?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params: Record<string, string> = {};
-      if (businessUnitId) {
-        params.businessUnitId = businessUnitId;
-      } else if (companyId) {
-        params.companyId = companyId;
-      }
-      const response = await axios.get<ProcessRecord[]>(`${API_BASE}/api/processes`, { params });
-      setProcesses(response.data);
-    } catch (error) {
-      console.error(error);
-      setError("Failed to load processes");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
-  }, [selectedCompanyId, selectedUnitId]);
-
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const response = await axios.get<ProcessOptionsResponse>(`${API_BASE}/api/processes/options`);
-        setOptions(response.data);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to load linking options");
-      }
-    };
-
-    fetchOptions();
-  }, []);
 
   const openCreateForm = () => {
     if (!selectedUnitId) return;
@@ -174,8 +131,7 @@ export default function ProcessList() {
         painPointIds: response.data.painPointIds,
         useCaseIds: response.data.useCaseIds
       }));
-    } catch (error) {
-      console.error(error);
+    } catch {
       setError("Failed to load linked records");
     }
     setFormOpen(true);
@@ -202,7 +158,7 @@ export default function ProcessList() {
       return;
     }
 
-    setLoading(true);
+    setIsSaving(true);
     setError(null);
 
     try {
@@ -224,17 +180,17 @@ export default function ProcessList() {
         await axios.post(`${API_BASE}/api/processes`, payload);
       }
 
-      await fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
+      await refetchProcesses();
       setFormOpen(false);
       setEditingProcess(null);
       setFormState(emptyForm);
-    } catch (error) {
-      const message = axios.isAxiosError(error)
-        ? error.response?.data?.message ?? "Failed to save process"
+    } catch (err) {
+      const message = axios.isAxiosError(err)
+        ? err.response?.data?.message ?? "Failed to save process"
         : "Failed to save process";
       setError(message);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -244,9 +200,8 @@ export default function ProcessList() {
 
     try {
       await axios.delete(`${API_BASE}/api/processes/${process.id}`);
-      await fetchProcesses(selectedCompanyId || undefined, selectedUnitId || undefined);
-    } catch (error) {
-      console.error(error);
+      await refetchProcesses();
+    } catch {
       setError("Failed to delete process");
     }
   };

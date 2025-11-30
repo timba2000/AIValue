@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ export default function PainPointList() {
   const { data: businessUnits = [] } = useAllBusinessUnits();
   const { data: processes = [] } = useAllProcesses();
 
-  const { data: painPoints = [], isLoading: loading, refetch: refetchPainPoints } = useQuery<PainPoint[]>({
+  const { data: painPoints = [], isLoading: loading, refetch: refetchPainPoints, error: painPointsError } = useQuery<PainPoint[]>({
     queryKey: ["painPoints"],
     queryFn: async () => {
       const response = await axios.get<PainPoint[]>(`${API_BASE}/api/pain-points`);
@@ -96,6 +96,12 @@ export default function PainPointList() {
       return response.data;
     }
   });
+
+  useEffect(() => {
+    if (painPointsError) {
+      setError("Failed to load pain points");
+    }
+  }, [painPointsError]);
 
   const handleOpenLinkModal = (painPoint: PainPoint) => {
     setSelectedPainPointForLink(painPoint);

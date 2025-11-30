@@ -43,8 +43,7 @@ export default function BusinessesPage() {
     try {
       const response = await axios.get<Company[]>(`${API_BASE}/api/companies`);
       setCompanies(response.data);
-    } catch (error) {
-      console.error(error);
+    } catch {
       setError("Failed to load companies");
     } finally {
       setLoadingCompanies(false);
@@ -57,8 +56,7 @@ export default function BusinessesPage() {
     try {
       const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/companies/${companyId}/business-units`);
       setBusinessUnits(response.data);
-    } catch (error) {
-      console.error(error);
+    } catch {
       setError("Failed to load business units");
     } finally {
       setLoadingUnits(false);
@@ -115,8 +113,7 @@ export default function BusinessesPage() {
       if (selectedCompanyId === companyToDelete.id) {
         setSelectedCompanyId(null);
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
       setError("Failed to delete company");
     }
   };
