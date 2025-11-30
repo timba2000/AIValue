@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { AlertTriangle, Link as LinkIcon, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
 import { LinkedPainPointsTable } from "@/components/dashboard/LinkedPainPointsTable";
@@ -152,18 +151,6 @@ export default function OpportunitiesDashboard() {
     }
   });
 
-  const linksQuery = (painPointId: string) =>
-    useQuery<PainPointLink[]>({
-      queryKey: ["painPointLinks", painPointId],
-      queryFn: async () => {
-        const response = await axios.get(
-          `${API_URL}/api/pain-points/${painPointId}/links`
-        );
-        return response.data;
-      },
-      enabled: !!painPointId
-    });
-
   const createLinkMutation = useMutation({
     mutationFn: async (data: {
       painPointId: string;
@@ -231,26 +218,30 @@ export default function OpportunitiesDashboard() {
     }
   });
 
+  const resetLinkForm = () => {
+    setSelectedUseCaseId("");
+    setPercentageSolved("");
+    setNotes("");
+    setEditingLink(null);
+  };
+
   const handleOpenLinkModal = (painPoint: PainPoint) => {
     setSelectedPainPoint(painPoint);
     setLinkModalOpen(true);
     resetLinkForm();
   };
 
-  const handleEditLink = (painPoint: PainPoint, link: PainPointLink) => {
-    setSelectedPainPoint(painPoint);
+  const handleEditLink = (link: PainPointLink) => {
     setEditingLink(link);
     setSelectedUseCaseId(link.useCaseId);
     setPercentageSolved(link.percentageSolved?.toString() || "");
     setNotes(link.notes || "");
-    setLinkModalOpen(true);
   };
 
-  const resetLinkForm = () => {
-    setSelectedUseCaseId("");
-    setPercentageSolved("");
-    setNotes("");
-    setEditingLink(null);
+  const handleDeleteLink = (painPointId: string, linkId: string) => {
+    if (confirm("Are you sure you want to remove this link?")) {
+      deleteLinkMutation.mutate({ painPointId, linkId });
+    }
   };
 
   const handleSubmitLink = (e: React.FormEvent) => {
@@ -275,147 +266,6 @@ export default function OpportunitiesDashboard() {
         notes: notes || null
       });
     }
-  };
-
-  const handleDeleteLink = (painPointId: string, linkId: string) => {
-    if (confirm("Are you sure you want to remove this link?")) {
-      deleteLinkMutation.mutate({ painPointId, linkId });
-    }
-  };
-
-  const PainPointCard = ({ painPoint }: { painPoint: PainPoint }) => {
-    const { data: links = [] } = linksQuery(painPoint.id);
-    const hasLinks = links.length > 0;
-
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-              <h3 className="font-semibold text-gray-900">{painPoint.statement}</h3>
-              {hasLinks ? (
-                <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-md flex items-center gap-1">
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                  </svg>
-                  Linked
-                </span>
-              ) : (
-                <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-md flex items-center gap-1">
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                  </svg>
-                  Not Linked
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3 mb-3">
-              {painPoint.impactType?.map((type) => (
-                <span
-                  key={type}
-                  className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-md"
-                >
-                  {type}
-                </span>
-              ))}
-              {painPoint.riskLevel && (
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-md ${
-                    painPoint.riskLevel === "High"
-                      ? "bg-red-100 text-red-700"
-                      : painPoint.riskLevel === "Medium"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {painPoint.riskLevel} Risk
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-              {painPoint.magnitude !== null && (
-                <div>
-                  <span className="text-gray-600">Impact: </span>
-                  <span className="font-medium text-gray-900">{painPoint.magnitude}/10</span>
-                </div>
-              )}
-              {painPoint.effortSolving !== null && (
-                <div>
-                  <span className="text-gray-600">Effort: </span>
-                  <span className="font-medium text-gray-900">
-                    {painPoint.effortSolving}/10
-                  </span>
-                </div>
-              )}
-              {painPoint.totalHoursPerMonth !== null && (
-                <div>
-                  <span className="text-gray-600">Hours/Month: </span>
-                  <span className="font-medium text-gray-900">
-                    {painPoint.totalHoursPerMonth}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {links.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Linked Solutions:</h4>
-                <div className="space-y-2">
-                  {links.map((link) => (
-                    <div
-                      key={link.id}
-                      className="flex items-center justify-between bg-gray-50 rounded-md p-2"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-gray-900">
-                          {link.useCaseName}
-                        </div>
-                        {link.percentageSolved !== null && (
-                          <div className="text-xs text-gray-600">
-                            Solves {link.percentageSolved}% of this pain point
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleEditLink(painPoint, link)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                          title="Edit link"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLink(painPoint.id, link.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Remove link"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <Button
-            onClick={() => handleOpenLinkModal(painPoint)}
-            variant="outline"
-            size="sm"
-            className="w-full"
-          >
-            <LinkIcon className="h-4 w-4 mr-2" />
-            Link Solution
-          </Button>
-        </div>
-      </div>
-    );
   };
 
   const allPainPoints = useQuery<PainPoint[]>({
@@ -570,118 +420,84 @@ export default function OpportunitiesDashboard() {
 
       <FilterByContext />
 
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="analytics" className="space-y-6">
-          <MetricsCards {...metricsData} />
-          <PrioritizationMatrix painPoints={matrixData} />
-          
-          {matrixData.filter(p => !p.hasLinks).length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Unlinked Pain Points
-                </h2>
-                <span className="text-sm text-gray-500">
-                  ({matrixData.filter(p => !p.hasLinks).length} items need solutions)
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                These pain points don't have any linked solutions yet. Consider linking them to existing solutions or creating new ones.
-              </p>
-              <div className="space-y-3">
-                {matrixData.filter(p => !p.hasLinks).map((painPoint) => (
-                  <div key={painPoint.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{painPoint.statement}</p>
-                      <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                        <span>Benefit: {painPoint.magnitude}/10</span>
-                        <span>Effort: {painPoint.effortSolving}/10</span>
-                        <span>Hours/Month: {Math.round(painPoint.totalHoursPerMonth)}</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const pp = allPainPoints.data?.find(p => p.id === painPoint.id);
-                        if (pp) {
-                          setSelectedPainPoint(pp);
-                          setEditingLink(null);
-                          setSelectedUseCaseId("");
-                          setPercentageSolved("");
-                          setNotes("");
-                          setLinkModalOpen(true);
-                        }
-                      }}
-                      className="ml-4 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
-                    >
-                      Link Solution
-                    </button>
-                  </div>
-                ))}
-              </div>
+      <MetricsCards {...metricsData} />
+      
+      <PrioritizationMatrix painPoints={matrixData} />
+      
+      <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
+      
+      {matrixData.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-gray-500" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                Pain Points Overview
+              </h2>
+              <span className="text-sm text-gray-500">
+                ({matrixData.filter(p => p.hasLinks).length} linked, {matrixData.filter(p => !p.hasLinks).length} unlinked)
+              </span>
             </div>
-          )}
-          
-          <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
-        </TabsContent>
-
-        <TabsContent value="opportunities" className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Pain Points
-            {selectedCompanyId && !selectedBusinessUnitId && !selectedProcessId &&
-              ` for ${companies.find((c) => c.id === selectedCompanyId)?.name}`}
-            {selectedBusinessUnitId && !selectedProcessId &&
-              ` for ${businessUnits.find((bu) => bu.id === selectedBusinessUnitId)?.name}`}
-            {selectedProcessId &&
-              ` for ${processes.find((p) => p.id === selectedProcessId)?.name}`}
-          </h2>
-          <div className="flex gap-2 text-xs">
-            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md flex items-center gap-1">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-              </svg>
-              Linked to Solution
-            </span>
-            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-md flex items-center gap-1">
-              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-              </svg>
-              Not Yet Linked
-            </span>
+            <div className="flex gap-2 text-xs">
+              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md">Linked</span>
+              <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-md">Unlinked</span>
+            </div>
           </div>
-        </div>
-
-        {!allPainPoints.data || allPainPoints.data.length === 0 ? (
-          <div className="text-center py-12">
-            <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">
-              {selectedCompanyId || selectedBusinessUnitId || selectedProcessId
-                ? "No pain points found for the selected filters"
-                : "No pain points found in the system"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {selectedCompanyId || selectedBusinessUnitId || selectedProcessId
-                ? "Try adjusting your filters or add pain points to processes in this context"
-                : "Create pain points and link them to processes to get started"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {allPainPoints.data.map((painPoint) => (
-              <PainPointCard key={painPoint.id} painPoint={painPoint} />
+          <p className="text-sm text-gray-600 mb-4">
+            Manage solution links for each pain point. Click "Manage" to add, edit, or remove linked solutions.
+          </p>
+          <div className="space-y-3">
+            {matrixData.map((painPoint) => (
+              <div 
+                key={painPoint.id} 
+                className={`flex items-center justify-between p-4 border rounded-lg ${
+                  painPoint.hasLinks 
+                    ? 'bg-green-50 border-green-100' 
+                    : 'bg-amber-50 border-amber-100'
+                }`}
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900">{painPoint.statement}</p>
+                    {painPoint.hasLinks ? (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                        {painPoint.linkedUseCases.length} solution{painPoint.linkedUseCases.length !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                        No solutions
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                    <span>Benefit: {painPoint.magnitude}/10</span>
+                    <span>Effort: {painPoint.effortSolving}/10</span>
+                    <span>Hours/Month: {Math.round(painPoint.totalHoursPerMonth)}</span>
+                  </div>
+                  {painPoint.hasLinks && painPoint.linkedUseCases.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Solutions: {painPoint.linkedUseCases.join(', ')}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    const pp = allPainPoints.data?.find(p => p.id === painPoint.id);
+                    if (pp) handleOpenLinkModal(pp);
+                  }}
+                  className={`ml-4 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    painPoint.hasLinks
+                      ? 'text-green-700 bg-green-100 hover:bg-green-200'
+                      : 'text-amber-700 bg-amber-100 hover:bg-amber-200'
+                  }`}
+                >
+                  {painPoint.hasLinks ? 'Manage' : 'Link Solution'}
+                </button>
+              </div>
             ))}
           </div>
-        )}
-      </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
         <DialogContent>
@@ -694,6 +510,76 @@ export default function OpportunitiesDashboard() {
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-sm font-medium text-gray-700">Pain Point:</p>
               <p className="text-sm text-gray-900">{selectedPainPoint.statement}</p>
+            </div>
+          )}
+
+          {selectedPainPointLinks.length > 0 && (
+            <div className="border border-gray-200 rounded-lg p-4 mb-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Linked Solutions</h4>
+              <div className="space-y-2">
+                {selectedPainPointLinks.map((link) => {
+                  const isEditing = editingLink?.id === link.id;
+                  return (
+                    <div
+                      key={link.id}
+                      className={`flex items-center justify-between rounded-md p-3 ${
+                        isEditing 
+                          ? 'bg-blue-50 border-2 border-blue-300' 
+                          : 'bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium text-sm ${isEditing ? 'text-blue-900' : 'text-gray-900'}`}>
+                            {link.useCaseName}
+                          </span>
+                          {isEditing && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                              Editing
+                            </span>
+                          )}
+                        </div>
+                        {link.percentageSolved !== null && (
+                          <div className={`text-xs ${isEditing ? 'text-blue-700' : 'text-gray-600'}`}>
+                            Solves {link.percentageSolved}% of this pain point
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            onClick={() => resetLinkForm()}
+                            className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+                            title="Cancel editing"
+                          >
+                            Cancel
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleEditLink(link)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit link"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLink(selectedPainPoint!.id, link.id)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Remove link"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
