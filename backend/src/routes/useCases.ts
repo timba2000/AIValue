@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { processes, useCases } from "../db/schema.js";
+import { processes, useCases, painPointUseCases, painPoints } from "../db/schema.js";
 
 const router = Router();
 
@@ -258,6 +258,44 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error("Failed to delete use case", error);
     res.status(500).json({ message: "Failed to delete use case" });
+  }
+});
+
+router.get("/:id/pain-points", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const links = await db
+      .select({
+        id: painPointUseCases.id,
+        painPointId: painPointUseCases.painPointId,
+        useCaseId: painPointUseCases.useCaseId,
+        percentageSolved: painPointUseCases.percentageSolved,
+        notes: painPointUseCases.notes,
+        createdAt: painPointUseCases.createdAt,
+        painPointStatement: painPoints.statement,
+        painPointMagnitude: painPoints.magnitude,
+        painPointRiskLevel: painPoints.riskLevel,
+        painPointTotalHours: painPoints.totalHoursPerMonth,
+        painPointFteCount: painPoints.fteCount
+      })
+      .from(painPointUseCases)
+      .leftJoin(painPoints, eq(painPointUseCases.painPointId, painPoints.id))
+      .where(eq(painPointUseCases.useCaseId, id))
+      .orderBy(desc(painPointUseCases.createdAt));
+
+    const formatted = links.map((link) => ({
+      ...link,
+      percentageSolved: link.percentageSolved !== null ? Number(link.percentageSolved) : null,
+      painPointMagnitude: link.painPointMagnitude !== null ? Number(link.painPointMagnitude) : null,
+      painPointTotalHours: link.painPointTotalHours !== null ? Number(link.painPointTotalHours) : null,
+      painPointFteCount: link.painPointFteCount !== null ? Number(link.painPointFteCount) : null
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Failed to fetch use case pain points", error);
+    res.status(500).json({ message: "Failed to fetch use case pain points" });
   }
 });
 

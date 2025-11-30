@@ -1,11 +1,14 @@
 import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
+import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
+import { Link2, Check, AlertCircle } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
 import type { ProcessRecord } from "@/types/process";
 import type { BusinessUnit } from "@/types/business";
@@ -75,6 +78,21 @@ export default function PainPointList() {
   const [formState, setFormState] = useState<FormState>(emptyForm);
   const [processes, setProcesses] = useState<ProcessRecord[]>([]);
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [selectedPainPointForLink, setSelectedPainPointForLink] = useState<PainPoint | null>(null);
+
+  const { data: linkStats = {} } = useQuery<Record<string, number>>({
+    queryKey: ["allPainPointLinksStats"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE}/api/pain-point-links/stats`);
+      return response.data;
+    }
+  });
+
+  const handleOpenLinkModal = (painPoint: PainPoint) => {
+    setSelectedPainPointForLink(painPoint);
+    setLinkModalOpen(true);
+  };
 
   const validProcessIds = useMemo(() => {
     if (selectedProcessId) {
@@ -282,6 +300,7 @@ export default function PainPointList() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Risk Level</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact (1-10)</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Total Hrs/Month</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700">Linked Use Cases</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
@@ -329,19 +348,48 @@ export default function PainPointList() {
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleEdit(pp)}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(pp.id)}
-                        className="text-red-600 hover:text-red-800 font-medium"
-                      >
-                        Delete
-                      </button>
+                    <td className="py-3 px-4 text-center">
+                      {linkStats[pp.id] && linkStats[pp.id] > 0 ? (
+                        <button
+                          onClick={() => handleOpenLinkModal(pp)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs font-medium"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          {linkStats[pp.id]} linked
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenLinkModal(pp)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
+                        >
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Not linked
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenLinkModal(pp)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          title="Link use cases"
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                          Link
+                        </button>
+                        <button
+                          onClick={() => handleEdit(pp)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-xs px-2 py-1 hover:bg-blue-50 rounded transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(pp.id)}
+                          className="text-red-600 hover:text-red-800 font-medium text-xs px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -602,6 +650,16 @@ export default function PainPointList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedPainPointForLink && (
+        <LinkManagerModal
+          open={linkModalOpen}
+          onOpenChange={setLinkModalOpen}
+          mode="pain-point"
+          sourceId={selectedPainPointForLink.id}
+          sourceName={selectedPainPointForLink.statement}
+        />
+      )}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { UseCaseForm } from "@/components/UseCaseForm";
 import { UseCaseList as UseCaseGrid } from "@/components/UseCaseList";
 import { FilterByContext } from "@/components/FilterByContext";
+import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
 import type { UseCase } from "@/types/useCase";
 import type { BusinessUnit } from "@/types/business";
@@ -27,12 +28,34 @@ export default function UseCaseListPage() {
   } = useFilterStore();
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [selectedUseCaseForLink, setSelectedUseCaseForLink] = useState<UseCase | null>(null);
   const [filters, setFilters] = useState({
     search: "",
     processId: "",
     complexity: "",
     confidenceLevel: ""
   });
+
+  const { data: useCaseLinkStats = {} } = useQuery<Record<string, number>>({
+    queryKey: ["useCaseLinkStats"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/pain-point-links/all`);
+      const links = response.data as Array<{ useCaseId: string }>;
+      const stats: Record<string, number> = {};
+      links.forEach(link => {
+        if (link.useCaseId) {
+          stats[link.useCaseId] = (stats[link.useCaseId] || 0) + 1;
+        }
+      });
+      return stats;
+    }
+  });
+
+  const handleOpenLinkModal = (useCase: UseCase) => {
+    setSelectedUseCaseForLink(useCase);
+    setLinkModalOpen(true);
+  };
 
   const { data: useCases = [], isLoading: useCasesLoading } = useQuery({
     queryKey: ["use-cases"],
@@ -161,6 +184,8 @@ export default function UseCaseListPage() {
           setShowForm(true);
         }}
         onDelete={handleDelete}
+        onLink={handleOpenLinkModal}
+        linkStats={useCaseLinkStats}
         isLoading={useCasesLoading}
       />
 
@@ -175,6 +200,16 @@ export default function UseCaseListPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {selectedUseCaseForLink && (
+        <LinkManagerModal
+          open={linkModalOpen}
+          onOpenChange={setLinkModalOpen}
+          mode="use-case"
+          sourceId={selectedUseCaseForLink.id}
+          sourceName={selectedUseCaseForLink.name}
+        />
+      )}
     </div>
   );
 }

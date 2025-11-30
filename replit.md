@@ -31,6 +31,14 @@ Preferred communication style: Simple, everyday language.
 - Dashboard with Analytics and Opportunities views, including a prioritization matrix visualization.
 - Tab-based interface for different views, with localStorage persistence for selections.
 - Modal-based forms for cleaner interaction and consistent UX across screen sizes.
+- Global filter context using Zustand with localStorage persistence for cross-page filter synchronization.
+- LinkManagerModal component for visually managing pain point to use case relationships.
+
+**Linking System:**
+- Pain points can be linked to use cases with percentage solved and notes
+- Link management available from Pain Points page, Use Cases page, and Dashboard
+- Visual indicators show linked/not linked status with color-coded badges
+- Impact calculations show projected benefits based on expected benefits and percentage solved
 
 ### Backend Architecture
 
