@@ -112,18 +112,6 @@ export default function OpportunitiesDashboard() {
     enabled: !!selectedCompanyId
   });
 
-  const { data: painPoints = [] } = useQuery<PainPoint[]>({
-    queryKey: ["painPoints", selectedProcessId],
-    queryFn: async () => {
-      if (!selectedProcessId) return [];
-      const response = await axios.get(
-        `${API_URL}/api/processes/${selectedProcessId}/pain-points`
-      );
-      return response.data;
-    },
-    enabled: !!selectedProcessId
-  });
-
   const { data: useCases = [] } = useQuery<UseCase[]>({
     queryKey: ["useCases"],
     queryFn: async () => {
@@ -163,7 +151,7 @@ export default function OpportunitiesDashboard() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
-      queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPoints"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
       setLinkModalOpen(false);
@@ -189,7 +177,7 @@ export default function OpportunitiesDashboard() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
-      queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPoints"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
       setLinkModalOpen(false);
@@ -205,7 +193,7 @@ export default function OpportunitiesDashboard() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["painPointLinks", variables.painPointId] });
-      queryClient.invalidateQueries({ queryKey: ["painPoints", selectedProcessId] });
+      queryClient.invalidateQueries({ queryKey: ["allPainPoints"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksStats"] });
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
     }

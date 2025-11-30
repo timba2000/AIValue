@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FilterByContext } from "@/components/FilterByContext";
+import { useFilterStore } from "../stores/filterStore";
 import type { BusinessUnit, Company } from "@/types/business";
 import type { PainPointOption, ProcessOptionsResponse, ProcessPayload, ProcessRecord, UseCaseOption } from "@/types/process";
 
@@ -41,10 +43,12 @@ const emptyForm: FormState = {
 };
 
 export default function ProcessList() {
+  const {
+    selectedCompanyId,
+    selectedBusinessUnitId: selectedUnitId,
+  } = useFilterStore();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [selectedUnitId, setSelectedUnitId] = useState<string>("");
   const [processes, setProcesses] = useState<ProcessRecord[]>([]);
   const [options, setOptions] = useState<ProcessOptionsResponse>({ painPoints: [], useCases: [] });
   const [search, setSearch] = useState("");
@@ -74,10 +78,6 @@ export default function ProcessList() {
       try {
         const response = await axios.get<Company[]>(`${API_BASE}/api/companies`);
         setCompanies(response.data);
-        if (response.data.length > 0) {
-          const first = response.data[0];
-          setSelectedCompanyId(first.id);
-        }
       } catch (error) {
         console.error(error);
         setError("Failed to load businesses");
@@ -88,7 +88,11 @@ export default function ProcessList() {
   }, []);
 
   useEffect(() => {
-    if (!selectedCompanyId) return;
+    if (!selectedCompanyId) {
+      setBusinessUnits([]);
+      setProcesses([]);
+      return;
+    }
 
     const fetchUnits = async () => {
       try {
@@ -96,11 +100,7 @@ export default function ProcessList() {
           `${API_BASE}/api/companies/${selectedCompanyId}/business-units`
         );
         setBusinessUnits(response.data);
-        if (response.data.length > 0) {
-          const first = response.data[0];
-          setSelectedUnitId(first.id);
-        } else {
-          setSelectedUnitId("");
+        if (!selectedUnitId) {
           setProcesses([]);
         }
       } catch (error) {
@@ -110,7 +110,7 @@ export default function ProcessList() {
     };
 
     fetchUnits();
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, selectedUnitId]);
 
   const fetchProcesses = async (businessUnitId: string) => {
     if (!businessUnitId) return;
@@ -148,16 +148,6 @@ export default function ProcessList() {
 
     fetchOptions();
   }, []);
-
-  const handleSelectCompany = (id: string) => {
-    setSelectedCompanyId(id);
-    setSelectedUnitId("");
-    setProcesses([]);
-  };
-
-  const handleSelectUnit = (id: string) => {
-    setSelectedUnitId(id);
-  };
 
   const openCreateForm = () => {
     if (!selectedUnitId) return;
@@ -288,58 +278,24 @@ export default function ProcessList() {
         {error ? <p className="text-sm text-red-600 font-medium mt-3">{error}</p> : null}
       </div>
 
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[280px,1fr]">
-        <aside className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
-          <div className="space-y-2">
-            <Label htmlFor="business-select">Business</Label>
-            <select
-              id="business-select"
-              className="w-full rounded border px-3 py-2"
-              value={selectedCompanyId}
-              onChange={(event) => handleSelectCompany(event.target.value)}
-            >
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <FilterByContext />
 
-          <div className="space-y-2">
-            <Label htmlFor="unit-select">Business Unit</Label>
-            <select
-              id="unit-select"
-              className="w-full rounded border px-3 py-2"
-              value={selectedUnitId}
-              onChange={(event) => handleSelectUnit(event.target.value)}
-            >
-              {businessUnits.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name}
-                </option>
-              ))}
-            </select>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold">Processes</h2>
+            {loading && <span className="text-sm text-muted-foreground">Loading...</span>}
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="search">Search</Label>
+          <div className="w-full sm:w-64">
             <Input
-              id="search"
-              placeholder="Search by name"
+              placeholder="Search by name..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-        </aside>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Processes</h2>
-            {loading && <span className="text-sm text-muted-foreground">Loading...</span>}
-          </div>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
+        </div>
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -386,8 +342,7 @@ export default function ProcessList() {
                   ))
                 )}
               </TableBody>
-            </Table>
-          </div>
+          </Table>
         </div>
       </div>
 

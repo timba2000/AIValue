@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { FilterByContext } from "@/components/FilterByContext";
+import { useFilterStore } from "../stores/filterStore";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
 import type { ProcessRecord } from "@/types/process";
+import type { BusinessUnit } from "@/types/business";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -58,6 +61,11 @@ const emptyForm: FormState = {
 };
 
 export default function PainPointList() {
+  const {
+    selectedCompanyId,
+    selectedBusinessUnitId,
+    selectedProcessId,
+  } = useFilterStore();
   const [painPoints, setPainPoints] = useState<PainPoint[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,15 +74,52 @@ export default function PainPointList() {
   const [editingPainPoint, setEditingPainPoint] = useState<PainPoint | null>(null);
   const [formState, setFormState] = useState<FormState>(emptyForm);
   const [processes, setProcesses] = useState<ProcessRecord[]>([]);
+  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
 
-  const filteredPainPoints = painPoints.filter((pp) =>
-    search.trim() === "" ? true : pp.statement.toLowerCase().includes(search.toLowerCase())
-  );
+  const validProcessIds = useMemo(() => {
+    if (selectedProcessId) {
+      return new Set([selectedProcessId]);
+    } else if (selectedBusinessUnitId) {
+      return new Set(processes.filter(p => p.businessUnitId === selectedBusinessUnitId).map(p => p.id));
+    } else if (selectedCompanyId) {
+      const companyBuIds = new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+      return new Set(processes.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
+    }
+    return null;
+  }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, processes, businessUnits]);
+
+  const filteredPainPoints = useMemo(() => {
+    let filtered = painPoints;
+    
+    if (validProcessIds) {
+      filtered = filtered.filter(pp => 
+        pp.processIds && pp.processIds.some(id => validProcessIds.has(id))
+      );
+    }
+    
+    if (search.trim()) {
+      filtered = filtered.filter(pp => 
+        pp.statement.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [painPoints, validProcessIds, search]);
 
   useEffect(() => {
     fetchPainPoints();
     fetchProcesses();
+    fetchBusinessUnits();
   }, []);
+
+  const fetchBusinessUnits = async () => {
+    try {
+      const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/business-units`);
+      setBusinessUnits(response.data);
+    } catch (error) {
+      console.error("Failed to fetch business units", error);
+    }
+  };
 
   const fetchPainPoints = async () => {
     setLoading(true);
@@ -205,17 +250,20 @@ export default function PainPointList() {
         </div>
       )}
 
+      <FilterByContext />
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <div className="mb-4">
-          <Label htmlFor="search">Search</Label>
-          <input
-            id="search"
-            type="text"
-            placeholder="Search by statement"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="mt-1.5 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Pain Points List</h2>
+          <div className="w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search by statement..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         {loading && painPoints.length === 0 ? (

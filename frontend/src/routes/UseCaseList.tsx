@@ -1,14 +1,30 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { deleteUseCase, getUseCases } from "@/api/useCases";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UseCaseForm } from "@/components/UseCaseForm";
 import { UseCaseList as UseCaseGrid } from "@/components/UseCaseList";
+import { FilterByContext } from "@/components/FilterByContext";
+import { useFilterStore } from "../stores/filterStore";
 import type { UseCase } from "@/types/useCase";
+import type { BusinessUnit } from "@/types/business";
+
+interface Process {
+  id: string;
+  businessUnitId: string;
+}
+
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function UseCaseListPage() {
   const queryClient = useQueryClient();
+  const {
+    selectedCompanyId,
+    selectedBusinessUnitId,
+    selectedProcessId: contextProcessId,
+  } = useFilterStore();
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({
@@ -22,6 +38,41 @@ export default function UseCaseListPage() {
     queryKey: ["use-cases"],
     queryFn: getUseCases
   });
+
+  const { data: processes = [] } = useQuery<Process[]>({
+    queryKey: ["all-processes"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/processes`);
+      return response.data;
+    }
+  });
+
+  const { data: businessUnits = [] } = useQuery<BusinessUnit[]>({
+    queryKey: ["all-business-units"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/business-units`);
+      return response.data;
+    }
+  });
+
+  const validProcessIds = useMemo(() => {
+    if (contextProcessId) {
+      return new Set([contextProcessId]);
+    } else if (selectedBusinessUnitId) {
+      return new Set(processes.filter(p => p.businessUnitId === selectedBusinessUnitId).map(p => p.id));
+    } else if (selectedCompanyId) {
+      const companyBuIds = new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+      return new Set(processes.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
+    }
+    return null;
+  }, [selectedCompanyId, selectedBusinessUnitId, contextProcessId, processes, businessUnits]);
+
+  const contextFilteredUseCases = useMemo(() => {
+    if (!validProcessIds) return useCases;
+    return useCases.filter(uc => 
+      uc.processId && validProcessIds.has(uc.processId)
+    );
+  }, [useCases, validProcessIds]);
 
   const deleteMutation = useMutation<void, unknown, string, { previous?: UseCase[] }>({
     mutationFn: deleteUseCase,
@@ -75,9 +126,14 @@ export default function UseCaseListPage() {
 
   const headerSubtitle = useMemo(() => {
     if (useCasesLoading) return "Loading use cases...";
-    if (useCases.length === 0) return "Create your first use case to get started.";
-    return `${useCases.length} use cases available`;
-  }, [useCases.length, useCasesLoading]);
+    if (contextFilteredUseCases.length === 0) {
+      if (validProcessIds) {
+        return "No use cases match the current filter.";
+      }
+      return "Create your first use case to get started.";
+    }
+    return `${contextFilteredUseCases.length} use cases available`;
+  }, [contextFilteredUseCases.length, useCasesLoading, validProcessIds]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -94,8 +150,10 @@ export default function UseCaseListPage() {
         </div>
       </div>
 
+      <FilterByContext />
+
       <UseCaseGrid
-        useCases={useCases}
+        useCases={contextFilteredUseCases}
         filters={filters}
         onFiltersChange={setFilters}
         onEdit={(useCase) => {
