@@ -11,7 +11,7 @@ import BusinessesPage from "@/pages/BusinessesPage";
 
 function LoginPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fade-in">
       <h1 className="text-3xl font-bold tracking-tight">Login</h1>
       <p className="text-muted-foreground">Access is restricted to authenticated users.</p>
     </div>
@@ -20,7 +20,7 @@ function LoginPage() {
 
 function NotFoundPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 fade-in">
       <h1 className="text-3xl font-bold tracking-tight">Page not found</h1>
       <p className="text-muted-foreground">The page you requested could not be located.</p>
     </div>
@@ -38,7 +38,7 @@ function App() {
   }, [location]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background transition-colors duration-300">
       {shouldShowSidebar && isMobileNavOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 backdrop-blur-sm md:hidden"

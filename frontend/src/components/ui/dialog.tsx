@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
 type DialogContextValue = {
   open: boolean;
@@ -31,7 +32,10 @@ const DialogOverlay = ({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   const { onOpenChange } = useDialogContext();
   return (
     <div
-      className={cn("fixed inset-0 z-40 bg-black/50", className)}
+      className={cn(
+        "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300",
+        className
+      )}
       onClick={() => onOpenChange(false)}
       {...props}
     />
@@ -53,7 +57,8 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
           role="dialog"
           aria-modal="true"
           className={cn(
-            "relative z-50 w-full max-w-lg rounded-lg bg-background p-6 shadow-lg outline-none", 
+            "relative z-50 w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl",
+            "scale-in max-h-[90vh] overflow-y-auto",
             className
           )}
           onClick={(event) => event.stopPropagation()}
@@ -63,10 +68,10 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
           <button
             type="button"
             aria-label="Close dialog"
-            className="absolute right-3 top-3 rounded p-1 text-muted-foreground hover:bg-muted"
+            className="absolute right-4 top-4 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-200"
             onClick={() => onOpenChange(false)}
           >
-            ×
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>,
@@ -77,12 +82,12 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
 DialogContent.displayName = "DialogContent";
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("mb-4 space-y-1 text-left", className)} {...props} />
+  <div className={cn("mb-4 space-y-1.5 text-left pr-8", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
 const DialogTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
+  <h2 className={cn("text-xl font-semibold leading-none tracking-tight text-foreground", className)} {...props} />
 );
 DialogTitle.displayName = "DialogTitle";
 
@@ -92,7 +97,7 @@ const DialogDescription = ({ className, ...props }: React.HTMLAttributes<HTMLPar
 DialogDescription.displayName = "DialogDescription";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end", className)} {...props} />
+  <div className={cn("mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end", className)} {...props} />
 );
 DialogFooter.displayName = "DialogFooter";
 

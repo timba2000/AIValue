@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Use Case Tracker</title>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem("aivalue-theme");
+          var theme = "system";
+          if (stored) {
+            var parsed = JSON.parse(stored);
+            theme = parsed.state && parsed.state.theme ? parsed.state.theme : "system";
+          }
+          var resolved = theme;
+          if (theme === "system") {
+            resolved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.classList.add(resolved);
+        } catch (e) {
+          document.documentElement.classList.add("light");
+        }
+      })();
+    </script>
   </head>
   <body class="bg-background text-foreground">
     <div id="root"></div>

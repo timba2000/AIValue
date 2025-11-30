@@ -408,12 +408,12 @@ export default function OpportunitiesDashboard() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+    <div className="space-y-6 fade-in">
+      <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
           Dashboard
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Analytics and opportunity management
         </p>
       </div>
@@ -427,55 +427,55 @@ export default function OpportunitiesDashboard() {
       <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
       
       {matrixData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-card rounded-2xl border border-border p-6 slide-up">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <Settings className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-foreground">
                 Pain Points Overview
               </h2>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-muted-foreground">
                 ({matrixData.filter(p => p.hasLinks).length} linked, {matrixData.filter(p => !p.hasLinks).length} unlinked)
               </span>
             </div>
             <div className="flex gap-2 text-xs">
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-md">Linked</span>
-              <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-md">Unlinked</span>
+              <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-lg font-medium">Linked</span>
+              <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-medium">Unlinked</span>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Manage solution links for each pain point. Click "Manage" to add, edit, or remove linked solutions.
           </p>
           <div className="space-y-3">
             {matrixData.map((painPoint) => (
               <div 
                 key={painPoint.id} 
-                className={`flex items-center justify-between p-4 border rounded-lg ${
+                className={`flex items-center justify-between p-4 border rounded-xl transition-all duration-200 ${
                   painPoint.hasLinks 
-                    ? 'bg-green-50 border-green-100' 
-                    : 'bg-amber-50 border-amber-100'
+                    ? 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10' 
+                    : 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10'
                 }`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900">{painPoint.statement}</p>
+                    <p className="text-sm font-medium text-foreground">{painPoint.statement}</p>
                     {painPoint.hasLinks ? (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-500 rounded-full">
                         {painPoint.linkedUseCases.length} solution{painPoint.linkedUseCases.length !== 1 ? 's' : ''}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 rounded-full">
                         No solutions
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                  <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
                     <span>Benefit: {painPoint.magnitude}/10</span>
                     <span>Effort: {painPoint.effortSolving}/10</span>
                     <span>Hours/Month: {Math.round(painPoint.totalHoursPerMonth)}</span>
                   </div>
                   {painPoint.hasLinks && painPoint.linkedUseCases.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-muted-foreground">
                       Solutions: {painPoint.linkedUseCases.join(', ')}
                     </div>
                   )}
@@ -485,10 +485,10 @@ export default function OpportunitiesDashboard() {
                     const pp = allPainPoints.data?.find(p => p.id === painPoint.id);
                     if (pp) handleOpenLinkModal(pp);
                   }}
-                  className={`ml-4 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  className={`ml-4 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                     painPoint.hasLinks
-                      ? 'text-green-700 bg-green-100 hover:bg-green-200'
-                      : 'text-amber-700 bg-amber-100 hover:bg-amber-200'
+                      ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
+                      : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
                   }`}
                 >
                   {painPoint.hasLinks ? 'Manage' : 'Link Solution'}
@@ -507,40 +507,40 @@ export default function OpportunitiesDashboard() {
             </DialogTitle>
           </DialogHeader>
           {selectedPainPoint && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700">Pain Point:</p>
-              <p className="text-sm text-gray-900">{selectedPainPoint.statement}</p>
+            <div className="mb-4 p-4 bg-accent/50 rounded-xl border border-border">
+              <p className="text-sm font-medium text-muted-foreground">Pain Point:</p>
+              <p className="text-sm text-foreground mt-1">{selectedPainPoint.statement}</p>
             </div>
           )}
 
           {selectedPainPointLinks.length > 0 && (
-            <div className="border border-gray-200 rounded-lg p-4 mb-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Linked Solutions</h4>
+            <div className="border border-border rounded-xl p-4 mb-4">
+              <h4 className="text-sm font-semibold text-foreground mb-3">Linked Solutions</h4>
               <div className="space-y-2">
                 {selectedPainPointLinks.map((link) => {
                   const isEditing = editingLink?.id === link.id;
                   return (
                     <div
                       key={link.id}
-                      className={`flex items-center justify-between rounded-md p-3 ${
+                      className={`flex items-center justify-between rounded-xl p-3 transition-all duration-200 ${
                         isEditing 
-                          ? 'bg-blue-50 border-2 border-blue-300' 
-                          : 'bg-gray-50'
+                          ? 'bg-primary/10 border-2 border-primary/30' 
+                          : 'bg-accent/30 hover:bg-accent/50'
                       }`}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`font-medium text-sm ${isEditing ? 'text-blue-900' : 'text-gray-900'}`}>
+                          <span className={`font-medium text-sm ${isEditing ? 'text-primary' : 'text-foreground'}`}>
                             {link.useCaseName}
                           </span>
                           {isEditing && (
-                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                            <span className="px-2 py-0.5 text-xs font-medium gradient-bg text-white rounded-full">
                               Editing
                             </span>
                           )}
                         </div>
                         {link.percentageSolved !== null && (
-                          <div className={`text-xs ${isEditing ? 'text-blue-700' : 'text-gray-600'}`}>
+                          <div className={`text-xs ${isEditing ? 'text-primary/80' : 'text-muted-foreground'}`}>
                             Solves {link.percentageSolved}% of this pain point
                           </div>
                         )}
@@ -550,7 +550,7 @@ export default function OpportunitiesDashboard() {
                           <button
                             type="button"
                             onClick={() => resetLinkForm()}
-                            className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+                            className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-accent hover:bg-accent/80 rounded-lg transition-colors"
                             title="Cancel editing"
                           >
                             Cancel
@@ -560,7 +560,7 @@ export default function OpportunitiesDashboard() {
                             <button
                               type="button"
                               onClick={() => handleEditLink(link)}
-                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                              className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               title="Edit link"
                             >
                               <Pencil className="h-4 w-4" />
@@ -568,7 +568,7 @@ export default function OpportunitiesDashboard() {
                             <button
                               type="button"
                               onClick={() => handleDeleteLink(selectedPainPoint!.id, link.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                               title="Remove link"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -586,14 +586,14 @@ export default function OpportunitiesDashboard() {
           <form onSubmit={handleSubmitLink} className="space-y-4">
             {!editingLink && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Solution
                 </label>
                 <select
                   value={selectedUseCaseId}
                   onChange={(e) => setSelectedUseCaseId(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                 >
                   <option value="">Select a solution...</option>
                   {useCases.map((useCase) => (
@@ -606,22 +606,22 @@ export default function OpportunitiesDashboard() {
             )}
 
             {totalAllocatedPercentage > 0 && (
-              <div className={`p-3 border rounded-lg ${isOverAllocated ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+              <div className={`p-4 border rounded-xl ${isOverAllocated ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                  <span className={`text-sm font-medium ${isOverAllocated ? 'text-red-500' : 'text-amber-500'}`}>
                     {isOverAllocated ? 'Over-Allocated!' : 'Current Coverage'}
                   </span>
-                  <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-800' : 'text-amber-800'}`}>
+                  <span className={`text-sm font-bold ${isOverAllocated ? 'text-red-500' : 'text-amber-500'}`}>
                     {totalAllocatedPercentage}% allocated
                   </span>
                 </div>
-                <div className={`w-full rounded-full h-2 ${isOverAllocated ? 'bg-red-200' : 'bg-amber-200'}`}>
+                <div className={`w-full rounded-full h-2 ${isOverAllocated ? 'bg-red-500/20' : 'bg-amber-500/20'}`}>
                   <div 
                     className={`h-2 rounded-full transition-all ${isOverAllocated ? 'bg-red-500' : 'bg-amber-500'}`}
                     style={{ width: `${Math.min(totalAllocatedPercentage, 100)}%` }}
                   />
                 </div>
-                <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-700' : 'text-amber-700'}`}>
+                <p className={`mt-2 text-xs ${isOverAllocated ? 'text-red-500/80' : 'text-amber-500/80'}`}>
                   {isOverAllocated
                     ? `This pain point exceeds 100% coverage by ${totalAllocatedPercentage - 100}%. Please reduce existing allocations.`
                     : remainingPercentage > 0 
@@ -632,10 +632,10 @@ export default function OpportunitiesDashboard() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 % of Pain Point Solved
                 {remainingPercentage < 100 && (
-                  <span className="text-xs font-normal text-gray-500 ml-2">
+                  <span className="text-xs font-normal text-muted-foreground ml-2">
                     (max {remainingPercentage}% allowed)
                   </span>
                 )}
@@ -647,14 +647,14 @@ export default function OpportunitiesDashboard() {
                 value={percentageSolved}
                 onChange={(e) => setPercentageSolved(e.target.value)}
                 placeholder={`e.g., ${Math.min(80, remainingPercentage)}`}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                className={`w-full px-4 py-3 border bg-background text-foreground rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 ${
                   !isPercentageValid 
-                    ? "border-red-300 focus:ring-red-500 bg-red-50" 
-                    : "border-gray-300 focus:ring-blue-500"
+                    ? "border-red-500/50 focus:ring-red-500 bg-red-500/5" 
+                    : "border-border focus:ring-primary"
                 }`}
               />
               {!isPercentageValid && (
-                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                <p className="mt-2 text-xs text-red-500 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
                   Cannot exceed {remainingPercentage}%
                 </p>
@@ -662,7 +662,7 @@ export default function OpportunitiesDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Notes (Optional)
               </label>
               <textarea
@@ -670,7 +670,7 @@ export default function OpportunitiesDashboard() {
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Additional context about this solution..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
               />
             </div>
 
@@ -684,7 +684,7 @@ export default function OpportunitiesDashboard() {
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={() => setLinkModalOpen(false)}
                 className="flex-1"
               >

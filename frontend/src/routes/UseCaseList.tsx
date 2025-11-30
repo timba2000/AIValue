@@ -182,13 +182,13 @@ export default function UseCaseListPage() {
   }, [contextFilteredUseCases.length, useCasesLoading, validProcessIds]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 fade-in">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Solutions</p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Solutions Library</h1>
-            <p className="text-sm text-gray-600">{headerSubtitle}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Solutions</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Solutions Library</h1>
+            <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
           </div>
           <Button onClick={handleNewUseCase} className="shrink-0">
             New Solution

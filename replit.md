@@ -17,7 +17,7 @@ Preferred communication style: Simple, everyday language.
 - Tailwind CSS with a custom design system and shadcn/ui-inspired primitives
 
 **State Management:**
-- Zustand for global state
+- Zustand for global state (including theme persistence)
 - TanStack Query (React Query) for server state, caching, and optimistic updates
 
 **Routing:**
@@ -32,6 +32,18 @@ Preferred communication style: Simple, everyday language.
 - Modal-based forms for cleaner interaction and consistent UX across screen sizes.
 - Global filter context using Zustand with localStorage persistence for cross-page filter synchronization.
 - Link management modal with inline edit/delete controls for existing linked solutions.
+
+**Theming System:**
+- Light/Dark/System mode support with CSS variables
+- Theme state managed via Zustand (`themeStore.ts`) with localStorage persistence
+- CSS custom properties defined in `index.css` for both light and dark modes
+- Modern contemporary design with:
+  - Gradient backgrounds for primary elements (purple to indigo)
+  - Glassmorphism effects with backdrop-blur
+  - Smooth transitions and micro-animations
+  - Rounded corners (border-radius: 2xl for cards, xl for buttons)
+  - Shadow depth with color tints
+- Theme toggle in sidebar with sun/moon/monitor icons
 
 **Linking System:**
 - Pain points can be linked to use cases with percentage solved and notes
@@ -92,3 +104,12 @@ Preferred communication style: Simple, everyday language.
 - `PORT`
 - `VITE_API_URL`
 - `LLM_CLASSIFIER_MODEL`
+
+## Recent Changes
+
+- Added comprehensive light/dark mode theming system with system preference detection
+- Implemented modern contemporary UI design with gradient effects and glassmorphism
+- Updated all components to use CSS variable-based theming
+- Added theme toggle in sidebar with light/dark/system mode options
+- Enhanced animations and transitions throughout the application
+- Updated PrioritizationMatrix canvas to render appropriately in both themes

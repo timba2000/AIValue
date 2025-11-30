@@ -247,12 +247,12 @@ export default function PainPointList() {
   };
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+    <section className="space-y-4 sm:space-y-6 fade-in">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Pain Points</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Pain Points</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Identify and track process pain points across your organization
             </p>
           </div>
@@ -263,50 +263,50 @@ export default function PainPointList() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <p className="text-sm text-red-500">{error}</p>
         </div>
       )}
 
       <FilterByContext />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Pain Points List</h2>
+          <h2 className="text-lg font-semibold text-foreground">Pain Points List</h2>
           <div className="w-full sm:w-64">
             <input
               type="text"
               placeholder="Search by statement..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
             />
           </div>
         </div>
 
         {loading && painPoints.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">Loading pain points...</div>
+          <div className="text-center py-8 text-muted-foreground">Loading pain points...</div>
         ) : filteredPainPoints.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             {search ? "No pain points match your search" : "No pain points yet. Create one to get started!"}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Statement</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Risk Level</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Impact (1-10)</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Total Hrs/Month</th>
-                  <th className="text-center py-3 px-4 font-semibold text-gray-700">Linked Solutions</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-700">Actions</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Statement</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact Type</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Risk Level</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact (1-10)</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Total Hrs/Month</th>
+                  <th className="text-center py-3 px-4 font-semibold text-muted-foreground">Linked Solutions</th>
+                  <th className="text-right py-3 px-4 font-semibold text-muted-foreground">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {filteredPainPoints.map((pp) => (
-                  <tr key={pp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={pp.id} className="hover:bg-accent/50 transition-colors duration-150">
                     <td className="py-3 px-4">{pp.statement}</td>
                     <td className="py-3 px-4">
                       {pp.impactType && pp.impactType.length > 0 ? (

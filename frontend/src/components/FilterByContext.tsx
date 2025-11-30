@@ -58,17 +58,17 @@ export function FilterByContext() {
   });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
+    <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+      <h2 className="text-lg font-semibold text-foreground mb-4">Filter by Context</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Business
           </label>
           <select
             value={selectedCompanyId}
             onChange={(e) => setSelectedCompanyId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
           >
             <option value="">All Businesses</option>
             {companies.map((company) => (
@@ -80,14 +80,14 @@ export function FilterByContext() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Business Unit
           </label>
           <select
             value={selectedBusinessUnitId}
             onChange={(e) => setSelectedBusinessUnitId(e.target.value)}
             disabled={!selectedCompanyId}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             <option value="">All Business Units</option>
             {businessUnits.map((unit) => (
@@ -99,14 +99,14 @@ export function FilterByContext() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Process
           </label>
           <select
             value={selectedProcessId}
             onChange={(e) => setSelectedProcessId(e.target.value)}
             disabled={!selectedBusinessUnitId}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             <option value="">All Processes</option>
             {processes.map((process) => (
