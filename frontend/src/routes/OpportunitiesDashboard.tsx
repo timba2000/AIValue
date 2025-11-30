@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { AlertTriangle, Pencil, Trash2, Settings } from "lucide-react";
+import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
-import { LinkedPainPointsTable } from "@/components/dashboard/LinkedPainPointsTable";
+import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
 
@@ -407,6 +407,26 @@ export default function OpportunitiesDashboard() {
     linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
   }));
 
+  const overviewTableData = (allPainPoints.data || []).map(pp => {
+    const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
+    const totalPercentageSolved = ppLinks.reduce((sum, link) => sum + (link.percentageSolved ? Number(link.percentageSolved) : 0), 0);
+    const cappedPercentage = Math.min(totalPercentageSolved, 100);
+    const potentialHoursSaved = (pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
+    
+    return {
+      id: pp.id,
+      statement: pp.statement,
+      magnitude: pp.magnitude || 0,
+      effortSolving: pp.effortSolving || 0,
+      totalHoursPerMonth: pp.totalHoursPerMonth || 0,
+      fteCount: pp.fteCount || 0,
+      hasLinks: ppLinks.length > 0,
+      linkedSolutions: ppLinks.map(link => link.useCaseName).filter((name): name is string => name !== null),
+      totalPercentageSolved,
+      potentialHoursSaved: Math.round(potentialHoursSaved)
+    };
+  });
+
   return (
     <div className="space-y-6 fade-in">
       <div className="bg-card rounded-2xl border border-border p-6 slide-up">
@@ -424,80 +444,14 @@ export default function OpportunitiesDashboard() {
       
       <PrioritizationMatrix painPoints={matrixData} />
       
-      <LinkedPainPointsTable data={filteredLinksData} isLoading={linksLoading} />
-      
-      {matrixData.length > 0 && (
-        <div className="bg-card rounded-2xl border border-border p-6 slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-muted-foreground" />
-              <h2 className="text-lg font-semibold text-foreground">
-                Pain Points Overview
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                ({matrixData.filter(p => p.hasLinks).length} linked, {matrixData.filter(p => !p.hasLinks).length} unlinked)
-              </span>
-            </div>
-            <div className="flex gap-2 text-xs">
-              <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-lg font-medium">Linked</span>
-              <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-medium">Unlinked</span>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage solution links for each pain point. Click "Manage" to add, edit, or remove linked solutions.
-          </p>
-          <div className="space-y-3">
-            {matrixData.map((painPoint) => (
-              <div 
-                key={painPoint.id} 
-                className={`flex items-center justify-between p-4 border rounded-xl transition-all duration-200 ${
-                  painPoint.hasLinks 
-                    ? 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10' 
-                    : 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10'
-                }`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{painPoint.statement}</p>
-                    {painPoint.hasLinks ? (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-500 rounded-full">
-                        {painPoint.linkedUseCases.length} solution{painPoint.linkedUseCases.length !== 1 ? 's' : ''}
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 rounded-full">
-                        No solutions
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                    <span>Benefit: {painPoint.magnitude}/10</span>
-                    <span>Effort: {painPoint.effortSolving}/10</span>
-                    <span>Hours/Month: {Math.round(painPoint.totalHoursPerMonth)}</span>
-                  </div>
-                  {painPoint.hasLinks && painPoint.linkedUseCases.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Solutions: {painPoint.linkedUseCases.join(', ')}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    const pp = allPainPoints.data?.find(p => p.id === painPoint.id);
-                    if (pp) handleOpenLinkModal(pp);
-                  }}
-                  className={`ml-4 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    painPoint.hasLinks
-                      ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
-                      : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                  }`}
-                >
-                  {painPoint.hasLinks ? 'Manage' : 'Link Solution'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <PainPointsOverviewTable 
+        data={overviewTableData} 
+        isLoading={linksLoading || allPainPoints.isLoading}
+        onManageClick={(painPointId) => {
+          const pp = allPainPoints.data?.find(p => p.id === painPointId);
+          if (pp) handleOpenLinkModal(pp);
+        }}
+      />
 
       <Dialog open={linkModalOpen} onOpenChange={setLinkModalOpen}>
         <DialogContent>
