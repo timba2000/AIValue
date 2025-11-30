@@ -8,6 +8,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
 import { LinkedPainPointsTable } from "@/components/dashboard/LinkedPainPointsTable";
+import { FilterByContext } from "@/components/FilterByContext";
+import { useFilterStore } from "../stores/filterStore";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -60,13 +62,11 @@ interface PainPointLink {
 
 export default function OpportunitiesDashboard() {
   const queryClient = useQueryClient();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() => {
-    return localStorage.getItem("dashboard_selectedCompanyId") || "";
-  });
-  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>(() => {
-    return localStorage.getItem("dashboard_selectedBusinessUnitId") || "";
-  });
-  const [selectedProcessId, setSelectedProcessId] = useState<string>("");
+  const {
+    selectedCompanyId,
+    selectedBusinessUnitId,
+    selectedProcessId,
+  } = useFilterStore();
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPoint, setSelectedPainPoint] = useState<PainPoint | null>(null);
   const [selectedUseCaseId, setSelectedUseCaseId] = useState("");
@@ -210,20 +210,6 @@ export default function OpportunitiesDashboard() {
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
     }
   });
-
-  const handleCompanyChange = (companyId: string) => {
-    setSelectedCompanyId(companyId);
-    setSelectedBusinessUnitId("");
-    setSelectedProcessId("");
-    localStorage.setItem("dashboard_selectedCompanyId", companyId);
-    localStorage.removeItem("dashboard_selectedBusinessUnitId");
-  };
-
-  const handleBusinessUnitChange = (businessUnitId: string) => {
-    setSelectedBusinessUnitId(businessUnitId);
-    setSelectedProcessId("");
-    localStorage.setItem("dashboard_selectedBusinessUnitId", businessUnitId);
-  };
 
   const handleOpenLinkModal = (painPoint: PainPoint) => {
     setSelectedPainPoint(painPoint);
@@ -562,66 +548,7 @@ export default function OpportunitiesDashboard() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter by Context</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Business
-            </label>
-            <select
-              value={selectedCompanyId}
-              onChange={(e) => handleCompanyChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Businesses</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Business Unit
-            </label>
-            <select
-              value={selectedBusinessUnitId}
-              onChange={(e) => handleBusinessUnitChange(e.target.value)}
-              disabled={!selectedCompanyId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">All Business Units</option>
-              {businessUnits.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Process
-            </label>
-            <select
-              value={selectedProcessId}
-              onChange={(e) => setSelectedProcessId(e.target.value)}
-              disabled={!selectedBusinessUnitId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">All Processes</option>
-              {processes.map((process) => (
-                <option key={process.id} value={process.id}>
-                  {process.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterByContext />
 
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList>
