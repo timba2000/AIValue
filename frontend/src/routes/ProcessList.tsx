@@ -191,7 +191,12 @@ export default function ProcessList() {
   };
 
   const handleSave = async () => {
-    if (!selectedUnitId) return;
+    const businessUnitIdToUse = editingProcess ? editingProcess.businessUnitId : selectedUnitId;
+    
+    if (!businessUnitIdToUse) {
+      setError("Please select a business unit to create a new process");
+      return;
+    }
     if (!formState.name.trim()) {
       setError("Name must not be empty");
       return;
@@ -208,7 +213,7 @@ export default function ProcessList() {
         volumeUnit: formState.volumeUnit.trim() || undefined,
         fte: parseNumberField(formState.fte),
         owner: formState.owner.trim() || undefined,
-        businessUnitId: selectedUnitId,
+        businessUnitId: businessUnitIdToUse,
         painPointIds: formState.painPointIds,
         useCaseIds: formState.useCaseIds
       };
