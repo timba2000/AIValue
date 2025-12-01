@@ -21,8 +21,8 @@ router.get("/pain-point-links/stats", async (_req, res) => {
     }, {} as Record<string, number>);
 
     res.json(statsMap);
-  } catch (error) {
-    console.error("Failed to fetch pain point link stats", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch pain point link stats" });
   }
 });
@@ -51,8 +51,8 @@ router.get("/pain-point-links/all", async (_req, res) => {
     }));
 
     res.json(formatted);
-  } catch (error) {
-    console.error("Failed to fetch all pain point links", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch all pain point links" });
   }
 });
@@ -84,8 +84,8 @@ router.get("/pain-points/:painPointId/links", async (req, res) => {
     }));
 
     res.json(formatted);
-  } catch (error) {
-    console.error("Failed to fetch pain point links", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch pain point links" });
   }
 });
@@ -136,8 +136,8 @@ router.post("/pain-points/:painPointId/links", async (req, res) => {
       ...linkWithUseCase,
       percentageSolved: linkWithUseCase.percentageSolved !== null ? Number(linkWithUseCase.percentageSolved) : null
     });
-  } catch (error) {
-    console.error("Failed to create pain point link", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to create pain point link" });
   }
 });
@@ -188,8 +188,8 @@ router.put("/pain-points/:painPointId/links/:linkId", async (req, res) => {
       ...updated,
       percentageSolved: updated.percentageSolved !== null ? Number(updated.percentageSolved) : null
     });
-  } catch (error) {
-    console.error("Failed to update pain point link", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to update pain point link" });
   }
 });
@@ -208,8 +208,8 @@ router.delete("/pain-points/:painPointId/links/:linkId", async (req, res) => {
       );
 
     res.status(204).send();
-  } catch (error) {
-    console.error("Failed to delete pain point link", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to delete pain point link" });
   }
 });
@@ -255,8 +255,8 @@ router.get("/processes/:processId/pain-points", async (req, res) => {
     }));
 
     res.json(formatted);
-  } catch (error) {
-    console.error("Failed to fetch process pain points", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch process pain points" });
   }
 });

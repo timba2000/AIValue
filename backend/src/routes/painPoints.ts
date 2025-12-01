@@ -111,8 +111,8 @@ router.get("/", async (req, res) => {
     }));
 
     res.json(resultsWithProcessIds);
-  } catch (error) {
-    console.error("Failed to fetch pain points", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch pain points" });
   }
 });
@@ -157,8 +157,8 @@ router.post("/", async (req, res) => {
     if (frequencyNum != null && timePerUnitNum != null) {
       totalHoursPerMonth = frequencyNum * timePerUnitNum;
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid numeric value";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid numeric value";
     return res.status(400).json({ message });
   }
 
@@ -198,8 +198,8 @@ router.post("/", async (req, res) => {
     });
 
     res.status(201).json({ ...result, processIds: processIdsArray });
-  } catch (error) {
-    console.error("Failed to create pain point", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to create pain point" });
   }
 });
@@ -245,8 +245,8 @@ router.put("/:id", async (req, res) => {
     if (frequencyNum != null && timePerUnitNum != null) {
       totalHoursPerMonth = frequencyNum * timePerUnitNum;
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid numeric value";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid numeric value";
     return res.status(400).json({ message });
   }
 
@@ -295,8 +295,8 @@ router.put("/:id", async (req, res) => {
     });
 
     res.json({ ...result, processIds: processIdsArray });
-  } catch (error) {
-    console.error("Failed to update pain point", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to update pain point" });
   }
 });
@@ -313,8 +313,8 @@ router.delete("/:id", async (req, res) => {
 
     await db.delete(painPoints).where(eq(painPoints.id, id));
     res.status(204).send();
-  } catch (error) {
-    console.error("Failed to delete pain point", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to delete pain point" });
   }
 });

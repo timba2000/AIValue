@@ -9,8 +9,7 @@ router.get("/", async (_req, res) => {
   try {
     const results = await db.select().from(companies).orderBy(desc(companies.createdAt));
     res.json(results);
-  } catch (error) {
-    console.error("Failed to fetch companies", error);
+  } catch {
     res.status(500).json({ message: "Failed to fetch companies" });
   }
 });
@@ -30,8 +29,7 @@ router.post("/", async (req, res) => {
       .returning();
 
     res.status(201).json(created);
-  } catch (error) {
-    console.error("Failed to create company", error);
+  } catch {
     res.status(500).json({ message: "Failed to create company" });
   }
 });
@@ -57,8 +55,7 @@ router.put("/:id", async (req, res) => {
     }
 
     res.json(updated);
-  } catch (error) {
-    console.error("Failed to update company", error);
+  } catch {
     res.status(500).json({ message: "Failed to update company" });
   }
 });
@@ -74,8 +71,7 @@ router.delete("/:id", async (req, res) => {
     }
 
     res.json({ message: "Company deleted" });
-  } catch (error) {
-    console.error("Failed to delete company", error);
+  } catch {
     res.status(500).json({ message: "Failed to delete company" });
   }
 });
@@ -91,8 +87,7 @@ router.get("/:id/business-units", async (req, res) => {
       .orderBy(desc(businessUnits.createdAt));
 
     res.json(units);
-  } catch (error) {
-    console.error("Failed to fetch business units", error);
+  } catch {
     res.status(500).json({ message: "Failed to fetch business units" });
   }
 });

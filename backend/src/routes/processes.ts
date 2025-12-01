@@ -10,23 +10,9 @@ import {
   processes,
   useCases
 } from "../db/schema.js";
+import { parseOptionalNumberOrUndefined, normalizeIdArray } from "../utils/parsing.js";
 
 const router = Router();
-
-const parseOptionalNumber = (value: unknown, field: string): number | undefined => {
-  if (value === undefined || value === null || value === "") return undefined;
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`${field} must be a number`);
-  }
-  return parsed;
-};
-
-const normalizeIdArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => String(item)).filter(Boolean);
-};
 
 const replaceProcessLinks = async (
   processId: string,
@@ -89,8 +75,8 @@ router.get("/", async (req, res) => {
       : await baseQuery;
 
     res.json(records);
-  } catch (error) {
-    console.error("Failed to fetch processes", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch processes" });
   }
 });
@@ -125,8 +111,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Invalid businessUnitId" });
     }
 
-    const volumeValue = parseOptionalNumber(volume, "Volume");
-    const fteValue = parseOptionalNumber(fte, "FTE");
+    const volumeValue = parseOptionalNumberOrUndefined(volume, "Volume");
+    const fteValue = parseOptionalNumberOrUndefined(fte, "FTE");
 
     const [created] = await db
       .insert(processes)
@@ -145,9 +131,8 @@ router.post("/", async (req, res) => {
     await replaceProcessLinks(created.id, normalizeIdArray(painPointIds), normalizeIdArray(useCaseIds));
 
     res.status(201).json(created);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create process";
-    console.error("Failed to create process", error);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create process";
     res.status(400).json({ message });
   }
 });
@@ -174,10 +159,10 @@ router.put("/:id", async (req, res) => {
   let fteValue: number | undefined;
 
   try {
-    volumeValue = parseOptionalNumber(volume, "Volume");
-    fteValue = parseOptionalNumber(fte, "FTE");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Invalid numeric field";
+    volumeValue = parseOptionalNumberOrUndefined(volume, "Volume");
+    fteValue = parseOptionalNumberOrUndefined(fte, "FTE");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Invalid numeric field";
     return res.status(400).json({ message });
   }
 
@@ -204,9 +189,8 @@ router.put("/:id", async (req, res) => {
     await replaceProcessLinks(id, normalizeIdArray(painPointIds), normalizeIdArray(useCaseIds));
 
     res.json(updated);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update process";
-    console.error("Failed to update process", error);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update process";
     res.status(400).json({ message });
   }
 });
@@ -222,8 +206,8 @@ router.delete("/:id", async (req, res) => {
     });
 
     res.json({ message: "Process deleted" });
-  } catch (error) {
-    console.error("Failed to delete process", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to delete process" });
   }
 });
@@ -246,8 +230,8 @@ router.get("/links/:id", async (req, res) => {
       painPointIds: painPointLinks.map((row) => row.painPointId),
       useCaseIds: useCaseLinks.map((row) => row.useCaseId)
     });
-  } catch (error) {
-    console.error("Failed to load linked records", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to load linked records" });
   }
 });
@@ -260,8 +244,8 @@ router.get("/options", async (_req, res) => {
     ]);
 
     res.json({ painPoints: painPointOptions, useCases: useCaseOptions });
-  } catch (error) {
-    console.error("Failed to load process options", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to load process options" });
   }
 });

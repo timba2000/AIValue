@@ -2,18 +2,9 @@ import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { processes, useCases, painPointUseCases, painPoints } from "../db/schema.js";
+import { parseOptionalNumber } from "../utils/parsing.js";
 
 const router = Router();
-
-const parseOptionalNumber = (value: unknown, field: string): number | null => {
-  if (value === undefined || value === null || value === "") return null;
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`${field} must be a valid number`);
-  }
-  return parsed;
-};
 
 router.get("/", async (_req, res) => {
   try {
@@ -40,8 +31,8 @@ router.get("/", async (_req, res) => {
       .orderBy(desc(useCases.createdAt));
 
     res.json(results);
-  } catch (error) {
-    console.error("Failed to fetch use cases", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch use cases" });
   }
 });
@@ -114,8 +105,8 @@ router.post("/", async (req, res) => {
       .where(eq(useCases.id, created.id));
 
     res.status(201).json(withProcess);
-  } catch (error) {
-    console.error("Failed to create use case", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to create use case" });
   }
 });
@@ -195,8 +186,8 @@ router.put("/:id", async (req, res) => {
       .where(eq(useCases.id, id));
 
     res.json(updated);
-  } catch (error) {
-    console.error("Failed to update use case", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to update use case" });
   }
 });
@@ -213,8 +204,8 @@ router.delete("/:id", async (req, res) => {
 
     await db.delete(useCases).where(eq(useCases.id, id));
     res.status(204).send();
-  } catch (error) {
-    console.error("Failed to delete use case", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to delete use case" });
   }
 });
@@ -251,8 +242,8 @@ router.get("/:id/pain-points", async (req, res) => {
     }));
 
     res.json(formatted);
-  } catch (error) {
-    console.error("Failed to fetch use case pain points", error);
+  } catch {
+    
     res.status(500).json({ message: "Failed to fetch use case pain points" });
   }
 });

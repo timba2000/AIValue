@@ -9,43 +9,10 @@ import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatri
 import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
+import { getDescendantIds } from "../utils/hierarchy";
 import type { Company, BusinessUnit, BusinessUnitWithChildren } from "@/types/business";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
-
-function getDescendantIds(units: BusinessUnitWithChildren[], targetId: string): string[] {
-  const descendants: string[] = [];
-  
-  // Find the target node in the tree
-  const findNode = (items: BusinessUnitWithChildren[]): BusinessUnitWithChildren | null => {
-    for (const unit of items) {
-      if (unit.id === targetId) return unit;
-      if (unit.children && unit.children.length > 0) {
-        const found = findNode(unit.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-  
-  // Collect all descendants of a node via DFS
-  const collectDescendants = (node: BusinessUnitWithChildren) => {
-    if (node.children && node.children.length > 0) {
-      for (const child of node.children) {
-        descendants.push(child.id);
-        collectDescendants(child);
-      }
-    }
-  };
-  
-  const targetNode = findNode(units);
-  if (targetNode) {
-    collectDescendants(targetNode);
-  }
-  
-  // Return unique IDs
-  return [...new Set(descendants)];
-}
 
 interface Process {
   id: string;

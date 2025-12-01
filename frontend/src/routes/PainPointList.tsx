@@ -9,27 +9,9 @@ import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
 import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat } from "../hooks/useApiData";
+import { getDescendantIds } from "../utils/hierarchy";
 import { Link2, Check, AlertCircle } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
-import type { BusinessUnitWithChildren } from "@/types/business";
-
-function getDescendantIds(units: BusinessUnitWithChildren[], parentId: string): string[] {
-  const descendants: string[] = [];
-  
-  const findDescendants = (items: BusinessUnitWithChildren[]) => {
-    for (const unit of items) {
-      if (unit.parentId === parentId || descendants.includes(unit.parentId || "")) {
-        descendants.push(unit.id);
-      }
-      if (unit.children && unit.children.length > 0) {
-        findDescendants(unit.children);
-      }
-    }
-  };
-  
-  findDescendants(units);
-  return descendants;
-}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
