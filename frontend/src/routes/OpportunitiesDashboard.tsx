@@ -13,22 +13,38 @@ import type { Company, BusinessUnit, BusinessUnitWithChildren } from "@/types/bu
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
-function getDescendantIds(units: BusinessUnitWithChildren[], parentId: string): string[] {
+function getDescendantIds(units: BusinessUnitWithChildren[], targetId: string): string[] {
   const descendants: string[] = [];
   
-  const findDescendants = (items: BusinessUnitWithChildren[]) => {
+  // Find the target node in the tree
+  const findNode = (items: BusinessUnitWithChildren[]): BusinessUnitWithChildren | null => {
     for (const unit of items) {
-      if (unit.parentId === parentId || descendants.includes(unit.parentId || "")) {
-        descendants.push(unit.id);
-      }
+      if (unit.id === targetId) return unit;
       if (unit.children && unit.children.length > 0) {
-        findDescendants(unit.children);
+        const found = findNode(unit.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  
+  // Collect all descendants of a node via DFS
+  const collectDescendants = (node: BusinessUnitWithChildren) => {
+    if (node.children && node.children.length > 0) {
+      for (const child of node.children) {
+        descendants.push(child.id);
+        collectDescendants(child);
       }
     }
   };
   
-  findDescendants(units);
-  return descendants;
+  const targetNode = findNode(units);
+  if (targetNode) {
+    collectDescendants(targetNode);
+  }
+  
+  // Return unique IDs
+  return [...new Set(descendants)];
 }
 
 interface Process {
@@ -285,8 +301,15 @@ export default function OpportunitiesDashboard() {
     }
   };
 
+  // Get all descendant IDs for the selected business unit (for hierarchy aggregation)
+  const selectedUnitWithDescendants = useMemo(() => {
+    if (!selectedBusinessUnitId || !businessUnitsHierarchy.length) return [selectedBusinessUnitId].filter(Boolean);
+    const descendants = getDescendantIds(businessUnitsHierarchy, selectedBusinessUnitId);
+    return [selectedBusinessUnitId, ...descendants];
+  }, [selectedBusinessUnitId, businessUnitsHierarchy]);
+
   const allPainPoints = useQuery<PainPoint[]>({
-    queryKey: ["allPainPoints", selectedCompanyId, selectedBusinessUnitId, selectedProcessId],
+    queryKey: ["allPainPoints", selectedCompanyId, selectedUnitWithDescendants, selectedProcessId],
     queryFn: async () => {
       const params = new URLSearchParams();
       
@@ -294,8 +317,9 @@ export default function OpportunitiesDashboard() {
         params.append('companyId', selectedCompanyId);
       }
       
-      if (selectedBusinessUnitId) {
-        params.append('businessUnitId', selectedBusinessUnitId);
+      // Pass all business unit IDs (selected + descendants) for hierarchy aggregation
+      if (selectedUnitWithDescendants.length > 0) {
+        params.append('businessUnitId', selectedUnitWithDescendants.join(','));
       }
       
       if (selectedProcessId) {
@@ -307,7 +331,8 @@ export default function OpportunitiesDashboard() {
       
       const response = await axios.get(url);
       return response.data;
-    }
+    },
+    enabled: !selectedBusinessUnitId || businessUnitsHierarchy.length > 0
   });
 
   const allPainPointLinks = useQuery<Record<string, number>>({

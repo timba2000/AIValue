@@ -57,8 +57,17 @@ router.get("/", async (req, res) => {
         conditions.push(eq(businessUnits.companyId, companyId));
       }
 
-      if (businessUnitId && typeof businessUnitId === 'string') {
-        conditions.push(eq(processes.businessUnitId, businessUnitId));
+      if (businessUnitId) {
+        // Support comma-separated business unit IDs for hierarchy filtering
+        const businessUnitIds = typeof businessUnitId === 'string' 
+          ? businessUnitId.split(',').filter(id => id.trim())
+          : Array.isArray(businessUnitId) ? businessUnitId.filter((id): id is string => typeof id === 'string') : [];
+        
+        if (businessUnitIds.length === 1) {
+          conditions.push(eq(processes.businessUnitId, businessUnitIds[0]));
+        } else if (businessUnitIds.length > 1) {
+          conditions.push(inArray(processes.businessUnitId, businessUnitIds));
+        }
       }
 
       if (processIdsArray.length > 0) {
