@@ -14,6 +14,7 @@ export const businessUnits = pgTable("business_units", {
   companyId: uuid("company_id")
     .notNull()
     .references(() => companies.id, { onDelete: "cascade" }),
+  parentId: uuid("parent_id"),
   name: text("name").notNull(),
   description: text("description"),
   fte: integer("fte").default(0).notNull(),

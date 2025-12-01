@@ -8,9 +8,28 @@ import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
-import { useAllBusinessUnits, useAllProcesses } from "../hooks/useApiData";
+import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat } from "../hooks/useApiData";
 import { Link2, Check, AlertCircle } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
+import type { BusinessUnitWithChildren } from "@/types/business";
+
+function getDescendantIds(units: BusinessUnitWithChildren[], parentId: string): string[] {
+  const descendants: string[] = [];
+  
+  const findDescendants = (items: BusinessUnitWithChildren[]) => {
+    for (const unit of items) {
+      if (unit.parentId === parentId || descendants.includes(unit.parentId || "")) {
+        descendants.push(unit.id);
+      }
+      if (unit.children && unit.children.length > 0) {
+        findDescendants(unit.children);
+      }
+    }
+  };
+  
+  findDescendants(units);
+  return descendants;
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -80,6 +99,7 @@ export default function PainPointList() {
 
   const { data: businessUnits = [] } = useAllBusinessUnits();
   const { data: processes = [] } = useAllProcesses();
+  const { data: businessUnitsHierarchy = [] } = useBusinessUnitsFlat(selectedCompanyId);
 
   const { data: painPoints = [], isLoading: loading, refetch: refetchPainPoints, error: painPointsError } = useQuery<PainPoint[]>({
     queryKey: ["painPoints"],
@@ -112,13 +132,15 @@ export default function PainPointList() {
     if (selectedProcessId) {
       return new Set([selectedProcessId]);
     } else if (selectedBusinessUnitId) {
-      return new Set(processes.filter(p => p.businessUnitId === selectedBusinessUnitId).map(p => p.id));
+      const descendantIds = getDescendantIds(businessUnitsHierarchy, selectedBusinessUnitId);
+      const allUnitIds = new Set([selectedBusinessUnitId, ...descendantIds]);
+      return new Set(processes.filter(p => allUnitIds.has(p.businessUnitId)).map(p => p.id));
     } else if (selectedCompanyId) {
       const companyBuIds = new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
       return new Set(processes.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
     }
     return null;
-  }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, processes, businessUnits]);
+  }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, processes, businessUnits, businessUnitsHierarchy]);
 
   const filteredPainPoints = useMemo(() => {
     let filtered = painPoints;

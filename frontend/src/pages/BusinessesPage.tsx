@@ -13,13 +13,13 @@ import { BusinessUnitList } from "@/components/business/BusinessUnitList";
 import { BusinessUnitModal } from "@/components/business/BusinessUnitModal";
 import { CompanyList } from "@/components/business/CompanyList";
 import { CompanyModal } from "@/components/business/CompanyModal";
-import type { BusinessUnit, Company, BusinessUnitPayload, CompanyPayload } from "@/types/business";
+import type { BusinessUnitWithChildren, Company, BusinessUnitPayload, CompanyPayload } from "@/types/business";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export default function BusinessesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
+  const [businessUnits, setBusinessUnits] = useState<BusinessUnitWithChildren[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [loadingUnits, setLoadingUnits] = useState(false);
@@ -28,9 +28,10 @@ export default function BusinessesPage() {
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [editingUnit, setEditingUnit] = useState<BusinessUnit | null>(null);
+  const [editingUnit, setEditingUnit] = useState<BusinessUnitWithChildren | null>(null);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
-  const [unitToDelete, setUnitToDelete] = useState<BusinessUnit | null>(null);
+  const [unitToDelete, setUnitToDelete] = useState<BusinessUnitWithChildren | null>(null);
+  const [parentIdForNew, setParentIdForNew] = useState<string | null>(null);
 
   const selectedCompany = useMemo(
     () => companies.find((company) => company.id === selectedCompanyId) ?? null,
@@ -54,7 +55,8 @@ export default function BusinessesPage() {
     setLoadingUnits(true);
     setError(null);
     try {
-      const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/companies/${companyId}/business-units`);
+      const url = `${API_BASE}/api/business-units/tree?companyId=${companyId}`;
+      const response = await axios.get<BusinessUnitWithChildren[]>(url);
       setBusinessUnits(response.data);
     } catch {
       setError("Failed to load business units");
@@ -71,9 +73,14 @@ export default function BusinessesPage() {
     if (companies.length > 0 && !selectedCompanyId) {
       const firstCompany = companies[0];
       setSelectedCompanyId(firstCompany.id);
-      fetchBusinessUnits(firstCompany.id);
     }
-  }, [companies, fetchBusinessUnits, selectedCompanyId]);
+  }, [companies, selectedCompanyId]);
+
+  useEffect(() => {
+    if (selectedCompanyId) {
+      fetchBusinessUnits(selectedCompanyId);
+    }
+  }, [selectedCompanyId, fetchBusinessUnits]);
 
   const handleSelectCompany = (companyId: string) => {
     setSelectedCompanyId(companyId);
@@ -101,6 +108,7 @@ export default function BusinessesPage() {
     }
     await fetchBusinessUnits(selectedCompanyId);
     setEditingUnit(null);
+    setParentIdForNew(null);
   };
 
   const handleDeleteCompany = async () => {
@@ -142,14 +150,16 @@ export default function BusinessesPage() {
     setCompanyModalOpen(true);
   };
 
-  const openCreateUnitModal = () => {
+  const openCreateUnitModal = (parentId?: string | null) => {
     if (!selectedCompanyId) return;
     setEditingUnit(null);
+    setParentIdForNew(parentId ?? null);
     setUnitModalOpen(true);
   };
 
-  const openEditUnitModal = (unit: BusinessUnit) => {
+  const openEditUnitModal = (unit: BusinessUnitWithChildren) => {
     setEditingUnit(unit);
+    setParentIdForNew(null);
     setUnitModalOpen(true);
   };
 
@@ -199,11 +209,16 @@ export default function BusinessesPage() {
           open={unitModalOpen}
           onOpenChange={(open) => {
             setUnitModalOpen(open);
-            if (!open) setEditingUnit(null);
+            if (!open) {
+              setEditingUnit(null);
+              setParentIdForNew(null);
+            }
           }}
           onSubmit={(payload) => handleSaveBusinessUnit({ ...payload, companyId: selectedCompanyId })}
           initialUnit={editingUnit}
           companyId={selectedCompanyId}
+          parentId={parentIdForNew}
+          availableParents={businessUnits}
         />
       ) : null}
 
@@ -231,7 +246,16 @@ export default function BusinessesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete business unit</AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting this business unit will remove it from your organisational model and may impact existing process mappings.
+              {unitToDelete && (
+                <>
+                  Deleting "{unitToDelete.name}" will remove it from your organisational model.
+                  {unitToDelete.children && unitToDelete.children.length > 0 && (
+                    <span className="block mt-2 text-destructive font-medium">
+                      Note: This unit has child units. You must delete or reassign them first.
+                    </span>
+                  )}
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

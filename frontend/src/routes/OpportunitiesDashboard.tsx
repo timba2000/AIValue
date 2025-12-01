@@ -9,18 +9,26 @@ import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatri
 import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
+import type { Company, BusinessUnit, BusinessUnitWithChildren } from "@/types/business";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
-interface Company {
-  id: string;
-  name: string;
-}
-
-interface BusinessUnit {
-  id: string;
-  companyId: string;
-  name: string;
+function getDescendantIds(units: BusinessUnitWithChildren[], parentId: string): string[] {
+  const descendants: string[] = [];
+  
+  const findDescendants = (items: BusinessUnitWithChildren[]) => {
+    for (const unit of items) {
+      if (unit.parentId === parentId || descendants.includes(unit.parentId || "")) {
+        descendants.push(unit.id);
+      }
+      if (unit.children && unit.children.length > 0) {
+        findDescendants(unit.children);
+      }
+    }
+  };
+  
+  findDescendants(units);
+  return descendants;
 }
 
 interface Process {
@@ -118,6 +126,15 @@ export default function OpportunitiesDashboard() {
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/business-units`);
       return response.data.filter((bu: BusinessUnit) => bu.companyId === selectedCompanyId);
+    },
+    enabled: !!selectedCompanyId
+  });
+
+  const { data: businessUnitsHierarchy = [] } = useQuery<BusinessUnitWithChildren[]>({
+    queryKey: ["businessUnitsFlat", selectedCompanyId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/business-units/flat?companyId=${selectedCompanyId}`);
+      return response.data;
     },
     enabled: !!selectedCompanyId
   });
@@ -358,14 +375,18 @@ export default function OpportunitiesDashboard() {
 
   // Build set of valid process IDs based on current filter
   // Handle loading states to avoid showing incorrect counts
+  // When a parent business unit is selected, include all descendant units
   const validProcessIds = (() => {
     if (selectedProcessId) {
       return new Set([selectedProcessId]);
     } else if (selectedBusinessUnitId) {
       // Wait for processes to load before filtering
-      if (processesLoading) return null;
-      // If loaded but empty, return empty Set (shows 0 correctly)
-      return new Set(processes.map(p => p.id));
+      if (companyProcessesLoading) return null;
+      // Get the selected unit and all its descendants
+      const descendantIds = getDescendantIds(businessUnitsHierarchy, selectedBusinessUnitId);
+      const allUnitIds = new Set([selectedBusinessUnitId, ...descendantIds]);
+      // Filter company processes to include selected unit and all descendants
+      return new Set(companyProcesses.filter(p => allUnitIds.has(p.businessUnitId)).map(p => p.id));
     } else if (selectedCompanyId) {
       // Wait for both businessUnits and companyProcesses to load
       if (businessUnitsLoading || companyProcessesLoading) return null;

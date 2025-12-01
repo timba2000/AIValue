@@ -9,10 +9,16 @@ export interface Company {
 export interface BusinessUnit {
   id: string;
   companyId: string;
+  parentId: string | null;
   name: string;
   description: string | null;
   fte: number;
   createdAt: string;
+}
+
+export interface BusinessUnitWithChildren extends BusinessUnit {
+  children: BusinessUnitWithChildren[];
+  depth: number;
 }
 
 export interface CompanyPayload {
@@ -23,6 +29,7 @@ export interface CompanyPayload {
 
 export interface BusinessUnitPayload {
   companyId: string;
+  parentId?: string | null;
   name: string;
   fte: number;
   description?: string;

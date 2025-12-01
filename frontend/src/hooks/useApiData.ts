@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import type { Company, BusinessUnit } from "@/types/business";
+import type { Company, BusinessUnit, BusinessUnitWithChildren } from "@/types/business";
 import type { ProcessRecord } from "@/types/process";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -39,6 +39,21 @@ export function useBusinessUnitsByCompany(companyId: string | null) {
     queryFn: async () => {
       const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/business-units`);
       return response.data.filter((bu) => bu.companyId === companyId);
+    },
+    enabled: !!companyId,
+    staleTime: 30000,
+  });
+}
+
+export function useBusinessUnitsFlat(companyId: string | null) {
+  return useQuery<BusinessUnitWithChildren[]>({
+    queryKey: ["businessUnitsFlat", companyId],
+    queryFn: async () => {
+      const url = companyId 
+        ? `${API_BASE}/api/business-units/flat?companyId=${companyId}`
+        : `${API_BASE}/api/business-units/flat`;
+      const response = await axios.get<BusinessUnitWithChildren[]>(url);
+      return response.data;
     },
     enabled: !!companyId,
     staleTime: 30000,

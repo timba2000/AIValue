@@ -1,16 +1,132 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { BusinessUnit, Company } from "@/types/business";
+import type { BusinessUnitWithChildren, Company } from "@/types/business";
 
 interface BusinessUnitListProps {
   company: Company | null;
-  businessUnits: BusinessUnit[];
-  onAdd: () => void;
-  onEdit: (unit: BusinessUnit) => void;
-  onDelete: (unit: BusinessUnit) => void;
+  businessUnits: BusinessUnitWithChildren[];
+  onAdd: (parentId?: string | null) => void;
+  onEdit: (unit: BusinessUnitWithChildren) => void;
+  onDelete: (unit: BusinessUnitWithChildren) => void;
   loading?: boolean;
+}
+
+interface TreeRowProps {
+  unit: BusinessUnitWithChildren;
+  expanded: Record<string, boolean>;
+  onToggle: (id: string) => void;
+  onAdd: (parentId: string) => void;
+  onEdit: (unit: BusinessUnitWithChildren) => void;
+  onDelete: (unit: BusinessUnitWithChildren) => void;
+}
+
+const MAX_DEPTH = 3;
+
+function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowProps) {
+  const hasChildren = unit.children && unit.children.length > 0;
+  const isExpanded = expanded[unit.id] ?? true;
+  const canAddChild = unit.depth < MAX_DEPTH;
+  const indentPx = (unit.depth - 1) * 24;
+
+  return (
+    <>
+      <div
+        className="group flex items-center gap-2 py-2 px-3 hover:bg-muted/50 rounded-lg transition-colors"
+        style={{ paddingLeft: `${12 + indentPx}px` }}
+      >
+        <button
+          type="button"
+          onClick={() => onToggle(unit.id)}
+          className="w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          disabled={!hasChildren}
+        >
+          {hasChildren ? (
+            isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )
+          ) : (
+            <span className="w-4" />
+          )}
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground truncate">{unit.name}</span>
+            {unit.depth === 1 && (
+              <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">Level 1</span>
+            )}
+            {unit.depth === 2 && (
+              <span className="text-xs px-1.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded">Level 2</span>
+            )}
+            {unit.depth === 3 && (
+              <span className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded">Level 3</span>
+            )}
+          </div>
+          {unit.description && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{unit.description}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <span className="tabular-nums">{unit.fte}</span>
+          <span className="text-xs">FTE</span>
+        </div>
+
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {canAddChild && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onAdd(unit.id)}
+              className="h-7 w-7 p-0"
+              title="Add child unit"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(unit)}
+            className="h-7 w-7 p-0"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(unit)}
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {hasChildren && isExpanded && (
+        <div>
+          {unit.children.map((child) => (
+            <TreeRow
+              key={child.id}
+              unit={child}
+              expanded={expanded}
+              onToggle={onToggle}
+              onAdd={onAdd}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
 }
 
 export function BusinessUnitList({
@@ -21,63 +137,76 @@ export function BusinessUnitList({
   onDelete,
   loading = false
 }: BusinessUnitListProps) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const toggleExpanded = (id: string) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const expandAll = () => {
+    const allExpanded: Record<string, boolean> = {};
+    const addIds = (units: BusinessUnitWithChildren[]) => {
+      for (const unit of units) {
+        allExpanded[unit.id] = true;
+        if (unit.children) addIds(unit.children);
+      }
+    };
+    addIds(businessUnits);
+    setExpanded(allExpanded);
+  };
+
+  const collapseAll = () => {
+    setExpanded({});
+  };
+
+  const hasAnyUnits = businessUnits.length > 0;
+
   return (
     <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
           <p className="text-sm text-muted-foreground">Business Units for</p>
           <CardTitle>{company ? company.name : "Select a company"}</CardTitle>
         </div>
-        <Button size="sm" onClick={onAdd} disabled={!company}>
-          Add Business Unit
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasAnyUnits && (
+            <>
+              <Button variant="ghost" size="sm" onClick={expandAll} className="text-xs">
+                Expand All
+              </Button>
+              <Button variant="ghost" size="sm" onClick={collapseAll} className="text-xs">
+                Collapse
+              </Button>
+            </>
+          )}
+          <Button size="sm" onClick={() => onAdd(null)} disabled={!company}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add Unit
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {loading ? <p className="text-sm text-muted-foreground">Loading business units...</p> : null}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>FTE</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <CardContent className="pt-2">
+        {loading ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Loading business units...</p>
+        ) : hasAnyUnits ? (
+          <div className="space-y-0.5">
             {businessUnits.map((unit) => (
-              <TableRow key={unit.id}>
-                <TableCell className="font-medium">{unit.name}</TableCell>
-                <TableCell>{unit.fte}</TableCell>
-                <TableCell className="max-w-sm text-sm text-muted-foreground">{unit.description || "–"}</TableCell>
-                <TableCell className="flex items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(unit)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(unit)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <TreeRow
+                key={unit.id}
+                unit={unit}
+                expanded={expanded}
+                onToggle={toggleExpanded}
+                onAdd={(parentId) => onAdd(parentId)}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
-            {businessUnits.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                  {company ? "No business units yet for this company." : "Select a company to view business units."}
-                </TableCell>
-              </TableRow>
-            ) : null}
-          </TableBody>
-        </Table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            {company ? "No business units yet. Add your first unit to get started." : "Select a company to view business units."}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

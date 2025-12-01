@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { BusinessUnit, BusinessUnitPayload } from "@/types/business";
+import { Select } from "@/components/ui/select";
+import type { BusinessUnit, BusinessUnitPayload, BusinessUnitWithChildren } from "@/types/business";
 
 interface BusinessUnitModalProps {
   open: boolean;
@@ -12,27 +13,63 @@ interface BusinessUnitModalProps {
   onSubmit: (payload: BusinessUnitPayload) => Promise<void>;
   initialUnit?: BusinessUnit | null;
   companyId: string;
+  parentId?: string | null;
+  availableParents: BusinessUnitWithChildren[];
 }
 
-export function BusinessUnitModal({ open, onOpenChange, onSubmit, initialUnit, companyId }: BusinessUnitModalProps) {
+function flattenForSelect(
+  units: BusinessUnitWithChildren[],
+  excludeId?: string
+): Array<{ id: string; name: string; depth: number }> {
+  const result: Array<{ id: string; name: string; depth: number }> = [];
+  
+  const flatten = (items: BusinessUnitWithChildren[]) => {
+    for (const unit of items) {
+      if (unit.id !== excludeId && unit.depth < 3) {
+        result.push({ id: unit.id, name: unit.name, depth: unit.depth });
+      }
+      if (unit.children && unit.children.length > 0) {
+        flatten(unit.children);
+      }
+    }
+  };
+  
+  flatten(units);
+  return result;
+}
+
+export function BusinessUnitModal({ 
+  open, 
+  onOpenChange, 
+  onSubmit, 
+  initialUnit, 
+  companyId,
+  parentId: initialParentId,
+  availableParents 
+}: BusinessUnitModalProps) {
   const [name, setName] = useState("");
   const [fte, setFte] = useState("0");
   const [description, setDescription] = useState("");
+  const [parentId, setParentId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const selectableParents = flattenForSelect(availableParents, initialUnit?.id);
 
   useEffect(() => {
     if (initialUnit) {
       setName(initialUnit.name ?? "");
       setFte(initialUnit.fte?.toString() ?? "0");
       setDescription(initialUnit.description ?? "");
+      setParentId(initialUnit.parentId ?? "");
     } else {
       setName("");
       setFte("0");
       setDescription("");
+      setParentId(initialParentId ?? "");
     }
     setError(null);
-  }, [initialUnit, open]);
+  }, [initialUnit, initialParentId, open]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -53,6 +90,7 @@ export function BusinessUnitModal({ open, onOpenChange, onSubmit, initialUnit, c
     try {
       await onSubmit({
         companyId,
+        parentId: parentId || null,
         name: trimmedName,
         fte: Math.floor(parsedFte),
         description: description.trim() || undefined
@@ -66,6 +104,8 @@ export function BusinessUnitModal({ open, onOpenChange, onSubmit, initialUnit, c
     }
   };
 
+  const getIndent = (depth: number) => "\u2003".repeat(depth - 1);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -74,6 +114,24 @@ export function BusinessUnitModal({ open, onOpenChange, onSubmit, initialUnit, c
           <DialogDescription>Track teams or divisions and their FTE footprint.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="bu-parent">Parent Unit</Label>
+            <Select
+              id="bu-parent"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+            >
+              <option value="">None (top-level)</option>
+              {selectableParents.map((parent) => (
+                <option key={parent.id} value={parent.id}>
+                  {getIndent(parent.depth)}{parent.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select a parent to nest this unit. Maximum 3 levels deep.
+            </p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="bu-name">Business Unit Name <span className="text-red-500">*</span></Label>
             <Input

@@ -1,5 +1,5 @@
 import { useFilterStore } from "../stores/filterStore";
-import { useCompanies, useBusinessUnitsByCompany, useProcessesByBusinessUnit } from "../hooks/useApiData";
+import { useCompanies, useBusinessUnitsFlat, useProcessesByBusinessUnit } from "../hooks/useApiData";
 
 export function FilterByContext() {
   const {
@@ -12,8 +12,10 @@ export function FilterByContext() {
   } = useFilterStore();
 
   const { data: companies = [] } = useCompanies();
-  const { data: businessUnits = [] } = useBusinessUnitsByCompany(selectedCompanyId);
+  const { data: businessUnits = [] } = useBusinessUnitsFlat(selectedCompanyId);
   const { data: processes = [] } = useProcessesByBusinessUnit(selectedBusinessUnitId);
+
+  const getIndent = (depth: number) => "\u2003".repeat(depth - 1);
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
@@ -50,7 +52,7 @@ export function FilterByContext() {
             <option value="">All Business Units</option>
             {businessUnits.map((unit) => (
               <option key={unit.id} value={unit.id}>
-                {unit.name}
+                {getIndent(unit.depth)}{unit.name}
               </option>
             ))}
           </select>

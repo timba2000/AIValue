@@ -68,7 +68,8 @@ Preferred communication style: Simple, everyday language.
 - CORS configuration
 
 **Database Schema:**
-- Hierarchical data model: Companies → Business Units → Processes → Pain Points/Use Cases
+- Hierarchical data model: Companies → Business Units (3-level hierarchy) → Processes → Pain Points/Use Cases
+- Business units support parent/child relationships with maximum 3 levels of nesting
 - UUID primary keys, cascading deletes, and timestamp tracking
 - Many-to-many relationships via junction tables
 - Flexible schema evolution via Drizzle ORM with automatic schema syncing for deployments.
@@ -113,6 +114,15 @@ Preferred communication style: Simple, everyday language.
 - Added theme toggle in sidebar with light/dark/system mode options
 - Enhanced animations and transitions throughout the application
 - Updated PrioritizationMatrix canvas to render appropriately in both themes
+- **Hierarchical Business Units (Dec 2025):**
+  - Added 3-level hierarchy support for business units within companies (e.g., Division → Department → Team)
+  - Business units can now have parent/child relationships with parentId field
+  - API validation ensures: same company, max 3 levels deep, no circular references
+  - Cannot delete a business unit that has children (must reassign or delete children first)
+  - Businesses page displays units as collapsible tree with level indicators
+  - Filter dropdowns show hierarchical indentation for visual clarity
+  - Dashboard metrics aggregate data from all descendant units when parent is selected
+  - Pain Points and Processes pages also aggregate descendant data in filters
 - **Code Quality Improvements (Nov 2025):**
   - Created shared API hooks (`useApiData.ts`) for companies, business units, and processes
   - Refactored PainPointList, ProcessList, and BusinessesPage to use React Query consistently
