@@ -127,10 +127,18 @@ Preferred communication style: Simple, everyday language.
   - Filter dropdowns show hierarchical indentation for visual clarity
   - Dashboard metrics aggregate data from all descendant units when parent is selected
   - Pain Points and Processes pages also aggregate descendant data in filters
-- **Code Quality Improvements (Nov 2025):**
+- **Code Quality Improvements (Dec 2025):**
   - Created shared API hooks (`useApiData.ts`) for companies, business units, and processes
   - Refactored PainPointList, ProcessList, and BusinessesPage to use React Query consistently
   - Removed all console.error statements from production code
   - Added proper error handling with user-visible error messages
   - Enhanced theme transitions with 200ms animations and reduced-motion support
   - Combined "Linked Pain Points & Solutions" table and "Pain Points Overview" cards into a unified PainPointsOverviewTable component showing all metrics in one place
+- **Shared Utilities & Bug Fixes (Dec 2025):**
+  - Created `frontend/src/utils/hierarchy.ts` with shared `getDescendantIds` function for business unit hierarchy traversal
+  - Fixed critical bug where hierarchy filtering failed for middle-level nodes (was only working for root and leaf units)
+  - Refactored OpportunitiesDashboard and PainPointList to use the shared hierarchy utility
+  - Created `backend/src/utils/parsing.ts` with shared `parseOptionalNumber` and `parseOptionalNumberOrUndefined` functions
+  - Refactored useCases.ts and processes.ts routes to use shared parsing utilities
+  - Cleaned up dead code: removed unused BusinessList.tsx and pg.d.ts
+  - All form elements properly use CSS variables for light/dark mode theming (border-border, bg-background, text-foreground)
