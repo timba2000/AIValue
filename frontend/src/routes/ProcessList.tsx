@@ -388,7 +388,7 @@ export default function ProcessList() {
             <div className="space-y-2">
               <Label>Description</Label>
               <textarea
-                className="min-h-[90px] w-full rounded border px-3 py-2"
+                className="min-h-[90px] w-full rounded-xl border border-border bg-background text-foreground px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
                 value={formState.description}
                 onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
               />
@@ -407,17 +407,18 @@ export default function ProcessList() {
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Link Pain Points</p>
-                <div className="space-y-2 max-h-48 overflow-y-auto rounded border p-2">
+                <p className="text-sm font-semibold text-foreground">Link Pain Points</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-background p-3">
                   {options.painPoints.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No pain points available</p>
                   ) : (
                     options.painPoints.map((item: PainPointOption) => (
-                      <label key={item.id} className="flex items-center gap-2 text-sm">
+                      <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:bg-accent/50 rounded-lg p-1 transition-colors">
                         <input
                           type="checkbox"
                           checked={formState.painPointIds.includes(item.id)}
                           onChange={() => toggleSelection("painPointIds", item.id)}
+                          className="accent-primary"
                         />
                         <span>{item.statement}</span>
                       </label>
@@ -427,17 +428,18 @@ export default function ProcessList() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Link Solutions</p>
-                <div className="space-y-2 max-h-48 overflow-y-auto rounded border p-2">
+                <p className="text-sm font-semibold text-foreground">Link Solutions</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-background p-3">
                   {options.useCases.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No solutions available</p>
                   ) : (
                     options.useCases.map((item: UseCaseOption) => (
-                      <label key={item.id} className="flex items-center gap-2 text-sm">
+                      <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:bg-accent/50 rounded-lg p-1 transition-colors">
                         <input
                           type="checkbox"
                           checked={formState.useCaseIds.includes(item.id)}
                           onChange={() => toggleSelection("useCaseIds", item.id)}
+                          className="accent-primary"
                         />
                         <span>{item.name}</span>
                       </label>
