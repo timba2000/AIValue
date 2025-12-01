@@ -93,6 +93,32 @@ async function getAllDescendantIds(unitId: string): Promise<string[]> {
   return descendants;
 }
 
+async function getChildrenFteSum(parentId: string, excludeUnitId?: string): Promise<number> {
+  const children = await db
+    .select({ id: businessUnits.id, fte: businessUnits.fte })
+    .from(businessUnits)
+    .where(eq(businessUnits.parentId, parentId));
+  
+  return children
+    .filter(child => child.id !== excludeUnitId)
+    .reduce((sum, child) => sum + child.fte, 0);
+}
+
+async function getTotalDescendantFte(unitId: string): Promise<number> {
+  const directChildren = await db
+    .select({ id: businessUnits.id, fte: businessUnits.fte })
+    .from(businessUnits)
+    .where(eq(businessUnits.parentId, unitId));
+  
+  let total = 0;
+  for (const child of directChildren) {
+    total += child.fte;
+    total += await getTotalDescendantFte(child.id);
+  }
+  
+  return total;
+}
+
 interface BusinessUnitWithChildren {
   id: string;
   companyId: string;
@@ -203,6 +229,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Invalid companyId" });
     }
 
+    const fteValue = parseFte(fte);
+
     if (parentId) {
       const [parent] = await db.select().from(businessUnits).where(eq(businessUnits.id, parentId));
       if (!parent) {
@@ -218,9 +246,15 @@ router.post("/", async (req, res) => {
           message: `Maximum hierarchy depth of ${MAX_DEPTH} levels exceeded. Cannot add child to a unit at depth ${parentDepth}.` 
         });
       }
-    }
 
-    const fteValue = parseFte(fte);
+      const currentChildrenFte = await getChildrenFteSum(parentId);
+      if (currentChildrenFte + fteValue > parent.fte) {
+        const remainingFte = parent.fte - currentChildrenFte;
+        return res.status(400).json({ 
+          message: `FTE exceeds parent capacity. Parent "${parent.name}" has ${parent.fte} FTE, children already use ${currentChildrenFte} FTE. Maximum allowed for this unit: ${remainingFte} FTE.` 
+        });
+      }
+    }
 
     const [created] = await db
       .insert(businessUnits)
@@ -265,7 +299,16 @@ router.put("/:id", async (req, res) => {
 
     const newParentId = parentId === undefined ? existingUnit.parentId : (parentId || null);
 
+    // Check if reducing FTE would violate children constraint
+    const childrenFte = await getChildrenFteSum(id);
+    if (fteValue < childrenFte) {
+      return res.status(400).json({ 
+        message: `Cannot reduce FTE below ${childrenFte}. Child units currently use ${childrenFte} FTE total.` 
+      });
+    }
+
     if (newParentId && newParentId !== existingUnit.parentId) {
+      // Changing to a new parent
       if (newParentId === id) {
         return res.status(400).json({ message: "A unit cannot be its own parent" });
       }
@@ -291,6 +334,27 @@ router.put("/:id", async (req, res) => {
         return res.status(400).json({ 
           message: `Moving this unit would exceed the maximum hierarchy depth of ${MAX_DEPTH} levels.` 
         });
+      }
+
+      // Check FTE constraint with new parent
+      const newParentChildrenFte = await getChildrenFteSum(newParentId);
+      if (newParentChildrenFte + fteValue > parent.fte) {
+        const remainingFte = parent.fte - newParentChildrenFte;
+        return res.status(400).json({ 
+          message: `FTE exceeds new parent capacity. Parent "${parent.name}" has ${parent.fte} FTE, children already use ${newParentChildrenFte} FTE. Maximum allowed: ${remainingFte} FTE.` 
+        });
+      }
+    } else if (newParentId && fteValue !== existingUnit.fte) {
+      // Same parent but FTE changed - check if still within parent's capacity
+      const [parent] = await db.select().from(businessUnits).where(eq(businessUnits.id, newParentId));
+      if (parent) {
+        const siblingsAndSelfFte = await getChildrenFteSum(newParentId, id);
+        if (siblingsAndSelfFte + fteValue > parent.fte) {
+          const remainingFte = parent.fte - siblingsAndSelfFte;
+          return res.status(400).json({ 
+            message: `FTE exceeds parent capacity. Parent "${parent.name}" has ${parent.fte} FTE, siblings use ${siblingsAndSelfFte} FTE. Maximum allowed for this unit: ${remainingFte} FTE.` 
+          });
+        }
       }
     }
 

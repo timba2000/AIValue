@@ -118,6 +118,10 @@ Preferred communication style: Simple, everyday language.
   - Added 3-level hierarchy support for business units within companies (e.g., Division → Department → Team)
   - Business units can now have parent/child relationships with parentId field
   - API validation ensures: same company, max 3 levels deep, no circular references
+  - FTE validation: children's FTE cannot exceed parent's FTE capacity
+    - When creating a child: validates total children FTE + new FTE <= parent FTE
+    - When updating FTE: cannot reduce below sum of children's FTE
+    - When changing parent: validates new parent has sufficient FTE capacity
   - Cannot delete a business unit that has children (must reassign or delete children first)
   - Businesses page displays units as collapsible tree with level indicators
   - Filter dropdowns show hierarchical indentation for visual clarity
