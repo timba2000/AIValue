@@ -18,6 +18,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
+      "@assets": "/attached_assets",
       wouter: "/src/lib/wouter"
     }
   }

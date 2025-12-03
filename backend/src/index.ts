@@ -36,7 +36,13 @@ app.use("/api/processes", processesRouter);
 app.use("/api/pain-points", painPointsRouter);
 app.use("/api", painPointLinksRouter);
 
-const frontendDistPath = path.join(__dirname, "../../../frontend/dist");
+// In production (compiled), static files are at dist/public
+// In development, they would be at frontend/dist (but we use Vite dev server instead)
+const isProduction = process.env.NODE_ENV === "production";
+const frontendDistPath = isProduction 
+  ? path.join(__dirname, "../public")
+  : path.join(__dirname, "../../../frontend/dist");
+
 app.use(express.static(frontendDistPath));
 
 app.get("*", (_req, res, next) => {
