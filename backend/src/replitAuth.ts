@@ -93,12 +93,16 @@ export async function setupAuth(app: Express) {
   const registeredStrategies = new Set<string>();
 
   const getCallbackDomain = (req: any): string => {
+    if (process.env.REPLIT_DEV_DOMAIN) {
+      return process.env.REPLIT_DEV_DOMAIN;
+    }
     const forwardedHost = req.get("x-forwarded-host");
     if (forwardedHost) {
       return forwardedHost.split(",")[0].trim();
     }
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      return process.env.REPLIT_DEV_DOMAIN;
+    const host = req.get("host");
+    if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+      return host.split(":")[0];
     }
     return req.hostname;
   };
@@ -142,11 +146,12 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
+    const domain = getCallbackDomain(req);
     req.logout(() => {
       res.redirect(
         client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          post_logout_redirect_uri: `https://${domain}`,
         }).href
       );
     });
