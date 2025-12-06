@@ -105,6 +105,8 @@ Preferred communication style: Simple, everyday language.
 - `PORT`
 - `VITE_API_URL`
 - `LLM_CLASSIFIER_MODEL`
+- `SESSION_SECRET` - Secret key for session encryption (required for authentication)
+- `ADMIN_USER_IDS` - Comma-separated list of Replit user IDs that have admin access
 
 ## Recent Changes
 
@@ -142,3 +144,13 @@ Preferred communication style: Simple, everyday language.
   - Refactored useCases.ts and processes.ts routes to use shared parsing utilities
   - Cleaned up dead code: removed unused BusinessList.tsx and pg.d.ts
   - All form elements properly use CSS variables for light/dark mode theming (border-border, bg-background, text-foreground)
+- **Secure Admin Section with Replit Auth (Dec 2025):**
+  - Integrated Replit Auth for secure admin access using OpenID Connect (login via Google, GitHub, Apple, or email/password)
+  - Created users and sessions database tables for authentication persistence
+  - Session-based authentication with PostgreSQL session store and secure httpOnly cookies
+  - Admin authorization via ADMIN_USER_IDS environment variable (comma-separated list of Replit user IDs)
+  - Protected admin API endpoints (/api/admin/stats, /api/admin/users) return 401 for unauthenticated and 403 for non-admin users
+  - AdminPage with system overview showing counts of companies, business units, processes, pain points, solutions, and users
+  - Frontend auth state management via useAuth hook with automatic redirect to login for protected pages
+  - Sidebar Admin link with Shield icon and "Active" badge for authenticated admins
+  - Session refresh tokens for extended login sessions
