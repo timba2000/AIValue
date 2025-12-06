@@ -1,18 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, User, Settings, Database, Users } from "lucide-react";
+import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
+interface AdminStats {
+  companies: number;
+  businessUnits: number;
+  processes: number;
+  painPoints: number;
+  useCases: number;
+  users: number;
+}
+
 export default function AdminPage() {
   const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = `${API_BASE}/api/login`;
     }
   }, [isAuthenticated, isLoading]);
+  
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      setStatsLoading(true);
+      fetch(`${API_BASE}/api/admin/stats`, { credentials: "include" })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setStats(data))
+        .finally(() => setStatsLoading(false));
+    }
+  }, [isAuthenticated, isAdmin]);
 
   if (isLoading) {
     return (
@@ -109,6 +130,62 @@ export default function AdminPage() {
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+        <h2 className="text-lg font-semibold text-foreground mb-4">System Overview</h2>
+        {statsLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : stats ? (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Building2 className="h-4 w-4 text-blue-500" />
+                <span className="text-sm text-muted-foreground">Companies</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.companies}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="h-4 w-4 text-indigo-500" />
+                <span className="text-sm text-muted-foreground">Business Units</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.businessUnits}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Workflow className="h-4 w-4 text-purple-500" />
+                <span className="text-sm text-muted-foreground">Processes</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.processes}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-muted-foreground">Pain Points</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.painPoints}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Lightbulb className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-muted-foreground">Solutions</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.useCases}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="h-4 w-4 text-cyan-500" />
+                <span className="text-sm text-muted-foreground">Users</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{stats.users}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Unable to load statistics.</p>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

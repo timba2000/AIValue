@@ -53,7 +53,42 @@ async function startServer() {
   app.use("/api", painPointLinksRouter);
 
   app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
-    res.json({ message: "Admin access granted" });
+    try {
+      const { db } = await import("./db/client.js");
+      const { companies, businessUnits, processes, painPoints, useCases, users } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [companiesCount] = await db.select({ count: count() }).from(companies);
+      const [businessUnitsCount] = await db.select({ count: count() }).from(businessUnits);
+      const [processesCount] = await db.select({ count: count() }).from(processes);
+      const [painPointsCount] = await db.select({ count: count() }).from(painPoints);
+      const [useCasesCount] = await db.select({ count: count() }).from(useCases);
+      const [usersCount] = await db.select({ count: count() }).from(users);
+      
+      res.json({
+        companies: companiesCount.count,
+        businessUnits: businessUnitsCount.count,
+        processes: processesCount.count,
+        painPoints: painPointsCount.count,
+        useCases: useCasesCount.count,
+        users: usersCount.count
+      });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch admin stats" });
+    }
+  });
+  
+  app.get("/api/admin/users", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { users } = await import("./db/schema.js");
+      const { desc } = await import("drizzle-orm");
+      
+      const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+      res.json(allUsers);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
   });
 
   const isProduction = process.env.NODE_ENV === "production";
