@@ -8,6 +8,7 @@ import PainPointList from "@/routes/PainPointList";
 import ProcessList from "@/routes/ProcessList";
 import UseCaseList from "@/routes/UseCaseList";
 import BusinessesPage from "@/pages/BusinessesPage";
+import AdminPage from "@/routes/AdminPage";
 
 function LoginPage() {
   return (
@@ -64,6 +65,7 @@ function App() {
             <Route path="/processes" component={ProcessList} />
             <Route path="/pain-points" component={PainPointList} />
             <Route path="/use-cases" component={UseCaseList} />
+            <Route path="/admin" component={AdminPage} />
             <Route path="/login" component={LoginPage} />
             <Route component={NotFoundPage} />
           </Switch>

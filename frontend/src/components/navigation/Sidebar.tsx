@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Briefcase, Gauge, Lightbulb, Workflow } from "lucide-react";
+import { AlertTriangle, Briefcase, Gauge, Lightbulb, Shield, Workflow } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "../ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
@@ -18,6 +19,7 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
   const [location] = useLocation();
+  const { isAdmin } = useAuth();
 
   const isActive = (href: string) =>
     location === href ||
@@ -80,6 +82,28 @@ export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
         </nav>
         
         <div className="p-4 space-y-4">
+          <Link
+            href="/admin"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+              isActive("/admin")
+                ? "gradient-bg text-white shadow-lg shadow-purple-500/20"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+            onClick={() => onNavigate?.()}
+          >
+            <Shield className={cn(
+              "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
+              isActive("/admin") ? "text-white" : "text-muted-foreground group-hover:text-foreground"
+            )} />
+            <span>Admin</span>
+            {isAdmin && (
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500 font-medium">
+                Active
+              </span>
+            )}
+          </Link>
+          
           <div className="flex items-center justify-between px-2">
             <span className="text-xs font-medium text-muted-foreground">Theme</span>
             <ThemeToggle />

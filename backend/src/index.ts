@@ -9,6 +9,7 @@ import businessUnitsRouter from "./routes/businessUnits.js";
 import processesRouter from "./routes/processes.js";
 import painPointsRouter from "./routes/painPoints.js";
 import painPointLinksRouter from "./routes/painPointLinks.js";
+import { setupAuth, isAuthenticated, isAdmin, getUser } from "./replitAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,39 +25,59 @@ app.use(
 );
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
+async function startServer() {
+  await setupAuth(app);
 
-app.use("/usecases", useCaseRouter);
-app.use("/api/use-cases", useCaseRouter);
-app.use("/api/companies", companiesRouter);
-app.use("/api/business-units", businessUnitsRouter);
-app.use("/api/processes", processesRouter);
-app.use("/api/pain-points", painPointsRouter);
-app.use("/api", painPointLinksRouter);
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
 
-// In production (compiled), static files are at dist/public
-// In development, they would be at frontend/dist (but we use Vite dev server instead)
-const isProduction = process.env.NODE_ENV === "production";
-const frontendDistPath = isProduction 
-  ? path.join(__dirname, "../public")
-  : path.join(__dirname, "../../../frontend/dist");
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await getUser(userId);
+      const adminUserIds = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim()).filter(Boolean);
+      const isUserAdmin = adminUserIds.includes(userId);
+      res.json({ ...user, isAdmin: isUserAdmin });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
-app.use(express.static(frontendDistPath));
+  app.use("/usecases", useCaseRouter);
+  app.use("/api/use-cases", useCaseRouter);
+  app.use("/api/companies", companiesRouter);
+  app.use("/api/business-units", businessUnitsRouter);
+  app.use("/api/processes", processesRouter);
+  app.use("/api/pain-points", painPointsRouter);
+  app.use("/api", painPointLinksRouter);
 
-app.get("*", (_req, res, next) => {
-  if (_req.path.startsWith("/api") || _req.path.startsWith("/usecases") || _req.path === "/health") {
-    return next();
-  }
-  res.sendFile(path.join(frontendDistPath, "index.html"));
-});
+  app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
+    res.json({ message: "Admin access granted" });
+  });
 
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err);
-  res.status(500).json({ message: "Internal server error" });
-});
+  const isProduction = process.env.NODE_ENV === "production";
+  const frontendDistPath = isProduction 
+    ? path.join(__dirname, "../public")
+    : path.join(__dirname, "../../../frontend/dist");
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on http://0.0.0.0:${port}`);
-});
+  app.use(express.static(frontendDistPath));
+
+  app.get("*", (_req, res, next) => {
+    if (_req.path.startsWith("/api") || _req.path.startsWith("/usecases") || _req.path === "/health") {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, "index.html"));
+  });
+
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  });
+
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`Server is running on http://0.0.0.0:${port}`);
+  });
+}
+
+startServer().catch(console.error);
