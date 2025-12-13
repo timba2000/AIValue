@@ -166,6 +166,14 @@ Preferred communication style: Simple, everyday language.
   - Import creates L1→L2→L3 hierarchy, skips duplicates based on name matching
   - Taxonomy Management section added to Admin Pain Point Upload page with upload/download UI
   - Preview table shows new vs existing entries before import
+- **Missing Taxonomy Category Detection & Addition (Dec 2025):**
+  - Pain point upload preview now detects missing L2/L3 taxonomy categories from Excel files
+  - Missing categories shown with orange warning banner in preview UI
+  - "Add All Missing" button to bulk-add all missing categories at once
+  - Individual add buttons for each missing category
+  - POST /api/admin/pain-points/add-taxonomy endpoint creates categories with proper parent hierarchy validation
+  - Feedback shows count of added categories and any errors
+  - Preview auto-refreshes after adding categories to re-validate import
 - **Admin User Management (Dec 2025):**
   - Added user management table to Admin page showing all registered users
   - Displays email, name, join date, and admin status for each user
