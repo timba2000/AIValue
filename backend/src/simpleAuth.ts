@@ -14,6 +14,10 @@ declare module "express-session" {
 }
 
 export function getSession() {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
+  }
+  
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -23,7 +27,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "aivalue-secret-key-change-in-production",
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -92,11 +96,35 @@ export async function setupAuth(app: Express) {
       }
 
       const [existing] = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
-      if (existing) {
+      
+      if (existing && existing.password) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
+      
+      if (existing && !existing.password) {
+        await db
+          .update(users)
+          .set({
+            password: hashedPassword,
+            firstName: firstName || existing.firstName,
+            lastName: lastName || existing.lastName,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existing.id));
+        
+        req.session.userId = existing.id;
+        req.session.isAdmin = existing.isAdmin === 1;
+        
+        return res.json({
+          id: existing.id,
+          email: existing.email,
+          firstName: firstName || existing.firstName,
+          lastName: lastName || existing.lastName,
+          isAdmin: existing.isAdmin === 1,
+        });
+      }
 
       const [existingUsers] = await db.select({ count: users.id }).from(users);
       const isFirstUser = !existingUsers;
