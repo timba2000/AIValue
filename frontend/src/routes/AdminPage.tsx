@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb } from "lucide-react";
+import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Check, X } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -14,10 +14,24 @@ interface AdminStats {
   users: number;
 }
 
+interface UserRecord {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  isAdmin: number;
+  createdAt: string;
+}
+
 export default function AdminPage() {
   const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [usersList, setUsersList] = useState<UserRecord[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -32,8 +46,43 @@ export default function AdminPage() {
         .then(res => res.ok ? res.json() : null)
         .then(data => setStats(data))
         .finally(() => setStatsLoading(false));
+      
+      setUsersLoading(true);
+      setUsersError(null);
+      fetch(`${API_BASE}/api/admin/users`, { credentials: "include" })
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to load users");
+          return res.json();
+        })
+        .then(data => setUsersList(data))
+        .catch(err => setUsersError(err.message || "Failed to load users"))
+        .finally(() => setUsersLoading(false));
     }
   }, [isAuthenticated, isAdmin]);
+
+  const toggleAdmin = async (userId: string, currentIsAdmin: number) => {
+    setUpdatingUserId(userId);
+    setUpdateError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isAdmin: currentIsAdmin === 0 })
+      });
+      if (res.ok) {
+        setUsersList(prev => prev.map(u => 
+          u.id === userId ? { ...u, isAdmin: currentIsAdmin === 0 ? 1 : 0 } : u
+        ));
+      } else {
+        setUpdateError("Failed to update admin status. Please try again.");
+      }
+    } catch {
+      setUpdateError("Failed to update admin status. Please try again.");
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -194,7 +243,109 @@ export default function AdminPage() {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+            <Users className="h-6 w-6 text-green-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">User Management</h2>
+            <p className="text-sm text-muted-foreground">Manage user access and admin privileges</p>
+          </div>
+        </div>
+        
+        {updateError && (
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            {updateError}
+          </div>
+        )}
+        
+        {usersLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : usersError ? (
+          <div className="text-center py-4">
+            <p className="text-destructive mb-2">{usersError}</p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setUsersLoading(true);
+                setUsersError(null);
+                fetch(`${API_BASE}/api/admin/users`, { credentials: "include" })
+                  .then(res => {
+                    if (!res.ok) throw new Error("Failed to load users");
+                    return res.json();
+                  })
+                  .then(data => setUsersList(data))
+                  .catch(err => setUsersError(err.message || "Failed to load users"))
+                  .finally(() => setUsersLoading(false));
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : usersList.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No users found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Email</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Joined</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersList.map(u => (
+                  <tr key={u.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-foreground">{u.email}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-foreground">
+                        {u.firstName || u.lastName ? `${u.firstName || ""} ${u.lastName || ""}`.trim() : "-"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => toggleAdmin(u.id, u.isAdmin)}
+                        disabled={updatingUserId === u.id || u.id === user?.id}
+                        className={`inline-flex items-center justify-center w-16 h-8 rounded-full transition-colors ${
+                          u.isAdmin === 1
+                            ? "bg-green-500/20 text-green-600 hover:bg-green-500/30"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        } ${updatingUserId === u.id ? "opacity-50 cursor-wait" : ""} ${
+                          u.id === user?.id ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        title={u.id === user?.id ? "You cannot change your own admin status" : ""}
+                      >
+                        {updatingUserId === u.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : u.isAdmin === 1 ? (
+                          <><Check className="h-4 w-4 mr-1" />Yes</>
+                        ) : (
+                          <><X className="h-4 w-4 mr-1" />No</>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
         <div className="bg-card rounded-2xl border border-border p-6 slide-up hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -210,24 +361,6 @@ export default function AdminPage() {
           </p>
           <Button variant="outline" className="w-full" onClick={() => window.location.href = "/dashboard"}>
             Open Dashboard
-          </Button>
-        </div>
-
-        <div className="bg-card rounded-2xl border border-border p-6 slide-up hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-green-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Users</h2>
-              <p className="text-sm text-muted-foreground">Coming soon</p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            User management and access control will be available in a future update.
-          </p>
-          <Button variant="outline" className="w-full" disabled>
-            Coming Soon
           </Button>
         </div>
 
