@@ -351,6 +351,100 @@ router.get("/template-info", async (_req, res) => {
   });
 });
 
+router.post("/add-taxonomy", async (req, res): Promise<void> => {
+  try {
+    const { categories } = req.body as { 
+      categories: { l1Name: string; l2Name: string | null; l3Name: string | null; level: number }[] 
+    };
+
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
+      res.status(400).json({ message: "No categories provided" });
+      return;
+    }
+
+    const allTaxonomy = await db.select().from(taxonomyCategories);
+    let added = 0;
+    const errors: { category: string; error: string }[] = [];
+
+    for (const cat of categories) {
+      try {
+        if (cat.level === 2 && cat.l1Name && cat.l2Name) {
+          const l1 = allTaxonomy.find(t => 
+            t.level === 1 && t.name.toLowerCase() === cat.l1Name.toLowerCase()
+          );
+          
+          if (!l1) {
+            errors.push({ category: `${cat.l1Name} > ${cat.l2Name}`, error: "Parent L1 category not found" });
+            continue;
+          }
+
+          const existingL2 = allTaxonomy.find(t => 
+            t.level === 2 && t.parentId === l1.id && t.name.toLowerCase() === cat.l2Name!.toLowerCase()
+          );
+          
+          if (existingL2) {
+            errors.push({ category: `${cat.l1Name} > ${cat.l2Name}`, error: "Already exists" });
+            continue;
+          }
+
+          const [newL2] = await db.insert(taxonomyCategories).values({
+            name: cat.l2Name,
+            parentId: l1.id,
+            level: 2
+          }).returning();
+          
+          allTaxonomy.push(newL2);
+          added++;
+        } else if (cat.level === 3 && cat.l1Name && cat.l2Name && cat.l3Name) {
+          const l1 = allTaxonomy.find(t => 
+            t.level === 1 && t.name.toLowerCase() === cat.l1Name.toLowerCase()
+          );
+          
+          if (!l1) {
+            errors.push({ category: `${cat.l1Name} > ${cat.l2Name} > ${cat.l3Name}`, error: "Parent L1 category not found" });
+            continue;
+          }
+
+          const l2 = allTaxonomy.find(t => 
+            t.level === 2 && t.parentId === l1.id && t.name.toLowerCase() === cat.l2Name!.toLowerCase()
+          );
+          
+          if (!l2) {
+            errors.push({ category: `${cat.l1Name} > ${cat.l2Name} > ${cat.l3Name}`, error: "Parent L2 category not found" });
+            continue;
+          }
+
+          const existingL3 = allTaxonomy.find(t => 
+            t.level === 3 && t.parentId === l2.id && t.name.toLowerCase() === cat.l3Name!.toLowerCase()
+          );
+          
+          if (existingL3) {
+            errors.push({ category: `${cat.l1Name} > ${cat.l2Name} > ${cat.l3Name}`, error: "Already exists" });
+            continue;
+          }
+
+          const [newL3] = await db.insert(taxonomyCategories).values({
+            name: cat.l3Name,
+            parentId: l2.id,
+            level: 3
+          }).returning();
+          
+          allTaxonomy.push(newL3);
+          added++;
+        } else {
+          errors.push({ category: JSON.stringify(cat), error: "Invalid category format" });
+        }
+      } catch (err) {
+        errors.push({ category: JSON.stringify(cat), error: "Database error" });
+      }
+    }
+
+    res.json({ added, errors });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add taxonomy categories" });
+  }
+});
+
 router.get("/export", async (_req, res) => {
   try {
     const allPainPoints = await db.select().from(painPoints);

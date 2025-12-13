@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowLeft, Download, Tag } from "lucide-react";
+import { Shield, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowLeft, Download, Tag, Plus, Loader2 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -31,11 +31,19 @@ interface PreviewRow {
   isValid: boolean;
 }
 
+interface MissingCategory {
+  l1Name: string;
+  l2Name: string | null;
+  l3Name: string | null;
+  level: number;
+}
+
 interface PreviewData {
   totalRows: number;
   validRows: number;
   invalidRows: number;
   rows: PreviewRow[];
+  missingCategories?: MissingCategory[];
 }
 
 interface ImportResult {
@@ -87,6 +95,8 @@ export default function AdminPainPointUpload() {
   const [taxonomyImporting, setTaxonomyImporting] = useState(false);
   const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"painpoints" | "taxonomy">("painpoints");
+  const [addingCategories, setAddingCategories] = useState(false);
+  const [addCategoryResult, setAddCategoryResult] = useState<{ added: number; errors: { category: string; error: string }[] } | null>(null);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -95,6 +105,7 @@ export default function AdminPainPointUpload() {
       setPreview(null);
       setImportResult(null);
       setError(null);
+      setAddCategoryResult(null);
     }
   }, []);
 
@@ -162,7 +173,40 @@ export default function AdminPainPointUpload() {
     setPreview(null);
     setImportResult(null);
     setError(null);
+    setAddCategoryResult(null);
   }, []);
+
+  const handleAddMissingCategories = useCallback(async (categories: MissingCategory[]) => {
+    if (categories.length === 0) return;
+
+    setAddingCategories(true);
+    setError(null);
+    setAddCategoryResult(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pain-points/add-taxonomy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories }),
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add categories");
+      }
+
+      const result = await response.json();
+      setAddCategoryResult(result);
+      
+      if (file) {
+        await handlePreview();
+      }
+    } catch (err) {
+      setError("Failed to add taxonomy categories. Please try again.");
+    } finally {
+      setAddingCategories(false);
+    }
+  }, [file, handlePreview]);
 
   const handleTaxonomyFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -461,6 +505,84 @@ export default function AdminPainPointUpload() {
                   <p className="text-2xl font-bold text-red-600 dark:text-red-400">{preview.invalidRows}</p>
                 </div>
               </div>
+
+              {addCategoryResult && (
+                <div className={`mb-4 p-4 rounded-xl ${addCategoryResult.added > 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {addCategoryResult.added > 0 ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {addCategoryResult.added > 0 
+                        ? `Added ${addCategoryResult.added} taxonomy ${addCategoryResult.added === 1 ? 'category' : 'categories'}`
+                        : 'No categories were added'}
+                    </span>
+                  </div>
+                  {addCategoryResult.errors.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {addCategoryResult.errors.map((err, i) => (
+                        <p key={i}>{err.category}: {err.error}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {preview.missingCategories && preview.missingCategories.length > 0 && (
+                <div className="mb-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      <h3 className="font-semibold text-foreground">Missing Taxonomy Categories</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddMissingCategories(preview.missingCategories || [])}
+                      disabled={addingCategories}
+                    >
+                      {addingCategories ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add All Missing ({preview.missingCategories.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    The following taxonomy categories were found in your file but don't exist in the system. You can add them automatically.
+                  </p>
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {preview.missingCategories.map((cat, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50">
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">L{cat.level}:</span>{" "}
+                          <span className="font-medium">{cat.l1Name}</span>
+                          {cat.l2Name && <span className="text-muted-foreground"> &gt; </span>}
+                          {cat.l2Name && <span className="font-medium">{cat.l2Name}</span>}
+                          {cat.l3Name && <span className="text-muted-foreground"> &gt; </span>}
+                          {cat.l3Name && <span className="font-medium">{cat.l3Name}</span>}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleAddMissingCategories([cat])}
+                          disabled={addingCategories}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="overflow-x-auto max-h-96 overflow-y-auto mb-4">
                 <table className="w-full text-sm">
