@@ -1,5 +1,5 @@
-import { LLMClassifier, LLMClassifierError } from "./llmClassifier";
-import { AUTOMATION_LEVELS, INDUSTRIES, SOLUTION_PATTERNS } from "./useCaseCategories";
+import { LLMClassifier, LLMClassifierError } from "./llmClassifier.js";
+import { AUTOMATION_LEVELS, INDUSTRIES, SOLUTION_PATTERNS } from "./useCaseCategories.js";
 
 const LABEL_TEMPLATE = "Industry: {industry}; Pattern: {pattern}; Automation Level: {automation}";
 

@@ -1,4 +1,4 @@
-import { ClassificationCategory } from "./llmClassifier";
+import { ClassificationCategory } from "./llmClassifier.js";
 
 export const INDUSTRIES: ClassificationCategory[] = [
   {
