@@ -389,7 +389,7 @@ export default function AdminPage() {
           <Button onClick={() => window.location.href = "/businesses"}>
             Manage Businesses
           </Button>
-          <Button onClick={() => window.open("/processes", "_blank")}>
+          <Button onClick={() => window.location.href = "/processes"}>
             Manage Processes
           </Button>
           <Button onClick={() => window.location.href = "/admin/pain-points-upload"}>
