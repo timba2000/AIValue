@@ -54,6 +54,8 @@ export default function ProcessList() {
   const [editingProcess, setEditingProcess] = useState<ProcessRecord | null>(null);
   const [formState, setFormState] = useState<FormState>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [painPointSearch, setPainPointSearch] = useState("");
+  const [solutionSearch, setSolutionSearch] = useState("");
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useBusinessUnits(selectedCompanyId || undefined);
@@ -103,10 +105,26 @@ export default function ProcessList() {
     return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
   }, [processes, search]);
 
+  const filteredPainPoints = useMemo(() => {
+    if (!painPointSearch.trim()) return options.painPoints;
+    return options.painPoints.filter((item) => 
+      item.statement.toLowerCase().includes(painPointSearch.toLowerCase())
+    );
+  }, [options.painPoints, painPointSearch]);
+
+  const filteredSolutions = useMemo(() => {
+    if (!solutionSearch.trim()) return options.useCases;
+    return options.useCases.filter((item) => 
+      item.name.toLowerCase().includes(solutionSearch.toLowerCase())
+    );
+  }, [options.useCases, solutionSearch]);
+
   const openCreateForm = () => {
     if (!selectedUnitId) return;
     setEditingProcess(null);
     setFormState(emptyForm);
+    setPainPointSearch("");
+    setSolutionSearch("");
     setFormOpen(true);
   };
 
@@ -408,11 +426,19 @@ export default function ProcessList() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">Link Pain Points</p>
+                <Input
+                  placeholder="Search pain points..."
+                  value={painPointSearch}
+                  onChange={(e) => setPainPointSearch(e.target.value)}
+                  className="mb-2"
+                />
                 <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-background p-3">
                   {options.painPoints.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No pain points available</p>
+                  ) : filteredPainPoints.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No matching pain points</p>
                   ) : (
-                    options.painPoints.map((item: PainPointOption) => (
+                    filteredPainPoints.map((item: PainPointOption) => (
                       <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:bg-accent/50 rounded-lg p-1 transition-colors">
                         <input
                           type="checkbox"
@@ -429,11 +455,19 @@ export default function ProcessList() {
 
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">Link Solutions</p>
+                <Input
+                  placeholder="Search solutions..."
+                  value={solutionSearch}
+                  onChange={(e) => setSolutionSearch(e.target.value)}
+                  className="mb-2"
+                />
                 <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-background p-3">
                   {options.useCases.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No solutions available</p>
+                  ) : filteredSolutions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No matching solutions</p>
                   ) : (
-                    options.useCases.map((item: UseCaseOption) => (
+                    filteredSolutions.map((item: UseCaseOption) => (
                       <label key={item.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:bg-accent/50 rounded-lg p-1 transition-colors">
                         <input
                           type="checkbox"
@@ -454,8 +488,8 @@ export default function ProcessList() {
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
-              {editingProcess ? "Save changes" : "Create process"}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : editingProcess ? "Save changes" : "Create process"}
             </Button>
           </DialogFooter>
         </DialogContent>
