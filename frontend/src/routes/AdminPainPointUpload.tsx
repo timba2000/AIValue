@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowLeft, Download, Tag, Plus, Loader2 } from "lucide-react";
+import { Shield, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, ArrowLeft, Download, Tag, Plus, Loader2, ChevronRight, FolderTree } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -79,6 +79,13 @@ interface TaxonomyImportResult {
   errors: { row: number; error: string }[];
 }
 
+interface TaxonomyCategory {
+  id: string;
+  name: string;
+  parentId: string | null;
+  level: number;
+}
+
 export default function AdminPainPointUpload() {
   const { isLoading, isAuthenticated, isAdmin } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -97,6 +104,16 @@ export default function AdminPainPointUpload() {
   const [activeTab, setActiveTab] = useState<"painpoints" | "taxonomy">("painpoints");
   const [addingCategories, setAddingCategories] = useState(false);
   const [addCategoryResult, setAddCategoryResult] = useState<{ added: number; errors: { category: string; error: string }[] } | null>(null);
+
+  const [taxonomyData, setTaxonomyData] = useState<TaxonomyCategory[]>([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(false);
+  const [selectedL1, setSelectedL1] = useState<string>("");
+  const [selectedL2, setSelectedL2] = useState<string>("");
+  const [newL2Name, setNewL2Name] = useState("");
+  const [newL3Name, setNewL3Name] = useState("");
+  const [addingNewCategory, setAddingNewCategory] = useState(false);
+  const [taxonomyManageError, setTaxonomyManageError] = useState<string | null>(null);
+  const [taxonomyManageSuccess, setTaxonomyManageSuccess] = useState<string | null>(null);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -283,6 +300,114 @@ export default function AdminPainPointUpload() {
     setTaxonomyImportResult(null);
     setTaxonomyError(null);
   }, []);
+
+  const fetchTaxonomyData = useCallback(async () => {
+    setTaxonomyLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/taxonomy`, {
+        credentials: "include"
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTaxonomyData(data);
+      }
+    } catch (err) {
+      // Silently fail - taxonomy will just be empty
+    } finally {
+      setTaxonomyLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      fetchTaxonomyData();
+    }
+  }, [isAuthenticated, isAdmin, fetchTaxonomyData]);
+
+  const handleAddNewL2 = useCallback(async () => {
+    if (!selectedL1 || !newL2Name.trim()) return;
+
+    setAddingNewCategory(true);
+    setTaxonomyManageError(null);
+    setTaxonomyManageSuccess(null);
+
+    const l1 = taxonomyData.find(t => String(t.id) === selectedL1);
+    if (!l1) {
+      setAddingNewCategory(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pain-points/add-taxonomy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categories: [{ l1Name: l1.name, l2Name: newL2Name.trim(), l3Name: null, level: 2 }]
+        }),
+        credentials: "include"
+      });
+
+      if (!response.ok) throw new Error("Failed to add category");
+
+      const result = await response.json();
+      if (result.added > 0) {
+        setTaxonomyManageSuccess(`Added L2 category: ${newL2Name.trim()}`);
+        setNewL2Name("");
+        await fetchTaxonomyData();
+      } else if (result.errors.length > 0) {
+        setTaxonomyManageError(result.errors[0].error);
+      }
+    } catch (err) {
+      setTaxonomyManageError("Failed to add category");
+    } finally {
+      setAddingNewCategory(false);
+    }
+  }, [selectedL1, newL2Name, taxonomyData, fetchTaxonomyData]);
+
+  const handleAddNewL3 = useCallback(async () => {
+    if (!selectedL1 || !selectedL2 || !newL3Name.trim()) return;
+
+    setAddingNewCategory(true);
+    setTaxonomyManageError(null);
+    setTaxonomyManageSuccess(null);
+
+    const l1 = taxonomyData.find(t => String(t.id) === selectedL1);
+    const l2 = taxonomyData.find(t => String(t.id) === selectedL2);
+    if (!l1 || !l2) {
+      setAddingNewCategory(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pain-points/add-taxonomy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categories: [{ l1Name: l1.name, l2Name: l2.name, l3Name: newL3Name.trim(), level: 3 }]
+        }),
+        credentials: "include"
+      });
+
+      if (!response.ok) throw new Error("Failed to add category");
+
+      const result = await response.json();
+      if (result.added > 0) {
+        setTaxonomyManageSuccess(`Added L3 category: ${newL3Name.trim()}`);
+        setNewL3Name("");
+        await fetchTaxonomyData();
+      } else if (result.errors.length > 0) {
+        setTaxonomyManageError(result.errors[0].error);
+      }
+    } catch (err) {
+      setTaxonomyManageError("Failed to add category");
+    } finally {
+      setAddingNewCategory(false);
+    }
+  }, [selectedL1, selectedL2, newL3Name, taxonomyData, fetchTaxonomyData]);
+
+  const l1Categories = taxonomyData.filter(t => t.level === 1);
+  const l2Categories = taxonomyData.filter(t => t.level === 2 && String(t.parentId) === selectedL1);
+  const l3Categories = taxonomyData.filter(t => t.level === 3 && String(t.parentId) === selectedL2);
 
   if (isLoading) {
     return (
@@ -486,6 +611,169 @@ export default function AdminPainPointUpload() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <FolderTree className="h-6 w-6 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Manage Taxonomy Categories</h2>
+                <p className="text-sm text-muted-foreground">Browse existing categories and add new L2/L3 entries</p>
+              </div>
+            </div>
+
+            {taxonomyManageSuccess && (
+              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-600 dark:text-green-400">{taxonomyManageSuccess}</span>
+              </div>
+            )}
+
+            {taxonomyManageError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-500">{taxonomyManageError}</span>
+              </div>
+            )}
+
+            {taxonomyLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L1 Category</label>
+                    <select
+                      value={selectedL1}
+                      onChange={(e) => {
+                        setSelectedL1(e.target.value);
+                        setSelectedL2("");
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="">Select L1...</option>
+                      {l1Categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L2 Sub-category</label>
+                    <select
+                      value={selectedL2}
+                      onChange={(e) => setSelectedL2(e.target.value)}
+                      disabled={!selectedL1}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    >
+                      <option value="">Select L2...</option>
+                      {l2Categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L3 Descriptions</label>
+                    <select
+                      disabled={!selectedL2}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    >
+                      {selectedL2 ? (
+                        l3Categories.length > 0 ? (
+                          <>
+                            <option value="">{l3Categories.length} L3 categories</option>
+                            {l3Categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </>
+                        ) : (
+                          <option value="">No L3 categories</option>
+                        )
+                      ) : (
+                        <option value="">Select L2 first</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {selectedL1 && l2Categories.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L2 categories under {l1Categories.find(c => c.id === selectedL1)?.name}:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {l2Categories.map(cat => (
+                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedL2 && l3Categories.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L3 categories under {l2Categories.find(c => c.id === selectedL2)?.name}:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {l3Categories.map(cat => (
+                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-border space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Add New Category</h3>
+                  
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-muted-foreground mb-1">New L2 Sub-category</label>
+                      <input
+                        type="text"
+                        value={newL2Name}
+                        onChange={(e) => setNewL2Name(e.target.value)}
+                        placeholder={selectedL1 ? "Enter L2 name..." : "Select L1 first"}
+                        disabled={!selectedL1 || addingNewCategory}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleAddNewL2}
+                      disabled={!selectedL1 || !newL2Name.trim() || addingNewCategory}
+                    >
+                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      <span className="ml-1">Add L2</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-muted-foreground mb-1">New L3 Description</label>
+                      <input
+                        type="text"
+                        value={newL3Name}
+                        onChange={(e) => setNewL3Name(e.target.value)}
+                        placeholder={selectedL2 ? "Enter L3 name..." : "Select L2 first"}
+                        disabled={!selectedL2 || addingNewCategory}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleAddNewL3}
+                      disabled={!selectedL2 || !newL3Name.trim() || addingNewCategory}
+                    >
+                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      <span className="ml-1">Add L3</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {preview && (
