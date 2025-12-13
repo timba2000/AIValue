@@ -14,6 +14,9 @@ export interface PainPoint {
   riskLevel: string | null;
   effortSolving: number | null;
   processIds: string[];
+  taxonomyLevel1Id: string | null;
+  taxonomyLevel2Id: string | null;
+  taxonomyLevel3Id: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,6 +35,9 @@ export interface PainPointPayload {
   riskLevel?: string | null;
   effortSolving?: number | null;
   processIds?: string[];
+  taxonomyLevel1Id?: string | null;
+  taxonomyLevel2Id?: string | null;
+  taxonomyLevel3Id?: string | null;
 }
 
 export type ImpactType = "time_waste" | "quality_issue" | "compliance_risk" | "cost_overrun" | "customer_impact" | "other";

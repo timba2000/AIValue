@@ -31,6 +31,13 @@ const RISK_LEVELS: { value: RiskLevel; label: string }[] = [
   { value: "critical", label: "Critical" }
 ];
 
+interface TaxonomyCategory {
+  id: string;
+  name: string;
+  parentId: string | null;
+  level: number;
+}
+
 interface FormState {
   statement: string;
   impactType: string[];
@@ -45,6 +52,9 @@ interface FormState {
   riskLevel: string;
   effortSolving: string;
   processIds: string[];
+  taxonomyLevel1Id: string;
+  taxonomyLevel2Id: string;
+  taxonomyLevel3Id: string;
 }
 
 const emptyForm: FormState = {
@@ -60,7 +70,10 @@ const emptyForm: FormState = {
   dependencies: "",
   riskLevel: "",
   effortSolving: "",
-  processIds: []
+  processIds: [],
+  taxonomyLevel1Id: "",
+  taxonomyLevel2Id: "",
+  taxonomyLevel3Id: ""
 };
 
 export default function PainPointList() {
@@ -98,6 +111,35 @@ export default function PainPointList() {
       return response.data;
     }
   });
+
+  const { data: taxonomyCategories = [] } = useQuery<TaxonomyCategory[]>({
+    queryKey: ["taxonomyCategories"],
+    queryFn: async () => {
+      const response = await axios.get<TaxonomyCategory[]>(`${API_BASE}/api/taxonomy`);
+      return response.data;
+    }
+  });
+
+  const level1Categories = useMemo(() => 
+    taxonomyCategories.filter(c => c.level === 1), 
+    [taxonomyCategories]
+  );
+
+  const level2Categories = useMemo(() => 
+    taxonomyCategories.filter(c => c.level === 2 && c.parentId === formState.taxonomyLevel1Id), 
+    [taxonomyCategories, formState.taxonomyLevel1Id]
+  );
+
+  const level3Categories = useMemo(() => 
+    taxonomyCategories.filter(c => c.level === 3 && c.parentId === formState.taxonomyLevel2Id), 
+    [taxonomyCategories, formState.taxonomyLevel2Id]
+  );
+
+  const getTaxonomyName = (id: string | null | undefined) => {
+    if (!id) return null;
+    const category = taxonomyCategories.find(c => c.id === id);
+    return category?.name || null;
+  };
 
   useEffect(() => {
     if (painPointsError) {
@@ -164,7 +206,10 @@ export default function PainPointList() {
       dependencies: painPoint.dependencies ?? "",
       riskLevel: painPoint.riskLevel ?? "",
       effortSolving: painPoint.effortSolving?.toString() ?? "",
-      processIds: painPoint.processIds ?? []
+      processIds: painPoint.processIds ?? [],
+      taxonomyLevel1Id: painPoint.taxonomyLevel1Id ?? "",
+      taxonomyLevel2Id: painPoint.taxonomyLevel2Id ?? "",
+      taxonomyLevel3Id: painPoint.taxonomyLevel3Id ?? ""
     });
     setFormOpen(true);
   };
@@ -191,7 +236,10 @@ export default function PainPointList() {
       dependencies: formState.dependencies || null,
       riskLevel: formState.riskLevel || null,
       effortSolving: formState.effortSolving ? Number(formState.effortSolving) : null,
-      processIds: formState.processIds
+      processIds: formState.processIds,
+      taxonomyLevel1Id: formState.taxonomyLevel1Id || null,
+      taxonomyLevel2Id: formState.taxonomyLevel2Id || null,
+      taxonomyLevel3Id: formState.taxonomyLevel3Id || null
     };
 
     try {
@@ -275,6 +323,7 @@ export default function PainPointList() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Statement</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Category</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact Type</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Risk Level</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact (1-10)</th>
@@ -287,6 +336,17 @@ export default function PainPointList() {
                 {filteredPainPoints.map((pp) => (
                   <tr key={pp.id} className="hover:bg-accent/50 transition-colors duration-150">
                     <td className="py-3 px-4">{pp.statement}</td>
+                    <td className="py-3 px-4">
+                      {pp.taxonomyLevel1Id ? (
+                        <span className="text-sm">
+                          {getTaxonomyName(pp.taxonomyLevel1Id)}
+                          {pp.taxonomyLevel2Id && ` > ${getTaxonomyName(pp.taxonomyLevel2Id)}`}
+                          {pp.taxonomyLevel3Id && ` > ${getTaxonomyName(pp.taxonomyLevel3Id)}`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       {pp.impactType && pp.impactType.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -402,6 +462,64 @@ export default function PainPointList() {
                 className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="Describe the pain point"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="taxonomyLevel1">Category <span className="text-red-500">*</span></Label>
+                <Select
+                  id="taxonomyLevel1"
+                  value={formState.taxonomyLevel1Id}
+                  onChange={(e) => setFormState({ 
+                    ...formState, 
+                    taxonomyLevel1Id: e.target.value,
+                    taxonomyLevel2Id: "",
+                    taxonomyLevel3Id: ""
+                  })}
+                  className="mt-1.5"
+                >
+                  <option value="">Select category</option>
+                  {level1Categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="taxonomyLevel2">Sub-category</Label>
+                <Select
+                  id="taxonomyLevel2"
+                  value={formState.taxonomyLevel2Id}
+                  onChange={(e) => setFormState({ 
+                    ...formState, 
+                    taxonomyLevel2Id: e.target.value,
+                    taxonomyLevel3Id: ""
+                  })}
+                  className="mt-1.5"
+                  disabled={!formState.taxonomyLevel1Id || level2Categories.length === 0}
+                >
+                  <option value="">Select sub-category</option>
+                  {level2Categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="taxonomyLevel3">Detail</Label>
+                <Select
+                  id="taxonomyLevel3"
+                  value={formState.taxonomyLevel3Id}
+                  onChange={(e) => setFormState({ ...formState, taxonomyLevel3Id: e.target.value })}
+                  className="mt-1.5"
+                  disabled={!formState.taxonomyLevel2Id || level3Categories.length === 0}
+                >
+                  <option value="">Select detail</option>
+                  {level3Categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
