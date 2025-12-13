@@ -154,3 +154,9 @@ Preferred communication style: Simple, everyday language.
   - Frontend auth state management via useAuth hook with automatic redirect to login for protected pages
   - Sidebar Admin link with Shield icon and "Active" badge for authenticated admins
   - Session refresh tokens for extended login sessions
+- **Admin Pain Point Excel Export (Dec 2025):**
+  - Added GET /api/admin/pain-points/export endpoint to download all pain points as Excel file
+  - Export includes all pain point fields matching the import template format
+  - Supports many-to-many process relationships (comma-separated process names)
+  - Includes taxonomy L1/L2/L3 category names from related taxonomy categories
+  - Download button added to Admin Pain Point Upload page for easy backup/template access
