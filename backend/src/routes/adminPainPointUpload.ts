@@ -327,4 +327,77 @@ router.get("/template-info", async (_req, res) => {
   });
 });
 
+router.get("/export", async (_req, res) => {
+  try {
+    const allPainPoints = await db.select().from(painPoints);
+    const allProcesses = await db.select().from(processes);
+    const allTaxonomy = await db.select().from(taxonomyCategories);
+    const allProcessPainPoints = await db.select().from(processPainPoints);
+
+    const rows = allPainPoints.map(pp => {
+      const processLinks = allProcessPainPoints.filter(ppp => ppp.painPointId === pp.id);
+      const processNames = processLinks
+        .map(link => allProcesses.find(p => p.id === link.processId)?.name)
+        .filter(Boolean)
+        .join(", ");
+
+      const l1 = pp.taxonomyLevel1Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel1Id) : null;
+      const l2 = pp.taxonomyLevel2Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel2Id) : null;
+      const l3 = pp.taxonomyLevel3Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel3Id) : null;
+
+      return {
+        "Statement": pp.statement || "",
+        "Impact Type": pp.impactType ? pp.impactType.join(", ") : "",
+        "Business Impact": pp.businessImpact || "",
+        "Impact (1-10)": pp.magnitude ? Number(pp.magnitude) : "",
+        "Frequency (per month)": pp.frequency ? Number(pp.frequency) : "",
+        "Time Required per unit (Hrs)": pp.timePerUnit ? Number(pp.timePerUnit) : "",
+        "# FTE on painpoint": pp.fteCount ? Number(pp.fteCount) : "",
+        "Root Cause": pp.rootCause || "",
+        "Current Workarounds": pp.workarounds || "",
+        "Dependencies": pp.dependencies || "",
+        "Risk Level": pp.riskLevel || "",
+        "Effort in Solving (1-10)": pp.effortSolving ? Number(pp.effortSolving) : "",
+        "Process Name": processNames,
+        "L1 - Category": l1?.name || "",
+        "L2 - Sub-category": l2?.name || "",
+        "L3 - Description": l3?.name || ""
+      };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    const colWidths = [
+      { wch: 50 },
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 12 },
+      { wch: 20 },
+      { wch: 25 },
+      { wch: 18 },
+      { wch: 30 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 22 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 25 }
+    ];
+    worksheet["!cols"] = colWidths;
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pain Points");
+
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Disposition", 'attachment; filename="pain_points_export.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to export pain points" });
+  }
+});
+
 export default router;

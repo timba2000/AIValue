@@ -258,6 +258,24 @@ export default function AdminPainPointUpload() {
           </div>
 
           <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Download Existing Pain Points</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Export all pain points as an Excel file for backup or as a template
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = `${API_BASE}/api/admin/pain-points/export`}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export to Excel
+              </Button>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-6 slide-up">
             <h2 className="text-lg font-semibold text-foreground mb-4">Expected Excel Format</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Your Excel file should have the following columns. Only "Statement" is required.
