@@ -35,14 +35,14 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  app.use("/usecases", useCaseRouter);
-  app.use("/api/use-cases", useCaseRouter);
-  app.use("/api/companies", companiesRouter);
-  app.use("/api/business-units", businessUnitsRouter);
-  app.use("/api/processes", processesRouter);
-  app.use("/api/pain-points", painPointsRouter);
-  app.use("/api", painPointLinksRouter);
-  app.use("/api/taxonomy", taxonomyRouter);
+  app.use("/usecases", isAuthenticated, useCaseRouter);
+  app.use("/api/use-cases", isAuthenticated, useCaseRouter);
+  app.use("/api/companies", isAuthenticated, companiesRouter);
+  app.use("/api/business-units", isAuthenticated, businessUnitsRouter);
+  app.use("/api/processes", isAuthenticated, processesRouter);
+  app.use("/api/pain-points", isAuthenticated, painPointsRouter);
+  app.use("/api", isAuthenticated, painPointLinksRouter);
+  app.use("/api/taxonomy", isAuthenticated, taxonomyRouter);
   app.use("/api/admin/pain-points", isAuthenticated, isAdmin, adminPainPointUploadRouter);
   app.use("/api/admin/taxonomy", isAuthenticated, isAdmin, adminTaxonomyRouter);
 

@@ -3,6 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import OpportunitiesDashboard from "@/routes/OpportunitiesDashboard";
 import PainPointList from "@/routes/PainPointList";
 import ProcessList from "@/routes/ProcessList";
@@ -51,17 +52,57 @@ function App() {
       <main className={`flex-1 ${shouldShowSidebar ? "pt-24 md:pt-0 md:pl-64" : ""}`}>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <Switch>
-            <Route path="/" component={OpportunitiesDashboard} />
-            <Route path="/dashboard" component={OpportunitiesDashboard} />
-            <Route path="/business" component={BusinessesPage} />
-            <Route path="/businesses" component={BusinessesPage} />
-            <Route path="/processes" component={ProcessList} />
-            <Route path="/pain-points" component={PainPointList} />
-            <Route path="/use-cases" component={UseCaseList} />
-            <Route path="/admin" component={AdminPage} />
-            <Route path="/admin/pain-points-upload" component={AdminPainPointUpload} />
             <Route path="/login" component={LoginPage} />
-            <Route component={NotFoundPage} />
+            <Route path="/">
+              <ProtectedRoute>
+                <OpportunitiesDashboard />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/dashboard">
+              <ProtectedRoute>
+                <OpportunitiesDashboard />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/business">
+              <ProtectedRoute>
+                <BusinessesPage />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/businesses">
+              <ProtectedRoute>
+                <BusinessesPage />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/processes">
+              <ProtectedRoute>
+                <ProcessList />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/pain-points">
+              <ProtectedRoute>
+                <PainPointList />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/use-cases">
+              <ProtectedRoute>
+                <UseCaseList />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/admin">
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/admin/pain-points-upload">
+              <ProtectedRoute>
+                <AdminPainPointUpload />
+              </ProtectedRoute>
+            </Route>
+            <Route>
+              <ProtectedRoute>
+                <NotFoundPage />
+              </ProtectedRoute>
+            </Route>
           </Switch>
         </div>
       </main>
