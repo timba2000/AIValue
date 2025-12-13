@@ -8,5 +8,10 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@types/multer": "^2.0.0",
+    "multer": "^2.0.2",
+    "xlsx": "^0.18.5"
+  }
 }

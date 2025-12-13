@@ -10,6 +10,7 @@ import processesRouter from "./routes/processes.js";
 import painPointsRouter from "./routes/painPoints.js";
 import painPointLinksRouter from "./routes/painPointLinks.js";
 import taxonomyRouter from "./routes/taxonomy.js";
+import adminPainPointUploadRouter from "./routes/adminPainPointUpload.js";
 import { setupAuth, isAuthenticated, isAdmin, getUser } from "./replitAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +54,7 @@ async function startServer() {
   app.use("/api/pain-points", painPointsRouter);
   app.use("/api", painPointLinksRouter);
   app.use("/api/taxonomy", taxonomyRouter);
+  app.use("/api/admin/pain-points", isAuthenticated, isAdmin, adminPainPointUploadRouter);
 
   app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
     try {
