@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asc, desc, eq, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { painPoints, processPainPoints, processes, businessUnits } from "../db/schema.js";
+import { painPoints, processPainPoints, processes, businessUnits, taxonomyCategories } from "../db/schema.js";
 
 const router = Router();
 
@@ -42,6 +42,9 @@ router.get("/", async (req, res) => {
           dependencies: painPoints.dependencies,
           riskLevel: painPoints.riskLevel,
           effortSolving: painPoints.effortSolving,
+          taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
+          taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
+          taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
           createdAt: painPoints.createdAt,
           updatedAt: painPoints.updatedAt
         })
@@ -131,7 +134,10 @@ router.post("/", async (req, res) => {
     dependencies,
     riskLevel,
     effortSolving,
-    processIds
+    processIds,
+    taxonomyLevel1Id,
+    taxonomyLevel2Id,
+    taxonomyLevel3Id
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -183,7 +189,10 @@ router.post("/", async (req, res) => {
           workarounds: workarounds || null,
           dependencies: dependencies || null,
           riskLevel: riskLevel || null,
-          effortSolving: effortNum != null ? String(effortNum) : null
+          effortSolving: effortNum != null ? String(effortNum) : null,
+          taxonomyLevel1Id: taxonomyLevel1Id || null,
+          taxonomyLevel2Id: taxonomyLevel2Id || null,
+          taxonomyLevel3Id: taxonomyLevel3Id || null
         })
         .returning();
 
@@ -219,7 +228,10 @@ router.put("/:id", async (req, res) => {
     dependencies,
     riskLevel,
     effortSolving,
-    processIds
+    processIds,
+    taxonomyLevel1Id,
+    taxonomyLevel2Id,
+    taxonomyLevel3Id
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -277,7 +289,10 @@ router.put("/:id", async (req, res) => {
           workarounds: workarounds || null,
           dependencies: dependencies || null,
           riskLevel: riskLevel || null,
-          effortSolving: effortNum != null ? String(effortNum) : null
+          effortSolving: effortNum != null ? String(effortNum) : null,
+          taxonomyLevel1Id: taxonomyLevel1Id || null,
+          taxonomyLevel2Id: taxonomyLevel2Id || null,
+          taxonomyLevel3Id: taxonomyLevel3Id || null
         })
         .where(eq(painPoints.id, id))
         .returning();
