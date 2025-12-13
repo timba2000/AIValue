@@ -201,39 +201,51 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         continue;
       }
 
+      const impactTypeRaw = row.impactType || row["Impact Type"] || "";
+      const businessImpact = row.businessImpact || row["Business Impact"] || "";
+      const magnitude = row.magnitude || row.Magnitude || row["Impact (1-10)"] || "";
+      const frequency = row.frequency || row.Frequency || row["Frequency (per month)"] || "";
+      const timePerUnit = row.timePerUnit || row["Time Per Unit"] || row["Time Required per unit (Hrs)"] || "";
+      const fteCount = row.fteCount || row["FTE Count"] || row["# FTE on painpoint"] || "";
+      const rootCause = row.rootCause || row["Root Cause"] || "";
+      const workarounds = row.workarounds || row.Workarounds || row["Current Workarounds"] || "";
+      const dependencies = row.dependencies || row.Dependencies || "";
+      const riskLevel = row.riskLevel || row["Risk Level"] || "";
+      const effortSolving = row.effortSolving || row["Effort Solving"] || row["Effort in Solving (1-10)"] || "";
+      const processName = row.processName || row["Process Name"] || row.Process || "";
+      const taxonomyL1Name = row.taxonomyL1 || row["L1 - Category"] || row["Category"] || "";
+      const taxonomyL2Name = row.taxonomyL2 || row["L2 - Sub-category"] || row["Sub-category"] || "";
+      const taxonomyL3Name = row.taxonomyL3 || row["L3 - Description"] || row["Detail"] || "";
+
+      const matchedProcess = processName ? allProcesses.find(p => 
+        p.name.toLowerCase() === String(processName).toLowerCase()
+      ) : null;
+
+      const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
+        t.level === 1 && t.name.toLowerCase() === String(taxonomyL1Name).toLowerCase()
+      ) : null;
+
+      const matchedL2 = taxonomyL2Name && matchedL1 ? allTaxonomy.find(t => 
+        t.level === 2 && t.parentId === matchedL1.id && t.name.toLowerCase() === String(taxonomyL2Name).toLowerCase()
+      ) : null;
+
+      const matchedL3 = taxonomyL3Name && matchedL2 ? allTaxonomy.find(t => 
+        t.level === 3 && t.parentId === matchedL2.id && t.name.toLowerCase() === String(taxonomyL3Name).toLowerCase()
+      ) : null;
+
+      const rowErrors: string[] = [];
+      if (processName && !matchedProcess) rowErrors.push(`Process "${processName}" not found`);
+      if (taxonomyL1Name && !matchedL1) rowErrors.push(`L1 Category "${taxonomyL1Name}" not found`);
+      if (taxonomyL2Name && !matchedL2) rowErrors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
+      if (taxonomyL3Name && !matchedL3) rowErrors.push(`L3 Description "${taxonomyL3Name}" not found`);
+
+      if (rowErrors.length > 0) {
+        skipped++;
+        errors.push({ row: i + 2, error: rowErrors.join("; ") });
+        continue;
+      }
+
       try {
-        const impactTypeRaw = row.impactType || row["Impact Type"] || "";
-        const businessImpact = row.businessImpact || row["Business Impact"] || "";
-        const magnitude = row.magnitude || row.Magnitude || row["Impact (1-10)"] || "";
-        const frequency = row.frequency || row.Frequency || row["Frequency (per month)"] || "";
-        const timePerUnit = row.timePerUnit || row["Time Per Unit"] || row["Time Required per unit (Hrs)"] || "";
-        const fteCount = row.fteCount || row["FTE Count"] || row["# FTE on painpoint"] || "";
-        const rootCause = row.rootCause || row["Root Cause"] || "";
-        const workarounds = row.workarounds || row.Workarounds || row["Current Workarounds"] || "";
-        const dependencies = row.dependencies || row.Dependencies || "";
-        const riskLevel = row.riskLevel || row["Risk Level"] || "";
-        const effortSolving = row.effortSolving || row["Effort Solving"] || row["Effort in Solving (1-10)"] || "";
-        const processName = row.processName || row["Process Name"] || row.Process || "";
-        const taxonomyL1Name = row.taxonomyL1 || row["L1 - Category"] || row["Category"] || "";
-        const taxonomyL2Name = row.taxonomyL2 || row["L2 - Sub-category"] || row["Sub-category"] || "";
-        const taxonomyL3Name = row.taxonomyL3 || row["L3 - Description"] || row["Detail"] || "";
-
-        const matchedProcess = processName ? allProcesses.find(p => 
-          p.name.toLowerCase() === String(processName).toLowerCase()
-        ) : null;
-
-        const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
-          t.level === 1 && t.name.toLowerCase() === String(taxonomyL1Name).toLowerCase()
-        ) : null;
-
-        const matchedL2 = taxonomyL2Name && matchedL1 ? allTaxonomy.find(t => 
-          t.level === 2 && t.parentId === matchedL1.id && t.name.toLowerCase() === String(taxonomyL2Name).toLowerCase()
-        ) : null;
-
-        const matchedL3 = taxonomyL3Name && matchedL2 ? allTaxonomy.find(t => 
-          t.level === 3 && t.parentId === matchedL2.id && t.name.toLowerCase() === String(taxonomyL3Name).toLowerCase()
-        ) : null;
-
         const freqNum = parseNumber(frequency);
         const timeNum = parseNumber(timePerUnit);
         const totalHoursPerMonth = freqNum !== null && timeNum !== null ? freqNum * timeNum : null;
@@ -267,7 +279,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         imported++;
       } catch (err) {
         skipped++;
-        errors.push({ row: i + 2, error: "Failed to import row" });
+        errors.push({ row: i + 2, error: "Database error while importing row" });
       }
     }
 
