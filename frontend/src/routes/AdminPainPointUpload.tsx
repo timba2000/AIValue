@@ -613,169 +613,6 @@ export default function AdminPainPointUpload() {
             </div>
           </div>
 
-          <div className="bg-card rounded-2xl border border-border p-6 slide-up">
-            <div className="flex items-center gap-3 mb-4">
-              <FolderTree className="h-6 w-6 text-primary" />
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Manage Taxonomy Categories</h2>
-                <p className="text-sm text-muted-foreground">Browse existing categories and add new L2/L3 entries</p>
-              </div>
-            </div>
-
-            {taxonomyManageSuccess && (
-              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600 dark:text-green-400">{taxonomyManageSuccess}</span>
-              </div>
-            )}
-
-            {taxonomyManageError && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
-                <span className="text-sm text-red-500">{taxonomyManageError}</span>
-              </div>
-            )}
-
-            {taxonomyLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L1 Category</label>
-                    <select
-                      value={selectedL1}
-                      onChange={(e) => {
-                        setSelectedL1(e.target.value);
-                        setSelectedL2("");
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                      <option value="">Select L1...</option>
-                      {l1Categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L2 Sub-category</label>
-                    <select
-                      value={selectedL2}
-                      onChange={(e) => setSelectedL2(e.target.value)}
-                      disabled={!selectedL1}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                    >
-                      <option value="">Select L2...</option>
-                      {l2Categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L3 Descriptions</label>
-                    <select
-                      disabled={!selectedL2}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                    >
-                      {selectedL2 ? (
-                        l3Categories.length > 0 ? (
-                          <>
-                            <option value="">{l3Categories.length} L3 categories</option>
-                            {l3Categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>{cat.name}</option>
-                            ))}
-                          </>
-                        ) : (
-                          <option value="">No L3 categories</option>
-                        )
-                      ) : (
-                        <option value="">Select L2 first</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-                {selectedL1 && l2Categories.length > 0 && (
-                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L2 categories under {l1Categories.find(c => c.id === selectedL1)?.name}:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {l2Categories.map(cat => (
-                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">
-                          {cat.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedL2 && l3Categories.length > 0 && (
-                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L3 categories under {l2Categories.find(c => c.id === selectedL2)?.name}:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {l3Categories.map(cat => (
-                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                          {cat.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="pt-4 border-t border-border space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Add New Category</h3>
-                  
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs text-muted-foreground mb-1">New L2 Sub-category</label>
-                      <input
-                        type="text"
-                        value={newL2Name}
-                        onChange={(e) => setNewL2Name(e.target.value)}
-                        placeholder={selectedL1 ? "Enter L2 name..." : "Select L1 first"}
-                        disabled={!selectedL1 || addingNewCategory}
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleAddNewL2}
-                      disabled={!selectedL1 || !newL2Name.trim() || addingNewCategory}
-                    >
-                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      <span className="ml-1">Add L2</span>
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs text-muted-foreground mb-1">New L3 Description</label>
-                      <input
-                        type="text"
-                        value={newL3Name}
-                        onChange={(e) => setNewL3Name(e.target.value)}
-                        placeholder={selectedL2 ? "Enter L3 name..." : "Select L2 first"}
-                        disabled={!selectedL2 || addingNewCategory}
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={handleAddNewL3}
-                      disabled={!selectedL2 || !newL3Name.trim() || addingNewCategory}
-                    >
-                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      <span className="ml-1">Add L3</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {preview && (
             <div className="bg-card rounded-2xl border border-border p-6 slide-up">
               <h2 className="text-lg font-semibold text-foreground mb-4">Review & Import Pain Points</h2>
@@ -1054,6 +891,170 @@ export default function AdminPainPointUpload() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border p-6 slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <FolderTree className="h-6 w-6 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Manage Taxonomy Categories</h2>
+                <p className="text-sm text-muted-foreground">Browse existing categories and add new L2/L3 entries (must be linked to L1)</p>
+              </div>
+            </div>
+
+            {taxonomyManageSuccess && (
+              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-600 dark:text-green-400">{taxonomyManageSuccess}</span>
+              </div>
+            )}
+
+            {taxonomyManageError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-500">{taxonomyManageError}</span>
+              </div>
+            )}
+
+            {taxonomyLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L1 Category <span className="text-red-500">*</span></label>
+                    <select
+                      value={selectedL1}
+                      onChange={(e) => {
+                        setSelectedL1(e.target.value);
+                        setSelectedL2("");
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="">Select L1...</option>
+                      {l1Categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L2 Sub-category</label>
+                    <select
+                      value={selectedL2}
+                      onChange={(e) => setSelectedL2(e.target.value)}
+                      disabled={!selectedL1}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    >
+                      <option value="">Select L2...</option>
+                      {l2Categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1.5">L3 Descriptions</label>
+                    <select
+                      disabled={!selectedL2}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    >
+                      {selectedL2 ? (
+                        l3Categories.length > 0 ? (
+                          <>
+                            <option value="">{l3Categories.length} L3 categories</option>
+                            {l3Categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </>
+                        ) : (
+                          <option value="">No L3 categories</option>
+                        )
+                      ) : (
+                        <option value="">Select L2 first</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {selectedL1 && l2Categories.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L2 categories under {l1Categories.find(c => String(c.id) === selectedL1)?.name}:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {l2Categories.map(cat => (
+                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedL2 && l3Categories.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Current L3 categories under {l2Categories.find(c => String(c.id) === selectedL2)?.name}:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {l3Categories.map(cat => (
+                        <span key={cat.id} className="px-2 py-0.5 rounded text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          {cat.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-border space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Add New Category</h3>
+                  <p className="text-xs text-muted-foreground">All new categories must be linked to an L1 category</p>
+                  
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-muted-foreground mb-1">New L2 Sub-category (under selected L1)</label>
+                      <input
+                        type="text"
+                        value={newL2Name}
+                        onChange={(e) => setNewL2Name(e.target.value)}
+                        placeholder={selectedL1 ? "Enter L2 name..." : "Select L1 first"}
+                        disabled={!selectedL1 || addingNewCategory}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleAddNewL2}
+                      disabled={!selectedL1 || !newL2Name.trim() || addingNewCategory}
+                    >
+                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      <span className="ml-1">Add L2</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-muted-foreground mb-1">New L3 Description (under selected L2)</label>
+                      <input
+                        type="text"
+                        value={newL3Name}
+                        onChange={(e) => setNewL3Name(e.target.value)}
+                        placeholder={selectedL2 ? "Enter L3 name..." : "Select L2 first"}
+                        disabled={!selectedL2 || addingNewCategory}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleAddNewL3}
+                      disabled={!selectedL2 || !newL3Name.trim() || addingNewCategory}
+                    >
+                      {addingNewCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      <span className="ml-1">Add L3</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {taxonomyPreview && (
