@@ -160,3 +160,9 @@ Preferred communication style: Simple, everyday language.
   - Supports many-to-many process relationships (comma-separated process names)
   - Includes taxonomy L1/L2/L3 category names from related taxonomy categories
   - Download button added to Admin Pain Point Upload page for easy backup/template access
+- **Admin Taxonomy Upload/Download (Dec 2025):**
+  - Added GET /api/admin/taxonomy/export endpoint to download taxonomy as Excel (Level 1, Level 2, Level 3 columns)
+  - Added POST /api/admin/taxonomy/preview and /import endpoints for bulk taxonomy import
+  - Import creates L1→L2→L3 hierarchy, skips duplicates based on name matching
+  - Taxonomy Management section added to Admin Pain Point Upload page with upload/download UI
+  - Preview table shows new vs existing entries before import
