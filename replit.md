@@ -187,3 +187,12 @@ Preferred communication style: Simple, everyday language.
   - Added isAuthenticated middleware to all backend API routes (companies, business-units, processes, pain-points, use-cases, taxonomy)
   - Only /login, /api/auth/* endpoints, and /health remain publicly accessible
   - Backend returns 401 Unauthorized for all protected API requests without valid session
+- **Manual Taxonomy Management (Dec 2025):**
+  - Added "Manage Taxonomy Categories" section to Admin Pain Point Upload page
+  - L1/L2/L3 cascading dropdown selects to browse existing taxonomy hierarchy
+  - Badge displays showing existing L2 categories under selected L1, and L3 categories under selected L2
+  - Form to add new L2 sub-category under any selected L1 category
+  - Form to add new L3 description under any selected L1+L2 combination
+  - Success/error feedback banners for add operations
+  - Automatic refresh of taxonomy data after adding new categories
+  - Uses existing POST /api/admin/pain-points/add-taxonomy endpoint for category creation
