@@ -67,6 +67,15 @@ export const processes = pgTable("processes", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
 
+export const taxonomyCategories = pgTable("taxonomy_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  parentId: uuid("parent_id"),
+  level: integer("level").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
 export const painPoints = pgTable("pain_points", {
   id: uuid("id").defaultRandom().primaryKey(),
   statement: text("statement").notNull(),
@@ -82,6 +91,9 @@ export const painPoints = pgTable("pain_points", {
   dependencies: text("dependencies"),
   riskLevel: text("risk_level"),
   effortSolving: numeric("effort_solving"),
+  taxonomyLevel1Id: uuid("taxonomy_level1_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
+  taxonomyLevel2Id: uuid("taxonomy_level2_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
+  taxonomyLevel3Id: uuid("taxonomy_level3_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
@@ -162,3 +174,6 @@ export type NewProcessPainPoint = typeof processPainPoints.$inferInsert;
 
 export type ProcessUseCase = typeof processUseCases.$inferSelect;
 export type NewProcessUseCase = typeof processUseCases.$inferInsert;
+
+export type TaxonomyCategory = typeof taxonomyCategories.$inferSelect;
+export type NewTaxonomyCategory = typeof taxonomyCategories.$inferInsert;
