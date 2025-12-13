@@ -466,7 +466,7 @@ export default function PainPointList() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="taxonomyLevel1">Category <span className="text-red-500">*</span></Label>
+                <Label htmlFor="taxonomyLevel1">L1 - Category <span className="text-red-500">*</span></Label>
                 <Select
                   id="taxonomyLevel1"
                   value={formState.taxonomyLevel1Id}
@@ -486,7 +486,7 @@ export default function PainPointList() {
               </div>
 
               <div>
-                <Label htmlFor="taxonomyLevel2">Sub-category</Label>
+                <Label htmlFor="taxonomyLevel2">L2 - Sub-category</Label>
                 <Select
                   id="taxonomyLevel2"
                   value={formState.taxonomyLevel2Id}
@@ -506,7 +506,7 @@ export default function PainPointList() {
               </div>
 
               <div>
-                <Label htmlFor="taxonomyLevel3">Detail</Label>
+                <Label htmlFor="taxonomyLevel3">L3 - Description</Label>
                 <Select
                   id="taxonomyLevel3"
                   value={formState.taxonomyLevel3Id}
