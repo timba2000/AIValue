@@ -173,3 +173,9 @@ Preferred communication style: Simple, everyday language.
   - Safety check prevents admins from revoking their own admin status
   - Proper error handling with user-visible error messages and retry functionality
   - Loading states for both user list fetching and individual toggle operations
+- **Mandatory Authentication (Dec 2025):**
+  - All pages now require login - unauthenticated users are redirected to /login
+  - Created ProtectedRoute component that wraps all protected routes in App.tsx
+  - Added isAuthenticated middleware to all backend API routes (companies, business-units, processes, pain-points, use-cases, taxonomy)
+  - Only /login, /api/auth/* endpoints, and /health remain publicly accessible
+  - Backend returns 401 Unauthorized for all protected API requests without valid session
