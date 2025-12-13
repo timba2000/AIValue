@@ -78,10 +78,46 @@ async function startServer() {
       const { users } = await import("./db/schema.js");
       const { desc } = await import("drizzle-orm");
       
-      const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        isAdmin: users.isAdmin,
+        createdAt: users.createdAt
+      }).from(users).orderBy(desc(users.createdAt));
       res.json(allUsers);
     } catch {
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isAdmin: newAdminStatus } = req.body;
+      
+      if (typeof newAdminStatus !== "boolean") {
+        return res.status(400).json({ message: "isAdmin must be a boolean" });
+      }
+      
+      const { db } = await import("./db/client.js");
+      const { users } = await import("./db/schema.js");
+      const { eq } = await import("drizzle-orm");
+      
+      const [updated] = await db
+        .update(users)
+        .set({ isAdmin: newAdminStatus ? 1 : 0, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ id: updated.id, email: updated.email, isAdmin: updated.isAdmin === 1 });
+    } catch {
+      res.status(500).json({ message: "Failed to update user" });
     }
   });
 
