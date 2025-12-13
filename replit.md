@@ -197,3 +197,11 @@ Preferred communication style: Simple, everyday language.
   - Success/error feedback banners for add operations
   - Automatic refresh of taxonomy data after adding new categories
   - Uses existing POST /api/admin/pain-points/add-taxonomy endpoint for category creation
+- **Admin Process Bulk Upload (Dec 2025):**
+  - New admin page at /admin/processes-upload for bulk importing processes via Excel
+  - Select company and business unit before uploading to specify where processes are created
+  - Excel format supports L1, L2, L3 process hierarchy columns that auto-combine into process name
+  - Preview data validation before import with duplicate detection
+  - Backend endpoints: GET /api/admin/processes/template, /export, POST /preview, /import
+  - Export existing processes as Excel with hierarchy breakdown
+  - "Manage Processes" button in Admin Quick Actions now navigates to the upload page
