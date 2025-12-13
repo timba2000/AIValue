@@ -188,11 +188,12 @@ Preferred communication style: Simple, everyday language.
   - Only /login, /api/auth/* endpoints, and /health remain publicly accessible
   - Backend returns 401 Unauthorized for all protected API requests without valid session
 - **Manual Taxonomy Management (Dec 2025):**
-  - Added "Manage Taxonomy Categories" section to Admin Pain Point Upload page
+  - "Manage Taxonomy Categories" section in Admin → Taxonomy Management tab
   - L1/L2/L3 cascading dropdown selects to browse existing taxonomy hierarchy
   - Badge displays showing existing L2 categories under selected L1, and L3 categories under selected L2
   - Form to add new L2 sub-category under any selected L1 category
   - Form to add new L3 description under any selected L1+L2 combination
+  - L1 selection is required (indicated by red asterisk and helper text) - all new L2/L3 must be linked to L1
   - Success/error feedback banners for add operations
   - Automatic refresh of taxonomy data after adding new categories
   - Uses existing POST /api/admin/pain-points/add-taxonomy endpoint for category creation
