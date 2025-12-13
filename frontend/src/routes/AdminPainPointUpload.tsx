@@ -86,6 +86,7 @@ export default function AdminPainPointUpload() {
   const [taxonomyUploading, setTaxonomyUploading] = useState(false);
   const [taxonomyImporting, setTaxonomyImporting] = useState(false);
   const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"painpoints" | "taxonomy">("painpoints");
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -287,14 +288,33 @@ export default function AdminPainPointUpload() {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-500">{error}</p>
-        </div>
-      )}
+      <div className="flex gap-2">
+        <Button 
+          variant={activeTab === "painpoints" ? "default" : "outline"}
+          onClick={() => setActiveTab("painpoints")}
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Pain Points Management
+        </Button>
+        <Button 
+          variant={activeTab === "taxonomy" ? "default" : "outline"}
+          onClick={() => setActiveTab("taxonomy")}
+        >
+          <Tag className="h-4 w-4 mr-2" />
+          Taxonomy Management
+        </Button>
+      </div>
 
-      {importResult && (
+      {activeTab === "painpoints" && (
+        <>
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+              <p className="text-sm text-red-500">{error}</p>
+            </div>
+          )}
+
+          {importResult && (
         <div className="bg-card rounded-2xl border border-border p-6 slide-up">
           <div className="flex items-center gap-3 mb-4">
             <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -495,27 +515,19 @@ export default function AdminPainPointUpload() {
           )}
         </>
       )}
+    </>
+  )}
 
-      <div className="border-t border-border my-8"></div>
+  {activeTab === "taxonomy" && (
+        <>
+          {taxonomyError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+              <p className="text-sm text-red-500">{taxonomyError}</p>
+            </div>
+          )}
 
-      <div className="bg-card rounded-2xl border border-border p-6 slide-up">
-        <div className="flex items-center gap-3 mb-4">
-          <Tag className="h-6 w-6 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Taxonomy Management</h2>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Upload and download the pain point taxonomy (L1, L2, L3 categories)
-        </p>
-      </div>
-
-      {taxonomyError && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-500">{taxonomyError}</p>
-        </div>
-      )}
-
-      {taxonomyImportResult && (
+          {taxonomyImportResult && (
         <div className="bg-card rounded-2xl border border-border p-6 slide-up">
           <div className="flex items-center gap-3 mb-4">
             <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -709,6 +721,8 @@ export default function AdminPainPointUpload() {
           )}
         </>
       )}
+    </>
+  )}
     </section>
   );
 }
