@@ -93,6 +93,9 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
     const allProcesses = await db.select().from(processes);
     const allTaxonomy = await db.select().from(taxonomyCategories);
 
+    const missingCategories: { l1Name: string; l2Name: string | null; l3Name: string | null; level: number }[] = [];
+    const seenMissing = new Set<string>();
+
     const rows = data.map((row, index) => {
       const statement = row.statement || row.Statement || "";
       const impactTypeRaw = row.impactType || row["Impact Type"] || "";
@@ -131,8 +134,28 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       if (!statement) errors.push("Statement is required");
       if (processName && !matchedProcess) errors.push(`Process "${processName}" not found`);
       if (taxonomyL1Name && !matchedL1) errors.push(`L1 Category "${taxonomyL1Name}" not found`);
-      if (taxonomyL2Name && !matchedL2) errors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
-      if (taxonomyL3Name && !matchedL3) errors.push(`L3 Description "${taxonomyL3Name}" not found`);
+      
+      if (taxonomyL2Name && matchedL1 && !matchedL2) {
+        errors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
+        const key = `L2:${String(taxonomyL1Name).toLowerCase()}:${String(taxonomyL2Name).toLowerCase()}`;
+        if (!seenMissing.has(key)) {
+          seenMissing.add(key);
+          missingCategories.push({ l1Name: String(taxonomyL1Name), l2Name: String(taxonomyL2Name), l3Name: null, level: 2 });
+        }
+      } else if (taxonomyL2Name && !matchedL1) {
+        errors.push(`L2 Sub-category "${taxonomyL2Name}" not found (parent L1 missing)`);
+      }
+      
+      if (taxonomyL3Name && matchedL2 && !matchedL3) {
+        errors.push(`L3 Description "${taxonomyL3Name}" not found`);
+        const key = `L3:${String(taxonomyL1Name).toLowerCase()}:${String(taxonomyL2Name).toLowerCase()}:${String(taxonomyL3Name).toLowerCase()}`;
+        if (!seenMissing.has(key)) {
+          seenMissing.add(key);
+          missingCategories.push({ l1Name: String(taxonomyL1Name), l2Name: String(taxonomyL2Name), l3Name: String(taxonomyL3Name), level: 3 });
+        }
+      } else if (taxonomyL3Name && !matchedL2) {
+        errors.push(`L3 Description "${taxonomyL3Name}" not found (parent L2 missing)`);
+      }
 
       return {
         rowIndex: index + 2,
@@ -165,7 +188,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       totalRows: rows.length,
       validRows: rows.filter(r => r.isValid).length,
       invalidRows: rows.filter(r => !r.isValid).length,
-      rows
+      rows,
+      missingCategories
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to parse Excel file" });
