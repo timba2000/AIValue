@@ -1,17 +1,10 @@
 {
   "name": "workspace",
   "version": "1.0.0",
-  "description": "This repository contains a full-stack TypeScript starter for tracking product use cases. It includes a React 18 + Vite frontend styled with Tailwind and shadcn/ui primitives, and a Node + Express backend using Drizzle ORM with a Neon PostgreSQL database (including the pgvector extension).",
-  "main": "index.js",
+  "private": true,
+  "description": "AIValue Use Case Tracker monorepo",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/multer": "^2.0.0",
-    "multer": "^2.0.2",
-    "xlsx": "^0.18.5"
+    "dev": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build && cd ../backend && npm run build"
   }
 }
