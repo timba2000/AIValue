@@ -1,0 +1,55 @@
+Level 1	Level 2	Level 3
+Technology	Analytics	Analytics & Insights
+Technology	Technical & Platform	Assistive & Accessibility Technology
+Process	Process Quality & Assurance	Audit Trail & Reporting Issues
+Technology	Technical & Platform	Automatable Processes & Bots
+Process	Feedback	CSAT & Feedback Mechanism Challenges
+Technology	Capacity & Demand	Call Volume & Authentication Friction
+Technology	Security & Authentication	Communications Security & Consistency
+Process	Process Quality & Assurance	Complex Claim Document Analysis Delays
+Process	Knowledge & Information	Compliance & Audit Requirements
+Technology	Knowledge & Information	Content Surfacing & Knowledge Maintenance
+Process	Process Quality & Assurance	Contract & Regulatory Document Review Delays
+Process	Process Quality & Assurance	Contract Comparison & Negotiation Summary Delays
+Process	Governance & Compliance	Contractual Term Search & Regulatory Monitoring Gaps
+Process	Customer Journey	Customer Journey & Action History Visibility
+Process	Customer Experience	Data Aggregation & Next Action Capability
+Process	Workflow & Collaboration	Email-Based Workflow Inefficiency
+Process	Process Complexity & Delays	Form & Complex Enquiries
+Process	Governance & Compliance	High-Volume Regulatory & Litigation Review
+Technology	Technical & Platform	IVR & Self-Service Automation Limitations
+Process	Governance & Compliance	Idea Management & Prioritisation
+Process	Knowledge & Information	Knowledge Base Access & Quality
+Process	Knowledge & Information	Knowledge Silos
+Process	Governance & Compliance	Lack of Real-Time Negotiation Position Access
+Process	Process Quality & Assurance	Large Claims File Review Bottlenecks
+Process	Process Quality & Assurance	Legal Claims Processing Delays
+Process	Governance & Compliance	Legislative & Code Compliance Query Overload
+Process	Governance & Compliance	Low-Risk Contract Review Bottlenecks
+Process	Knowledge & Information	Management Information Access
+Process	Governance & Compliance	Manual Board Paper Compliance Checks
+Process	Governance & Compliance	Manual Compliance & Playbook Updates
+People	Training	Manual Model Tuning & AI Training
+Process	Governance & Compliance	Manual Playbook Maintenance
+Process	Analytics	Panel Firm Benchmarking Challenges
+Process	Customer Experience	Personalisation & Scalability Trade-offs
+Technology	Data Management	Privacy & PII Handling
+Process	Proactive Service	Proactive Service & Marketing Follow-Up
+Process	Workflow & Queue Management	Process Complexity & Self-Service Gaps
+Process	Process Quality & Assurance	Processing Delays & Complexity
+Process	Governance & Compliance	Procurement Review Inefficiencies & Risk Assessment Gaps
+Process	Product Identification	Product & Process Knowledge Overload
+People	Capacity & Demand	QA Capacity & Targeting
+Process	Workflow & Queue Management	Queue & Email Workflow Management
+Technology	Technical & Platform	Regression Testing Missing
+Process	Governance & Compliance	Regulatory Checklist Review Delays
+Process	Knowledge & Information	Regulatory Update Monitoring & Summarization Gaps
+Process	Governance & Compliance	Regulatory-to-Policy Mapping Complexity
+People	People Support & Accountability	Service Quality & Repeat Contact Issues
+People	People Support & Accountability	Staff Escalation & Support
+Process	Governance & Compliance	System Integration, Data Consistency & Repository Fragmentation
+Technology	Technical & Platform	System Reliability, Performance & Online/Mobile Reliability
+Technology	Technical & Platform	Tool Usage & Confusion
+People	Training	Training & Expertise Gaps
+Process	Process Quality & Assurance	Urgent Review Timeframe Challenges
+Process	Workflow & Queue Management	Workflow & Handoff Issues
