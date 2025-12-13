@@ -10,15 +10,7 @@ import UseCaseList from "@/routes/UseCaseList";
 import BusinessesPage from "@/pages/BusinessesPage";
 import AdminPage from "@/routes/AdminPage";
 import AdminPainPointUpload from "@/routes/AdminPainPointUpload";
-
-function LoginPage() {
-  return (
-    <div className="space-y-4 fade-in">
-      <h1 className="text-3xl font-bold tracking-tight">Login</h1>
-      <p className="text-muted-foreground">Access is restricted to authenticated users.</p>
-    </div>
-  );
-}
+import LoginPage from "@/routes/LoginPage";
 
 function NotFoundPage() {
   return (

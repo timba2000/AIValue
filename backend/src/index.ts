@@ -12,7 +12,7 @@ import painPointLinksRouter from "./routes/painPointLinks.js";
 import taxonomyRouter from "./routes/taxonomy.js";
 import adminPainPointUploadRouter from "./routes/adminPainPointUpload.js";
 import adminTaxonomyRouter from "./routes/adminTaxonomy.js";
-import { setupAuth, isAuthenticated, isAdmin, getUser } from "./replitAuth.js";
+import { setupAuth, isAuthenticated, isAdmin, getUser } from "./simpleAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,18 +33,6 @@ async function startServer() {
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
-  });
-
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await getUser(userId);
-      const adminUserIds = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim()).filter(Boolean);
-      const isUserAdmin = adminUserIds.includes(userId);
-      res.json({ ...user, isAdmin: isUserAdmin });
-    } catch {
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
   });
 
   app.use("/usecases", useCaseRouter);

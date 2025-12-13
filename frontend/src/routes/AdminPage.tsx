@@ -21,7 +21,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      window.location.href = `${API_BASE}/api/login`;
+      window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
   
@@ -53,7 +53,7 @@ export default function AdminPage() {
           <Shield className="h-16 w-16 text-muted-foreground mx-auto" />
           <h1 className="text-2xl font-bold text-foreground">Admin Access Required</h1>
           <p className="text-muted-foreground">Please log in to access the admin panel.</p>
-          <Button onClick={() => window.location.href = `${API_BASE}/api/login`}>
+          <Button onClick={() => window.location.href = "/login"}>
             Log In
           </Button>
         </div>
@@ -75,7 +75,10 @@ export default function AdminPage() {
             <Button variant="outline" onClick={() => window.location.href = "/"}>
               Go Home
             </Button>
-            <Button variant="outline" onClick={() => window.location.href = `${API_BASE}/api/logout`}>
+            <Button variant="outline" onClick={async () => {
+                await fetch(`${API_BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
+                window.location.href = "/login";
+              }}>
               <LogOut className="h-4 w-4 mr-2" />
               Log Out
             </Button>
@@ -123,7 +126,10 @@ export default function AdminPage() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => window.location.href = `${API_BASE}/api/logout`}
+              onClick={async () => {
+                await fetch(`${API_BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
+                window.location.href = "/login";
+              }}
             >
               <LogOut className="h-4 w-4 mr-2" />
               Log Out
