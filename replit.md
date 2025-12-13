@@ -166,3 +166,10 @@ Preferred communication style: Simple, everyday language.
   - Import creates L1→L2→L3 hierarchy, skips duplicates based on name matching
   - Taxonomy Management section added to Admin Pain Point Upload page with upload/download UI
   - Preview table shows new vs existing entries before import
+- **Admin User Management (Dec 2025):**
+  - Added user management table to Admin page showing all registered users
+  - Displays email, name, join date, and admin status for each user
+  - Toggle button to grant/revoke admin access via PATCH /api/admin/users/:id endpoint
+  - Safety check prevents admins from revoking their own admin status
+  - Proper error handling with user-visible error messages and retry functionality
+  - Loading states for both user list fetching and individual toggle operations
