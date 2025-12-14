@@ -19,6 +19,8 @@ interface BusinessUnit {
 
 interface PreviewRow {
   rowIndex: number;
+  businessUnitName: string | null;
+  businessUnitId: string | null;
   l1Process: string | null;
   l2Process: string | null;
   l3Process: string | null;
@@ -40,8 +42,8 @@ interface PreviewData {
   invalidRows: number;
   duplicateRows: number;
   rows: PreviewRow[];
-  businessUnit: BusinessUnit;
-  companyId: string;
+  company: Company;
+  businessUnits: BusinessUnit[];
 }
 
 interface ImportResult {
@@ -107,7 +109,7 @@ export default function AdminProcessUpload() {
   }, []);
 
   const handlePreview = useCallback(async () => {
-    if (!file || !selectedBusinessUnitId) return;
+    if (!file || !selectedCompanyId) return;
 
     setUploading(true);
     setError(null);
@@ -116,14 +118,16 @@ export default function AdminProcessUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        `${API_BASE}/api/admin/processes/preview?businessUnitId=${selectedBusinessUnitId}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include"
-        }
-      );
+      let url = `${API_BASE}/api/admin/processes/preview?companyId=${selectedCompanyId}`;
+      if (selectedBusinessUnitId) {
+        url += `&businessUnitId=${selectedBusinessUnitId}`;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
 
       if (!response.ok) {
         const errData = await response.json();
@@ -137,10 +141,10 @@ export default function AdminProcessUpload() {
     } finally {
       setUploading(false);
     }
-  }, [file, selectedBusinessUnitId]);
+  }, [file, selectedCompanyId, selectedBusinessUnitId]);
 
   const handleImport = useCallback(async () => {
-    if (!file || !selectedBusinessUnitId) return;
+    if (!file || !selectedCompanyId) return;
 
     setImporting(true);
     setError(null);
@@ -149,14 +153,16 @@ export default function AdminProcessUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        `${API_BASE}/api/admin/processes/import?businessUnitId=${selectedBusinessUnitId}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include"
-        }
-      );
+      let url = `${API_BASE}/api/admin/processes/import?companyId=${selectedCompanyId}`;
+      if (selectedBusinessUnitId) {
+        url += `&businessUnitId=${selectedBusinessUnitId}`;
+      }
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
 
       if (!response.ok) {
         throw new Error("Failed to import");
@@ -170,7 +176,7 @@ export default function AdminProcessUpload() {
     } finally {
       setImporting(false);
     }
-  }, [file, selectedBusinessUnitId]);
+  }, [file, selectedCompanyId, selectedBusinessUnitId]);
 
   const handleReset = useCallback(() => {
     setFile(null);
@@ -185,11 +191,14 @@ export default function AdminProcessUpload() {
 
   const handleExportProcesses = useCallback(() => {
     let url = `${API_BASE}/api/admin/processes/export`;
-    if (selectedBusinessUnitId) {
-      url += `?businessUnitId=${selectedBusinessUnitId}`;
+    if (selectedCompanyId) {
+      url += `?companyId=${selectedCompanyId}`;
+      if (selectedBusinessUnitId) {
+        url += `&businessUnitId=${selectedBusinessUnitId}`;
+      }
     }
     window.location.href = url;
-  }, [selectedBusinessUnitId]);
+  }, [selectedCompanyId, selectedBusinessUnitId]);
 
   if (isLoading) {
     return (
@@ -290,10 +299,11 @@ export default function AdminProcessUpload() {
           <div className="bg-card rounded-2xl border border-border p-6 slide-up">
             <div className="flex items-center gap-3 mb-4">
               <Building2 className="h-6 w-6 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">Select Business Unit</h2>
+              <h2 className="text-lg font-semibold text-foreground">Select Company</h2>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Select the company and business unit where processes will be imported.
+              Select the company where processes will be imported. You can optionally select a specific business unit, 
+              or include the "Business Unit" column in your Excel to assign processes to different units.
             </p>
             
             {loadingData ? (
@@ -303,7 +313,9 @@ export default function AdminProcessUpload() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Company</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Company <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={selectedCompanyId}
                     onChange={(e) => {
@@ -320,7 +332,9 @@ export default function AdminProcessUpload() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Business Unit</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Business Unit <span className="text-muted-foreground text-xs">(optional - or use Excel column)</span>
+                  </label>
                   <select
                     value={selectedBusinessUnitId}
                     onChange={(e) => {
@@ -330,7 +344,7 @@ export default function AdminProcessUpload() {
                     disabled={!selectedCompanyId}
                     className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                   >
-                    <option value="">Select a business unit</option>
+                    <option value="">Use Business Unit column from Excel</option>
                     {filteredBusinessUnits.map(bu => (
                       <option key={bu.id} value={bu.id}>{getBusinessUnitHierarchy(bu)}</option>
                     ))}
@@ -353,15 +367,15 @@ export default function AdminProcessUpload() {
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload"
-                disabled={!selectedBusinessUnitId}
+                disabled={!selectedCompanyId}
               />
-              <label htmlFor="file-upload" className={`cursor-pointer ${!selectedBusinessUnitId ? "opacity-50 cursor-not-allowed" : ""}`}>
+              <label htmlFor="file-upload" className={`cursor-pointer ${!selectedCompanyId ? "opacity-50 cursor-not-allowed" : ""}`}>
                 <span className="text-primary font-medium hover:underline">Click to select</span>
                 <span className="text-muted-foreground"> or drag and drop</span>
               </label>
               <p className="text-sm text-muted-foreground mt-2">Excel files (.xlsx, .xls) up to 10MB</p>
-              {!selectedBusinessUnitId && (
-                <p className="text-sm text-orange-500 mt-2">Please select a business unit first</p>
+              {!selectedCompanyId && (
+                <p className="text-sm text-orange-500 mt-2">Please select a company first</p>
               )}
               {file && (
                 <div className="mt-4 p-3 bg-primary/10 rounded-lg inline-flex items-center gap-2">
@@ -370,7 +384,7 @@ export default function AdminProcessUpload() {
                 </div>
               )}
             </div>
-            {file && !preview && selectedBusinessUnitId && (
+            {file && !preview && selectedCompanyId && (
               <div className="mt-4">
                 <Button onClick={handlePreview} disabled={uploading}>
                   {uploading ? "Parsing..." : "Preview Data"}
@@ -415,10 +429,11 @@ export default function AdminProcessUpload() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  <tr><td className="py-2 px-3 font-medium">L1 Process</td><td className="py-2 px-3 text-orange-500">Yes*</td><td className="py-2 px-3 text-muted-foreground">Level 1 process category (e.g., Finance)</td></tr>
+                  <tr><td className="py-2 px-3 font-medium">Business Unit</td><td className="py-2 px-3 text-orange-500">Yes*</td><td className="py-2 px-3 text-muted-foreground">Name of the business unit (required if not selected above)</td></tr>
+                  <tr><td className="py-2 px-3 font-medium">L1 Process</td><td className="py-2 px-3 text-orange-500">Yes**</td><td className="py-2 px-3 text-muted-foreground">Level 1 process category (e.g., Finance)</td></tr>
                   <tr><td className="py-2 px-3">L2 Process</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Level 2 process sub-category (e.g., Accounts Payable)</td></tr>
                   <tr><td className="py-2 px-3">L3 Process</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Level 3 process detail (e.g., Invoice Processing)</td></tr>
-                  <tr><td className="py-2 px-3">Process Name</td><td className="py-2 px-3 text-orange-500">Yes*</td><td className="py-2 px-3 text-muted-foreground">Full process name (auto-generated from L1/L2/L3 if not provided)</td></tr>
+                  <tr><td className="py-2 px-3">Process Name</td><td className="py-2 px-3 text-orange-500">Yes**</td><td className="py-2 px-3 text-muted-foreground">Full process name (auto-generated from L1/L2/L3 if not provided)</td></tr>
                   <tr><td className="py-2 px-3">Description</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Process description</td></tr>
                   <tr><td className="py-2 px-3">Volume</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Process volume (number)</td></tr>
                   <tr><td className="py-2 px-3">Volume Unit</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Unit for volume (e.g., per month, per week)</td></tr>
@@ -427,7 +442,8 @@ export default function AdminProcessUpload() {
                   <tr><td className="py-2 px-3">Systems Used</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Systems used in the process</td></tr>
                 </tbody>
               </table>
-              <p className="text-sm text-muted-foreground mt-2">* Either L1 Process or Process Name is required</p>
+              <p className="text-sm text-muted-foreground mt-2">* Required if business unit not selected above</p>
+              <p className="text-sm text-muted-foreground">** Either L1 Process or Process Name is required</p>
             </div>
           </div>
 
@@ -458,6 +474,7 @@ export default function AdminProcessUpload() {
                   <thead className="sticky top-0 bg-card">
                     <tr className="border-b border-border">
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Row</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Business Unit</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">L1</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">L2</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">L3</th>
@@ -469,6 +486,7 @@ export default function AdminProcessUpload() {
                     {preview.rows.map((row, i) => (
                       <tr key={i} className={row.isValid ? "" : "bg-red-500/5"}>
                         <td className="py-2 px-3">{row.rowIndex}</td>
+                        <td className="py-2 px-3">{row.businessUnitName || "-"}</td>
                         <td className="py-2 px-3">{row.l1Process || "-"}</td>
                         <td className="py-2 px-3">{row.l2Process || "-"}</td>
                         <td className="py-2 px-3">{row.l3Process || "-"}</td>

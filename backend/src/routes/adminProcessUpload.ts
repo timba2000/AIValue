@@ -47,10 +47,11 @@ function parseNumber(val: unknown): number | null {
 
 router.post("/preview", upload.single("file"), async (req, res): Promise<void> => {
   try {
-    const businessUnitId = req.query.businessUnitId as string;
+    const companyId = req.query.companyId as string;
+    const businessUnitId = req.query.businessUnitId as string | undefined;
     
-    if (!businessUnitId) {
-      res.status(400).json({ message: "Business unit ID is required" });
+    if (!companyId) {
+      res.status(400).json({ message: "Company ID is required" });
       return;
     }
 
@@ -59,22 +60,23 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       return;
     }
 
-    const businessUnit = await db.select().from(businessUnits).where(eq(businessUnits.id, businessUnitId)).limit(1);
-    if (businessUnit.length === 0) {
-      res.status(404).json({ message: "Business unit not found" });
+    const company = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    if (company.length === 0) {
+      res.status(404).json({ message: "Company not found" });
       return;
     }
 
-    const companyId = businessUnit[0].companyId;
+    const companyBusinessUnits = await db.select().from(businessUnits).where(eq(businessUnits.companyId, companyId));
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json<ExcelRow>(worksheet);
 
-    const existingProcesses = await db.select().from(processes).where(eq(processes.businessUnitId, businessUnitId));
+    const existingProcesses = await db.select().from(processes).where(eq(processes.businessId, companyId));
 
     const rows = data.map((row, index) => {
+      const businessUnitName = row["Business Unit"] || row.businessUnit || "";
       const l1Process = row["L1 Process"] || row.l1Process || "";
       const l2Process = row["L2 Process"] || row.l2Process || "";
       const l3Process = row["L3 Process"] || row.l3Process || "";
@@ -99,8 +101,23 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         errors.push("Process name or L1 Process is required");
       }
 
+      let matchedBusinessUnit = null;
+      if (businessUnitId) {
+        matchedBusinessUnit = companyBusinessUnits.find(bu => bu.id === businessUnitId);
+      } else if (businessUnitName) {
+        matchedBusinessUnit = companyBusinessUnits.find(bu => 
+          bu.name.toLowerCase() === String(businessUnitName).toLowerCase()
+        );
+        if (!matchedBusinessUnit) {
+          errors.push(`Business Unit "${businessUnitName}" not found in this company`);
+        }
+      } else {
+        errors.push("Business Unit is required (either select one or include in Excel)");
+      }
+
       const isDuplicate = existingProcesses.some(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase()
+        p.name.toLowerCase() === String(processName).toLowerCase() &&
+        p.businessUnitId === matchedBusinessUnit?.id
       );
       
       if (isDuplicate) {
@@ -109,6 +126,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
 
       return {
         rowIndex: index + 2,
+        businessUnitName: String(businessUnitName) || null,
+        businessUnitId: matchedBusinessUnit?.id || null,
         l1Process: String(l1Process) || null,
         l2Process: String(l2Process) || null,
         l3Process: String(l3Process) || null,
@@ -120,7 +139,7 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         owner: String(owner) || null,
         systemsUsed: String(systemsUsed) || null,
         errors,
-        isValid: errors.length === 0 && !!processName,
+        isValid: errors.length === 0 && !!processName && !!matchedBusinessUnit,
         isDuplicate
       };
     });
@@ -131,8 +150,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       invalidRows: rows.filter(r => !r.isValid).length,
       duplicateRows: rows.filter(r => r.isDuplicate).length,
       rows,
-      businessUnit: businessUnit[0],
-      companyId
+      company: company[0],
+      businessUnits: companyBusinessUnits
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to parse Excel file" });
@@ -141,10 +160,11 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
 
 router.post("/import", upload.single("file"), async (req, res): Promise<void> => {
   try {
-    const businessUnitId = req.query.businessUnitId as string;
+    const companyId = req.query.companyId as string;
+    const businessUnitId = req.query.businessUnitId as string | undefined;
     
-    if (!businessUnitId) {
-      res.status(400).json({ message: "Business unit ID is required" });
+    if (!companyId) {
+      res.status(400).json({ message: "Company ID is required" });
       return;
     }
 
@@ -153,20 +173,20 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       return;
     }
 
-    const businessUnit = await db.select().from(businessUnits).where(eq(businessUnits.id, businessUnitId)).limit(1);
-    if (businessUnit.length === 0) {
-      res.status(404).json({ message: "Business unit not found" });
+    const company = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    if (company.length === 0) {
+      res.status(404).json({ message: "Company not found" });
       return;
     }
 
-    const companyId = businessUnit[0].companyId;
+    const companyBusinessUnits = await db.select().from(businessUnits).where(eq(businessUnits.companyId, companyId));
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json<ExcelRow>(worksheet);
 
-    const existingProcesses = await db.select().from(processes).where(eq(processes.businessUnitId, businessUnitId));
+    const existingProcesses = await db.select().from(processes).where(eq(processes.businessId, companyId));
 
     let imported = 0;
     let skipped = 0;
@@ -175,6 +195,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       
+      const businessUnitName = row["Business Unit"] || row.businessUnit || "";
       const l1Process = row["L1 Process"] || row.l1Process || "";
       const l2Process = row["L2 Process"] || row.l2Process || "";
       const l3Process = row["L3 Process"] || row.l3Process || "";
@@ -192,8 +213,24 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         continue;
       }
 
+      let matchedBusinessUnit = null;
+      if (businessUnitId) {
+        matchedBusinessUnit = companyBusinessUnits.find(bu => bu.id === businessUnitId);
+      } else if (businessUnitName) {
+        matchedBusinessUnit = companyBusinessUnits.find(bu => 
+          bu.name.toLowerCase() === String(businessUnitName).toLowerCase()
+        );
+      }
+      
+      if (!matchedBusinessUnit) {
+        skipped++;
+        errors.push({ row: i + 2, error: businessUnitName ? `Business Unit "${businessUnitName}" not found` : "Business Unit is required" });
+        continue;
+      }
+
       const isDuplicate = existingProcesses.some(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase()
+        p.name.toLowerCase() === String(processName).toLowerCase() &&
+        p.businessUnitId === matchedBusinessUnit.id
       );
       
       if (isDuplicate) {
@@ -212,7 +249,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       try {
         const [newProcess] = await db.insert(processes).values({
           businessId: companyId,
-          businessUnitId: businessUnitId,
+          businessUnitId: matchedBusinessUnit.id,
           name: String(processName),
           description: String(description) || null,
           volume: parseNumber(volume)?.toString() || null,
@@ -242,11 +279,14 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
 
 router.get("/export", async (req, res): Promise<void> => {
   try {
+    const companyId = req.query.companyId as string;
     const businessUnitId = req.query.businessUnitId as string;
     
     let processesToExport;
     if (businessUnitId) {
       processesToExport = await db.select().from(processes).where(eq(processes.businessUnitId, businessUnitId));
+    } else if (companyId) {
+      processesToExport = await db.select().from(processes).where(eq(processes.businessId, companyId));
     } else {
       processesToExport = await db.select().from(processes);
     }
@@ -310,7 +350,7 @@ router.get("/template", async (_req, res): Promise<void> => {
   try {
     const templateRows = [
       {
-        "Business Unit": "(Selected business unit)",
+        "Business Unit": "Sales",
         "L1 Process": "Finance",
         "L2 Process": "Accounts Payable",
         "L3 Process": "Invoice Processing",
@@ -323,7 +363,7 @@ router.get("/template", async (_req, res): Promise<void> => {
         "Systems Used": "SAP, Excel"
       },
       {
-        "Business Unit": "(Selected business unit)",
+        "Business Unit": "Operations",
         "L1 Process": "HR",
         "L2 Process": "Recruitment",
         "L3 Process": "",
