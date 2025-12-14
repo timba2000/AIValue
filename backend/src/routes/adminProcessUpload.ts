@@ -83,9 +83,12 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       
       let processName = row["Process Name"] || row.processName || row.name || row.Name || "";
       
-      if (!processName && l1Process) {
-        const parts = [l1Process, l2Process, l3Process].filter(Boolean);
-        processName = parts.join(" > ");
+      if (!processName && l3Process) {
+        processName = l3Process;
+      } else if (!processName && l2Process) {
+        processName = l2Process;
+      } else if (!processName && l1Process) {
+        processName = l1Process;
       }
 
       const description = row.description || row.Description || "";
@@ -97,8 +100,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
 
       const errors: string[] = [];
       
-      if (!processName && !l1Process) {
-        errors.push("Process name or L1 Process is required");
+      if (!processName) {
+        errors.push("Process name or L3/L2/L1 Process is required");
       }
 
       let matchedBusinessUnit = null;
@@ -202,14 +205,17 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       
       let processName = row["Process Name"] || row.processName || row.name || row.Name || "";
       
-      if (!processName && l1Process) {
-        const parts = [l1Process, l2Process, l3Process].filter(Boolean);
-        processName = parts.join(" > ");
+      if (!processName && l3Process) {
+        processName = l3Process;
+      } else if (!processName && l2Process) {
+        processName = l2Process;
+      } else if (!processName && l1Process) {
+        processName = l1Process;
       }
 
       if (!processName) {
         skipped++;
-        errors.push({ row: i + 2, error: "Process name or L1 Process is required" });
+        errors.push({ row: i + 2, error: "Process name or L3/L2/L1 Process is required" });
         continue;
       }
 
