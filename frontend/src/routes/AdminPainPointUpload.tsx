@@ -45,12 +45,26 @@ interface MissingCategory {
   level: number;
 }
 
+interface MissingBusinessUnit {
+  companyName: string;
+  businessUnitName: string;
+}
+
+interface MissingSubUnit {
+  companyName: string;
+  businessUnitName: string;
+  subUnitName: string;
+}
+
 interface PreviewData {
   totalRows: number;
   validRows: number;
   invalidRows: number;
   rows: PreviewRow[];
   missingCategories?: MissingCategory[];
+  missingCompanies?: string[];
+  missingBusinessUnits?: MissingBusinessUnit[];
+  missingSubUnits?: MissingSubUnit[];
 }
 
 interface ImportResult {
@@ -111,6 +125,10 @@ export default function AdminPainPointUpload() {
   const [activeTab, setActiveTab] = useState<"painpoints" | "taxonomy">("painpoints");
   const [addingCategories, setAddingCategories] = useState(false);
   const [addCategoryResult, setAddCategoryResult] = useState<{ added: number; errors: { category: string; error: string }[] } | null>(null);
+  const [addingCompanies, setAddingCompanies] = useState(false);
+  const [addingBusinessUnits, setAddingBusinessUnits] = useState(false);
+  const [addingSubUnits, setAddingSubUnits] = useState(false);
+  const [addEntityResult, setAddEntityResult] = useState<{ type: string; added: number; errors: string[] } | null>(null);
 
   const [taxonomyData, setTaxonomyData] = useState<TaxonomyCategory[]>([]);
   const [taxonomyLoading, setTaxonomyLoading] = useState(false);
@@ -198,7 +216,129 @@ export default function AdminPainPointUpload() {
     setImportResult(null);
     setError(null);
     setAddCategoryResult(null);
+    setAddEntityResult(null);
   }, []);
+
+  const handleAddMissingCompanies = useCallback(async (companies: string[]) => {
+    if (companies.length === 0) return;
+
+    setAddingCompanies(true);
+    setError(null);
+    setAddEntityResult(null);
+
+    const errors: string[] = [];
+    let added = 0;
+
+    for (const name of companies) {
+      try {
+        const response = await fetch(`${API_BASE}/api/admin/pain-points/add-company`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+          credentials: "include"
+        });
+
+        if (response.ok) {
+          added++;
+        } else {
+          const data = await response.json();
+          errors.push(`${name}: ${data.message || "Failed to add"}`);
+        }
+      } catch (err) {
+        errors.push(`${name}: Network error`);
+      }
+    }
+
+    setAddEntityResult({ type: "companies", added, errors });
+    
+    if (file && added > 0) {
+      await handlePreview();
+    }
+    
+    setAddingCompanies(false);
+  }, [file, handlePreview]);
+
+  const handleAddMissingBusinessUnits = useCallback(async (units: MissingBusinessUnit[]) => {
+    if (units.length === 0) return;
+
+    setAddingBusinessUnits(true);
+    setError(null);
+    setAddEntityResult(null);
+
+    const errors: string[] = [];
+    let added = 0;
+
+    for (const unit of units) {
+      try {
+        const response = await fetch(`${API_BASE}/api/admin/pain-points/add-business-unit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companyName: unit.companyName, businessUnitName: unit.businessUnitName }),
+          credentials: "include"
+        });
+
+        if (response.ok) {
+          added++;
+        } else {
+          const data = await response.json();
+          errors.push(`${unit.businessUnitName}: ${data.message || "Failed to add"}`);
+        }
+      } catch (err) {
+        errors.push(`${unit.businessUnitName}: Network error`);
+      }
+    }
+
+    setAddEntityResult({ type: "business units", added, errors });
+    
+    if (file && added > 0) {
+      await handlePreview();
+    }
+    
+    setAddingBusinessUnits(false);
+  }, [file, handlePreview]);
+
+  const handleAddMissingSubUnits = useCallback(async (subUnits: MissingSubUnit[]) => {
+    if (subUnits.length === 0) return;
+
+    setAddingSubUnits(true);
+    setError(null);
+    setAddEntityResult(null);
+
+    const errors: string[] = [];
+    let added = 0;
+
+    for (const sub of subUnits) {
+      try {
+        const response = await fetch(`${API_BASE}/api/admin/pain-points/add-sub-unit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            companyName: sub.companyName, 
+            businessUnitName: sub.businessUnitName,
+            subUnitName: sub.subUnitName
+          }),
+          credentials: "include"
+        });
+
+        if (response.ok) {
+          added++;
+        } else {
+          const data = await response.json();
+          errors.push(`${sub.subUnitName}: ${data.message || "Failed to add"}`);
+        }
+      } catch (err) {
+        errors.push(`${sub.subUnitName}: Network error`);
+      }
+    }
+
+    setAddEntityResult({ type: "sub-units", added, errors });
+    
+    if (file && added > 0) {
+      await handlePreview();
+    }
+    
+    setAddingSubUnits(false);
+  }, [file, handlePreview]);
 
   const handleAddMissingCategories = useCallback(async (categories: MissingCategory[]) => {
     if (categories.length === 0) return;
@@ -662,6 +802,177 @@ export default function AdminPainPointUpload() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {addEntityResult && (
+                <div className={`mb-4 p-4 rounded-xl ${addEntityResult.added > 0 ? 'bg-green-500/10 border border-green-500/20' : 'bg-orange-500/10 border border-orange-500/20'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {addEntityResult.added > 0 ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {addEntityResult.added > 0 
+                        ? `Added ${addEntityResult.added} ${addEntityResult.type}`
+                        : `No ${addEntityResult.type} were added`}
+                    </span>
+                  </div>
+                  {addEntityResult.errors.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {addEntityResult.errors.map((err, i) => (
+                        <p key={i}>{err}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {preview.missingCompanies && preview.missingCompanies.length > 0 && (
+                <div className="mb-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      <h3 className="font-semibold text-foreground">Missing Companies</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddMissingCompanies(preview.missingCompanies || [])}
+                      disabled={addingCompanies}
+                    >
+                      {addingCompanies ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add All ({preview.missingCompanies.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    These companies don't exist in the system. Add them to link pain points to business units.
+                  </p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {preview.missingCompanies.map((name, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50">
+                        <span className="text-sm font-medium">{name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleAddMissingCompanies([name])}
+                          disabled={addingCompanies}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preview.missingBusinessUnits && preview.missingBusinessUnits.length > 0 && (
+                <div className="mb-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      <h3 className="font-semibold text-foreground">Missing Business Units</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddMissingBusinessUnits(preview.missingBusinessUnits || [])}
+                      disabled={addingBusinessUnits}
+                    >
+                      {addingBusinessUnits ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add All ({preview.missingBusinessUnits.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    These business units don't exist. The parent company must exist first.
+                  </p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {preview.missingBusinessUnits.map((unit, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50">
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">{unit.companyName} &gt; </span>
+                          <span className="font-medium">{unit.businessUnitName}</span>
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleAddMissingBusinessUnits([unit])}
+                          disabled={addingBusinessUnits}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {preview.missingSubUnits && preview.missingSubUnits.length > 0 && (
+                <div className="mb-4 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      <h3 className="font-semibold text-foreground">Missing Sub-Units</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddMissingSubUnits(preview.missingSubUnits || [])}
+                      disabled={addingSubUnits}
+                    >
+                      {addingSubUnits ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add All ({preview.missingSubUnits.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    These sub-units don't exist. The parent business unit must exist first.
+                  </p>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {preview.missingSubUnits.map((sub, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50">
+                        <span className="text-sm">
+                          <span className="text-muted-foreground">{sub.companyName} &gt; {sub.businessUnitName} &gt; </span>
+                          <span className="font-medium">{sub.subUnitName}</span>
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleAddMissingSubUnits([sub])}
+                          disabled={addingSubUnits}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
