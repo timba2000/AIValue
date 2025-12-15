@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
 import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
+import { PainPointEditModal } from "@/components/PainPointEditModal";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
 import { getDescendantIds } from "../utils/hierarchy";
@@ -63,6 +64,8 @@ export default function OpportunitiesDashboard() {
   const [percentageSolved, setPercentageSolved] = useState("");
   const [notes, setNotes] = useState("");
   const [editingLink, setEditingLink] = useState<PainPointLink | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingPainPointId, setEditingPainPointId] = useState<string | null>(null);
 
   const { data: selectedPainPointLinks = [] } = useQuery<PainPointLink[]>({
     queryKey: ["painPointLinks", selectedPainPoint?.id],
@@ -463,6 +466,19 @@ export default function OpportunitiesDashboard() {
         onManageClick={(painPointId) => {
           const pp = allPainPoints.data?.find(p => p.id === painPointId);
           if (pp) handleOpenLinkModal(pp);
+        }}
+        onEditClick={(painPointId) => {
+          setEditingPainPointId(painPointId);
+          setEditModalOpen(true);
+        }}
+      />
+
+      <PainPointEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        painPointId={editingPainPointId}
+        onSaveSuccess={() => {
+          allPainPoints.refetch();
         }}
       />
 

@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { Settings, Pencil } from "lucide-react";
 
 interface PainPointData {
   id: string;
@@ -17,12 +17,14 @@ interface PainPointsOverviewTableProps {
   data: PainPointData[];
   isLoading?: boolean;
   onManageClick: (painPointId: string) => void;
+  onEditClick?: (painPointId: string) => void;
 }
 
 export function PainPointsOverviewTable({ 
   data, 
   isLoading, 
-  onManageClick 
+  onManageClick,
+  onEditClick 
 }: PainPointsOverviewTableProps) {
   const linkedCount = data.filter(p => p.hasLinks).length;
   const unlinkedCount = data.filter(p => !p.hasLinks).length;
@@ -174,16 +176,27 @@ export function PainPointsOverviewTable({
                   ) : '-'}
                 </td>
                 <td className="px-4 py-4 text-right">
-                  <button
-                    onClick={() => onManageClick(row.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                      row.hasLinks
-                        ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
-                        : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                    }`}
-                  >
-                    {row.hasLinks ? 'Manage' : 'Link'}
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    {onEditClick && (
+                      <button
+                        onClick={() => onEditClick(row.id)}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-200"
+                        title="Edit pain point"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onManageClick(row.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                        row.hasLinks
+                          ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
+                          : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                      }`}
+                    >
+                      {row.hasLinks ? 'Manage' : 'Link'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -251,16 +264,27 @@ export function PainPointsOverviewTable({
                 </div>
               </div>
 
-              <button
-                onClick={() => onManageClick(row.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  row.hasLinks
-                    ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
-                    : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                }`}
-              >
-                {row.hasLinks ? 'Manage' : 'Link'}
-              </button>
+              <div className="flex flex-col gap-2">
+                {onEditClick && (
+                  <button
+                    onClick={() => onEditClick(row.id)}
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-200"
+                    title="Edit pain point"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => onManageClick(row.id)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                    row.hasLinks
+                      ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
+                      : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                  }`}
+                >
+                  {row.hasLinks ? 'Manage' : 'Link'}
+                </button>
+              </div>
             </div>
           </div>
         ))}
