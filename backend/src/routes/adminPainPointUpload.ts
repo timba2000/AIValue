@@ -169,19 +169,25 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       const errors: string[] = [];
       const warnings: string[] = [];
       if (!statement) errors.push("Statement is required");
-      if (processName && !matchedProcess) errors.push(`Process "${processName}" not found`);
-      if (taxonomyL1Name && !matchedL1) errors.push(`L1 Category "${taxonomyL1Name}" not found`);
       
-      if (companyName && !matchedCompany) {
-        warnings.push(`Company "${companyName}" not found`);
+      // Company is REQUIRED for import
+      if (!companyName) {
+        errors.push("Company is required");
+      } else if (!matchedCompany) {
+        errors.push(`Company "${companyName}" not found - add it first`);
         const companyKey = String(companyName).toLowerCase();
         if (!seenMissingCompanies.has(companyKey)) {
           seenMissingCompanies.add(companyKey);
           missingCompanies.push(String(companyName));
         }
       }
+      
+      if (processName && !matchedProcess) errors.push(`Process "${processName}" not found`);
+      if (taxonomyL1Name && !matchedL1) errors.push(`L1 Category "${taxonomyL1Name}" not found`);
+      
+      // Business unit and sub-unit are optional, but warn if provided and not found
       if (businessUnitName && matchedCompany && !matchedBusinessUnit) {
-        warnings.push(`Business Unit "${businessUnitName}" not found`);
+        warnings.push(`Business Unit "${businessUnitName}" not found - can be linked later`);
         const buKey = `${String(companyName).toLowerCase()}:${String(businessUnitName).toLowerCase()}`;
         if (!seenMissingBUs.has(buKey)) {
           seenMissingBUs.add(buKey);
@@ -191,7 +197,7 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         warnings.push(`Business Unit "${businessUnitName}" skipped (company not found)`);
       }
       if (subUnitName && matchedBusinessUnit && !matchedSubUnit) {
-        warnings.push(`Sub Unit "${subUnitName}" not found`);
+        warnings.push(`Sub Unit "${subUnitName}" not found - can be linked later`);
         const subKey = `${String(companyName).toLowerCase()}:${String(businessUnitName).toLowerCase()}:${String(subUnitName).toLowerCase()}`;
         if (!seenMissingSubUnits.has(subKey)) {
           seenMissingSubUnits.add(subKey);
@@ -356,6 +362,22 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       ) : null;
 
       const rowErrors: string[] = [];
+      
+      // Company is REQUIRED for all pain points
+      if (!companyName) {
+        rowErrors.push("Company is required");
+      } else if (!matchedCompany) {
+        rowErrors.push(`Company "${companyName}" not found`);
+      }
+      
+      // Business unit validation (optional but must match if provided)
+      if (businessUnitName && matchedCompany && !matchedBusinessUnit) {
+        rowErrors.push(`Business unit "${businessUnitName}" not found under company "${companyName}"`);
+      }
+      if (subUnitName && matchedBusinessUnit && !matchedSubUnit) {
+        rowErrors.push(`Sub-unit "${subUnitName}" not found under business unit "${businessUnitName}"`);
+      }
+      
       if (processName && !matchedProcess) rowErrors.push(`Process "${processName}" not found`);
       if (taxonomyL1Name && !matchedL1) rowErrors.push(`L1 Category "${taxonomyL1Name}" not found`);
       if (taxonomyL2Name && !matchedL2) rowErrors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
@@ -391,6 +413,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
           taxonomyLevel1Id: matchedL1?.id || null,
           taxonomyLevel2Id: matchedL2?.id || null,
           taxonomyLevel3Id: matchedL3?.id || null,
+          companyId: matchedCompany?.id || null,
           businessUnitId: linkedBusinessUnitId
         }).returning();
 
@@ -617,8 +640,8 @@ router.post("/add-business-unit", async (req, res): Promise<void> => {
     const [newBU] = await db.insert(businessUnits).values({
       name: trimmedBU,
       companyId: company[0].id,
-      fte: fte && !isNaN(Number(fte)) ? Number(fte) : null,
-      parentId: null
+      fte: fte && !isNaN(Number(fte)) ? Number(fte) : undefined,
+      parentId: undefined
     }).returning();
 
     res.json({ success: true, businessUnit: newBU, message: `Business unit "${trimmedBU}" created successfully` });
@@ -684,7 +707,7 @@ router.post("/add-sub-unit", async (req, res): Promise<void> => {
     const [newSubUnit] = await db.insert(businessUnits).values({
       name: trimmedSub,
       companyId: company[0].id,
-      fte: fte && !isNaN(Number(fte)) ? Number(fte) : null,
+      fte: fte && !isNaN(Number(fte)) ? Number(fte) : undefined,
       parentId: parentBU.id
     }).returning();
 

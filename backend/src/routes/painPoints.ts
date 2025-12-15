@@ -53,6 +53,7 @@ router.get("/", async (req, res) => {
               taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
               taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
               taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              companyId: painPoints.companyId,
               businessUnitId: painPoints.businessUnitId,
               createdAt: painPoints.createdAt,
               updatedAt: painPoints.updatedAt
@@ -108,6 +109,7 @@ router.get("/", async (req, res) => {
               taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
               taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
               taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              companyId: painPoints.companyId,
               businessUnitId: painPoints.businessUnitId,
               createdAt: painPoints.createdAt,
               updatedAt: painPoints.updatedAt
@@ -120,7 +122,8 @@ router.get("/", async (req, res) => {
             );
           return await query;
         } else if (companyId && typeof companyId === 'string') {
-          const query = db
+          // Get pain points with direct companyId link
+          const directCompanyQuery = db
             .select({
               id: painPoints.id,
               statement: painPoints.statement,
@@ -139,6 +142,35 @@ router.get("/", async (req, res) => {
               taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
               taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
               taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              companyId: painPoints.companyId,
+              businessUnitId: painPoints.businessUnitId,
+              createdAt: painPoints.createdAt,
+              updatedAt: painPoints.updatedAt
+            })
+            .from(painPoints)
+            .where(eq(painPoints.companyId, companyId));
+          
+          // Also get pain points linked via businessUnit
+          const viaBUQuery = db
+            .select({
+              id: painPoints.id,
+              statement: painPoints.statement,
+              impactType: painPoints.impactType,
+              businessImpact: painPoints.businessImpact,
+              magnitude: painPoints.magnitude,
+              frequency: painPoints.frequency,
+              timePerUnit: painPoints.timePerUnit,
+              totalHoursPerMonth: painPoints.totalHoursPerMonth,
+              fteCount: painPoints.fteCount,
+              rootCause: painPoints.rootCause,
+              workarounds: painPoints.workarounds,
+              dependencies: painPoints.dependencies,
+              riskLevel: painPoints.riskLevel,
+              effortSolving: painPoints.effortSolving,
+              taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
+              taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
+              taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              companyId: painPoints.companyId,
               businessUnitId: painPoints.businessUnitId,
               createdAt: painPoints.createdAt,
               updatedAt: painPoints.updatedAt
@@ -146,7 +178,9 @@ router.get("/", async (req, res) => {
             .from(painPoints)
             .innerJoin(businessUnits, eq(painPoints.businessUnitId, businessUnits.id))
             .where(eq(businessUnits.companyId, companyId));
-          return await query;
+          
+          const [directResults, viaBUResults] = await Promise.all([directCompanyQuery, viaBUQuery]);
+          return [...directResults, ...viaBUResults];
         }
         return [];
       })();
@@ -217,6 +251,7 @@ router.post("/", async (req, res) => {
     taxonomyLevel1Id,
     taxonomyLevel2Id,
     taxonomyLevel3Id,
+    companyId,
     businessUnitId
   } = req.body ?? {};
 
@@ -273,6 +308,7 @@ router.post("/", async (req, res) => {
           taxonomyLevel1Id: taxonomyLevel1Id || null,
           taxonomyLevel2Id: taxonomyLevel2Id || null,
           taxonomyLevel3Id: taxonomyLevel3Id || null,
+          companyId: companyId || null,
           businessUnitId: businessUnitId || null
         })
         .returning();
@@ -313,6 +349,7 @@ router.put("/:id", async (req, res) => {
     taxonomyLevel1Id,
     taxonomyLevel2Id,
     taxonomyLevel3Id,
+    companyId,
     businessUnitId
   } = req.body ?? {};
 
@@ -375,6 +412,7 @@ router.put("/:id", async (req, res) => {
           taxonomyLevel1Id: taxonomyLevel1Id || null,
           taxonomyLevel2Id: taxonomyLevel2Id || null,
           taxonomyLevel3Id: taxonomyLevel3Id || null,
+          companyId: companyId || null,
           businessUnitId: businessUnitId || null
         })
         .where(eq(painPoints.id, id))

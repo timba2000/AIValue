@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
-import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat } from "../hooks/useApiData";
+import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat, useCompanies } from "../hooks/useApiData";
 import { getDescendantIds } from "../utils/hierarchy";
 import { Link2, Check, AlertCircle } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
@@ -55,6 +55,7 @@ interface FormState {
   taxonomyLevel1Id: string;
   taxonomyLevel2Id: string;
   taxonomyLevel3Id: string;
+  companyId: string;
   businessUnitId: string;
 }
 
@@ -75,6 +76,7 @@ const emptyForm: FormState = {
   taxonomyLevel1Id: "",
   taxonomyLevel2Id: "",
   taxonomyLevel3Id: "",
+  companyId: "",
   businessUnitId: ""
 };
 
@@ -94,6 +96,7 @@ export default function PainPointList() {
   const [selectedPainPointForLink, setSelectedPainPointForLink] = useState<PainPoint | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useAllBusinessUnits();
   const { data: processes = [] } = useAllProcesses();
   const { data: businessUnitsHierarchy = [] } = useBusinessUnitsFlat(selectedCompanyId);
@@ -227,6 +230,7 @@ export default function PainPointList() {
       taxonomyLevel1Id: painPoint.taxonomyLevel1Id ?? "",
       taxonomyLevel2Id: painPoint.taxonomyLevel2Id ?? "",
       taxonomyLevel3Id: painPoint.taxonomyLevel3Id ?? "",
+      companyId: painPoint.companyId ?? "",
       businessUnitId: painPoint.businessUnitId ?? ""
     });
     setFormOpen(true);
@@ -258,6 +262,7 @@ export default function PainPointList() {
       taxonomyLevel1Id: formState.taxonomyLevel1Id || null,
       taxonomyLevel2Id: formState.taxonomyLevel2Id || null,
       taxonomyLevel3Id: formState.taxonomyLevel3Id || null,
+      companyId: formState.companyId || null,
       businessUnitId: formState.businessUnitId || null
     };
 
@@ -726,18 +731,37 @@ export default function PainPointList() {
             </div>
 
             <div>
+              <Label htmlFor="companyId">Company</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Select the company for this pain point</p>
+              <Select
+                id="companyId"
+                value={formState.companyId}
+                onChange={(e) => setFormState({ ...formState, companyId: e.target.value, businessUnitId: "" })}
+                className="mt-1.5"
+              >
+                <option value="">Select company</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>{company.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="businessUnitId">Business Unit</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Direct link to a business unit (optional)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Direct link to a business unit (optional, can be set later)</p>
               <Select
                 id="businessUnitId"
                 value={formState.businessUnitId}
                 onChange={(e) => setFormState({ ...formState, businessUnitId: e.target.value })}
                 className="mt-1.5"
+                disabled={!formState.companyId}
               >
                 <option value="">Select business unit (optional)</option>
-                {businessUnits.map((bu) => (
-                  <option key={bu.id} value={bu.id}>{bu.name}</option>
-                ))}
+                {businessUnits
+                  .filter((bu) => formState.companyId ? bu.companyId === formState.companyId : true)
+                  .map((bu) => (
+                    <option key={bu.id} value={bu.id}>{bu.name}</option>
+                  ))}
               </Select>
             </div>
 

@@ -17,6 +17,7 @@ export interface PainPoint {
   taxonomyLevel1Id: string | null;
   taxonomyLevel2Id: string | null;
   taxonomyLevel3Id: string | null;
+  companyId: string | null;
   businessUnitId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +40,7 @@ export interface PainPointPayload {
   taxonomyLevel1Id?: string | null;
   taxonomyLevel2Id?: string | null;
   taxonomyLevel3Id?: string | null;
+  companyId?: string | null;
   businessUnitId?: string | null;
 }
 
