@@ -541,16 +541,17 @@ router.get("/export", async (_req, res) => {
         .filter(Boolean);
       const processNames = linkedProcesses.map(p => p?.name).filter(Boolean).join(", ");
 
-      let company = null;
-      let businessUnit = null;
-      let parentUnit = null;
+      let company: typeof allCompanies[number] | null = null;
+      let businessUnit: typeof allBusinessUnits[number] | null = null;
+      let parentUnit: typeof allBusinessUnits[number] | null = null;
       
       if (pp.businessUnitId) {
-        businessUnit = allBusinessUnits.find(bu => bu.id === pp.businessUnitId) || null;
-        if (businessUnit) {
-          company = allCompanies.find(c => c.id === businessUnit.companyId) || null;
-          if (businessUnit.parentId) {
-            parentUnit = allBusinessUnits.find(bu => bu.id === businessUnit.parentId) || null;
+        const foundUnit = allBusinessUnits.find(bu => bu.id === pp.businessUnitId) || null;
+        businessUnit = foundUnit;
+        if (foundUnit) {
+          company = allCompanies.find(c => c.id === foundUnit.companyId) || null;
+          if (foundUnit.parentId) {
+            parentUnit = allBusinessUnits.find(bu => bu.id === foundUnit.parentId) || null;
           }
         }
       } else {
