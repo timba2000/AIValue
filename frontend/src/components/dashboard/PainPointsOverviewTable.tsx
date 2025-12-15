@@ -118,8 +118,15 @@ export function PainPointsOverviewTable({
                 }`}
               >
                 <td className="px-4 py-4 text-sm text-foreground max-w-xs">
-                  <div className="truncate font-medium" title={row.statement}>
-                    {row.statement}
+                  <div className="relative group">
+                    <div className="truncate font-medium cursor-help">
+                      {row.statement}
+                    </div>
+                    <div className="absolute left-0 top-full mt-2 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">
+                      <div className="bg-popover text-popover-foreground border border-border rounded-xl p-3 shadow-lg max-w-md text-sm whitespace-normal">
+                        {row.statement}
+                      </div>
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground max-w-xs">
