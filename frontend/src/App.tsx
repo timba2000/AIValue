@@ -12,6 +12,7 @@ import BusinessesPage from "@/pages/BusinessesPage";
 import AdminPage from "@/routes/AdminPage";
 import AdminPainPointUpload from "@/routes/AdminPainPointUpload";
 import AdminProcessUpload from "@/routes/AdminProcessUpload";
+import AdminDatabaseDashboard from "@/routes/AdminDatabaseDashboard";
 import LoginPage from "@/routes/LoginPage";
 
 function NotFoundPage() {
@@ -102,6 +103,11 @@ function App() {
             <Route path="/admin/processes-upload">
               <ProtectedRoute>
                 <AdminProcessUpload />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/admin/database">
+              <ProtectedRoute>
+                <AdminDatabaseDashboard />
               </ProtectedRoute>
             </Route>
             <Route>

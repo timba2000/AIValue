@@ -51,7 +51,7 @@ async function startServer() {
   app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
     try {
       const { db } = await import("./db/client.js");
-      const { companies, businessUnits, processes, painPoints, useCases, users } = await import("./db/schema.js");
+      const { companies, businessUnits, processes, painPoints, useCases, users, taxonomyCategories } = await import("./db/schema.js");
       const { count } = await import("drizzle-orm");
       
       const [companiesCount] = await db.select({ count: count() }).from(companies);
@@ -60,6 +60,7 @@ async function startServer() {
       const [painPointsCount] = await db.select({ count: count() }).from(painPoints);
       const [useCasesCount] = await db.select({ count: count() }).from(useCases);
       const [usersCount] = await db.select({ count: count() }).from(users);
+      const [taxonomyCount] = await db.select({ count: count() }).from(taxonomyCategories);
       
       res.json({
         companies: companiesCount.count,
@@ -67,7 +68,8 @@ async function startServer() {
         processes: processesCount.count,
         painPoints: painPointsCount.count,
         useCases: useCasesCount.count,
-        users: usersCount.count
+        users: usersCount.count,
+        taxonomy: taxonomyCount.count
       });
     } catch {
       res.status(500).json({ message: "Failed to fetch admin stats" });
@@ -120,6 +122,97 @@ async function startServer() {
       res.json({ id: updated.id, email: updated.email, isAdmin: updated.isAdmin === 1 });
     } catch {
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/delete/companies", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { companies } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [beforeCount] = await db.select({ count: count() }).from(companies);
+      await db.delete(companies);
+      
+      res.json({ deleted: beforeCount.count, message: "All companies deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete companies" });
+    }
+  });
+
+  app.delete("/api/admin/delete/taxonomy", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { taxonomyCategories } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [beforeCount] = await db.select({ count: count() }).from(taxonomyCategories);
+      await db.delete(taxonomyCategories);
+      
+      res.json({ deleted: beforeCount.count, message: "All taxonomy categories deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete taxonomy" });
+    }
+  });
+
+  app.delete("/api/admin/delete/processes", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { processes } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [beforeCount] = await db.select({ count: count() }).from(processes);
+      await db.delete(processes);
+      
+      res.json({ deleted: beforeCount.count, message: "All processes deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete processes" });
+    }
+  });
+
+  app.delete("/api/admin/delete/pain-points", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { painPoints } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [beforeCount] = await db.select({ count: count() }).from(painPoints);
+      await db.delete(painPoints);
+      
+      res.json({ deleted: beforeCount.count, message: "All pain points deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete pain points" });
+    }
+  });
+
+  app.delete("/api/admin/delete/use-cases", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { useCases } = await import("./db/schema.js");
+      const { count } = await import("drizzle-orm");
+      
+      const [beforeCount] = await db.select({ count: count() }).from(useCases);
+      await db.delete(useCases);
+      
+      res.json({ deleted: beforeCount.count, message: "All solutions deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete solutions" });
+    }
+  });
+
+  app.delete("/api/admin/delete/all", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db/client.js");
+      const { companies, taxonomyCategories, painPoints, useCases } = await import("./db/schema.js");
+      
+      await db.delete(painPoints);
+      await db.delete(useCases);
+      await db.delete(companies);
+      await db.delete(taxonomyCategories);
+      
+      res.json({ message: "All data deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete all data" });
     }
   });
 

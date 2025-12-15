@@ -359,7 +359,7 @@ export default function AdminPage() {
           <p className="text-sm text-muted-foreground mb-4">
             View and manage companies, business units, processes, pain points, and solutions.
           </p>
-          <Button variant="outline" className="w-full" onClick={() => window.location.href = "/dashboard"}>
+          <Button variant="outline" className="w-full" onClick={() => window.location.href = "/admin/database"}>
             Open Dashboard
           </Button>
         </div>
