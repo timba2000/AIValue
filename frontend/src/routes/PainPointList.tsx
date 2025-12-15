@@ -168,13 +168,28 @@ export default function PainPointList() {
     return null;
   }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, processes, businessUnits, businessUnitsHierarchy]);
 
+  const validBusinessUnitIds = useMemo(() => {
+    if (selectedBusinessUnitId) {
+      const descendantIds = getDescendantIds(businessUnitsHierarchy, selectedBusinessUnitId);
+      return new Set([selectedBusinessUnitId, ...descendantIds]);
+    } else if (selectedCompanyId) {
+      return new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+    }
+    return null;
+  }, [selectedCompanyId, selectedBusinessUnitId, businessUnits, businessUnitsHierarchy]);
+
   const filteredPainPoints = useMemo(() => {
     let filtered = painPoints;
     
-    if (validProcessIds) {
-      filtered = filtered.filter(pp => 
-        pp.processIds && pp.processIds.some(id => validProcessIds.has(id))
-      );
+    const hasProcessFilter = validProcessIds && validProcessIds.size > 0;
+    const hasBusinessUnitFilter = validBusinessUnitIds && validBusinessUnitIds.size > 0;
+    
+    if (hasProcessFilter || hasBusinessUnitFilter) {
+      filtered = filtered.filter(pp => {
+        const matchesProcess = hasProcessFilter && pp.processIds && pp.processIds.some(id => validProcessIds.has(id));
+        const matchesDirectBU = hasBusinessUnitFilter && pp.businessUnitId && validBusinessUnitIds.has(pp.businessUnitId);
+        return matchesProcess || matchesDirectBU;
+      });
     }
     
     if (search.trim()) {
@@ -184,7 +199,7 @@ export default function PainPointList() {
     }
     
     return filtered;
-  }, [painPoints, validProcessIds, search]);
+  }, [painPoints, validProcessIds, validBusinessUnitIds, search]);
 
 
   const handleCreate = () => {
