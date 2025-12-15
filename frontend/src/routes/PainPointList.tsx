@@ -241,6 +241,10 @@ export default function PainPointList() {
       setError("Statement is required");
       return;
     }
+    if (!formState.companyId) {
+      setError("Company is required");
+      return;
+    }
 
     setIsSaving(true);
     setError(null);
@@ -731,13 +735,14 @@ export default function PainPointList() {
             </div>
 
             <div>
-              <Label htmlFor="companyId">Company</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">Select the company for this pain point</p>
+              <Label htmlFor="companyId">Company <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Select the company for this pain point (required)</p>
               <Select
                 id="companyId"
                 value={formState.companyId}
                 onChange={(e) => setFormState({ ...formState, companyId: e.target.value, businessUnitId: "" })}
                 className="mt-1.5"
+                required
               >
                 <option value="">Select company</option>
                 {companies.map((company) => (
