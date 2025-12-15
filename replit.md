@@ -205,3 +205,13 @@ Preferred communication style: Simple, everyday language.
   - Backend endpoints: GET /api/admin/processes/template, /export, POST /preview, /import
   - Export existing processes as Excel with hierarchy breakdown
   - "Manage Processes" button in Admin Quick Actions now navigates to the upload page
+- **Direct Business Unit Linking for Pain Points (Dec 2025):**
+  - Pain points can now be linked directly to a business unit (in addition to process-based linking)
+  - Added business_unit_id column to pain_points table
+  - GET /api/pain-points uses OR semantics: returns pain points linked via processes OR directly via businessUnitId
+  - POST/PUT endpoints accept and store businessUnitId
+  - Excel import matches business unit names and stores the ID
+  - Excel export includes business unit information
+  - Frontend PainPointForm includes business unit dropdown selector
+  - PainPointList displays business unit column with name lookup
+  - Filtering by company or business unit includes both process-linked and directly-linked pain points
