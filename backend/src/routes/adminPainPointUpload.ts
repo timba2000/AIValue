@@ -262,6 +262,8 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
 
     const allProcesses = await db.select().from(processes);
     const allTaxonomy = await db.select().from(taxonomyCategories);
+    const allCompanies = await db.select().from(companies);
+    const allBusinessUnits = await db.select().from(businessUnits);
 
     let imported = 0;
     let skipped = 0;
@@ -292,6 +294,26 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       const taxonomyL1Name = row.taxonomyL1 || row["L1 - Category"] || row["Category"] || "";
       const taxonomyL2Name = row.taxonomyL2 || row["L2 - Sub-category"] || row["Sub-category"] || "";
       const taxonomyL3Name = row.taxonomyL3 || row["L3 - Description"] || row["Detail"] || "";
+      
+      const companyName = row.company || row.Company || row["Business"] || "";
+      const businessUnitName = row.businessUnit || row["Business Unit"] || "";
+      const subUnitName = row.subUnit || row["Sub Unit"] || row["Sub-unit"] || "";
+
+      const matchedCompany = companyName ? allCompanies.find(c => 
+        c.name.toLowerCase() === String(companyName).toLowerCase()
+      ) : null;
+      
+      const matchedBusinessUnit = businessUnitName && matchedCompany ? allBusinessUnits.find(bu => 
+        bu.companyId === matchedCompany.id && 
+        bu.name.toLowerCase() === String(businessUnitName).toLowerCase() &&
+        bu.parentId === null
+      ) : null;
+      
+      const matchedSubUnit = subUnitName && matchedBusinessUnit ? allBusinessUnits.find(bu => 
+        bu.companyId === matchedCompany?.id && 
+        bu.name.toLowerCase() === String(subUnitName).toLowerCase() &&
+        bu.parentId === matchedBusinessUnit.id
+      ) : null;
 
       const matchedProcess = processName ? allProcesses.find(p => 
         p.name.toLowerCase() === String(processName).toLowerCase()
@@ -325,6 +347,8 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         const freqNum = parseNumber(frequency);
         const timeNum = parseNumber(timePerUnit);
         const totalHoursPerMonth = freqNum !== null && timeNum !== null ? freqNum * timeNum : null;
+        
+        const linkedBusinessUnitId = matchedSubUnit?.id || matchedBusinessUnit?.id || null;
 
         const [insertedPainPoint] = await db.insert(painPoints).values({
           statement: String(statement),
@@ -342,7 +366,8 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
           effortSolving: parseNumber(effortSolving)?.toString() || null,
           taxonomyLevel1Id: matchedL1?.id || null,
           taxonomyLevel2Id: matchedL2?.id || null,
-          taxonomyLevel3Id: matchedL3?.id || null
+          taxonomyLevel3Id: matchedL3?.id || null,
+          businessUnitId: linkedBusinessUnitId
         }).returning();
 
         if (matchedProcess && insertedPainPoint) {
@@ -516,11 +541,29 @@ router.get("/export", async (_req, res) => {
         .filter(Boolean);
       const processNames = linkedProcesses.map(p => p?.name).filter(Boolean).join(", ");
 
-      const firstProcess = linkedProcesses[0];
-      const company = firstProcess ? allCompanies.find(c => c.id === firstProcess.businessId) : null;
-      const businessUnit = firstProcess ? allBusinessUnits.find(bu => bu.id === firstProcess.businessUnitId) : null;
-      const subUnit = businessUnit?.parentId ? allBusinessUnits.find(bu => bu.id === businessUnit.id) : null;
-      const parentUnit = businessUnit?.parentId ? allBusinessUnits.find(bu => bu.id === businessUnit.parentId) : null;
+      let company = null;
+      let businessUnit = null;
+      let parentUnit = null;
+      
+      if (pp.businessUnitId) {
+        businessUnit = allBusinessUnits.find(bu => bu.id === pp.businessUnitId) || null;
+        if (businessUnit) {
+          company = allCompanies.find(c => c.id === businessUnit.companyId) || null;
+          if (businessUnit.parentId) {
+            parentUnit = allBusinessUnits.find(bu => bu.id === businessUnit.parentId) || null;
+          }
+        }
+      } else {
+        const firstProcess = linkedProcesses[0];
+        company = firstProcess ? allCompanies.find(c => c.id === firstProcess.businessId) || null : null;
+        const processBusinessUnit = firstProcess ? allBusinessUnits.find(bu => bu.id === firstProcess.businessUnitId) || null : null;
+        if (processBusinessUnit) {
+          businessUnit = processBusinessUnit;
+          if (processBusinessUnit.parentId) {
+            parentUnit = allBusinessUnits.find(bu => bu.id === processBusinessUnit.parentId) || null;
+          }
+        }
+      }
 
       const l1 = pp.taxonomyLevel1Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel1Id) : null;
       const l2 = pp.taxonomyLevel2Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel2Id) : null;

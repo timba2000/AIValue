@@ -17,6 +17,7 @@ export interface PainPoint {
   taxonomyLevel1Id: string | null;
   taxonomyLevel2Id: string | null;
   taxonomyLevel3Id: string | null;
+  businessUnitId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,7 @@ export interface PainPointPayload {
   taxonomyLevel1Id?: string | null;
   taxonomyLevel2Id?: string | null;
   taxonomyLevel3Id?: string | null;
+  businessUnitId?: string | null;
 }
 
 export type ImpactType = "time_waste" | "quality_issue" | "compliance_risk" | "cost_overrun" | "customer_impact" | "other";

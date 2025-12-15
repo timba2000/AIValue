@@ -26,62 +26,141 @@ router.get("/", async (req, res) => {
         ? (Array.isArray(processIds) ? processIds : [processIds]).filter((id): id is string => typeof id === 'string')
         : [];
 
-      const query = db
-        .selectDistinct({
-          id: painPoints.id,
-          statement: painPoints.statement,
-          impactType: painPoints.impactType,
-          businessImpact: painPoints.businessImpact,
-          magnitude: painPoints.magnitude,
-          frequency: painPoints.frequency,
-          timePerUnit: painPoints.timePerUnit,
-          totalHoursPerMonth: painPoints.totalHoursPerMonth,
-          fteCount: painPoints.fteCount,
-          rootCause: painPoints.rootCause,
-          workarounds: painPoints.workarounds,
-          dependencies: painPoints.dependencies,
-          riskLevel: painPoints.riskLevel,
-          effortSolving: painPoints.effortSolving,
-          taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
-          taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
-          taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
-          createdAt: painPoints.createdAt,
-          updatedAt: painPoints.updatedAt
-        })
-        .from(painPoints)
-        .innerJoin(processPainPoints, eq(painPoints.id, processPainPoints.painPointId))
-        .innerJoin(processes, eq(processPainPoints.processId, processes.id))
-        .innerJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id))
-        .$dynamic();
+      const businessUnitIds = businessUnitId
+        ? (typeof businessUnitId === 'string' 
+            ? businessUnitId.split(',').filter(id => id.trim())
+            : Array.isArray(businessUnitId) ? businessUnitId.filter((id): id is string => typeof id === 'string') : [])
+        : [];
 
-      const conditions = [];
+      const painPointsViaProcesses = await (async () => {
+        if (processIdsArray.length > 0 || businessUnitIds.length > 0 || companyId) {
+          const query = db
+            .selectDistinct({
+              id: painPoints.id,
+              statement: painPoints.statement,
+              impactType: painPoints.impactType,
+              businessImpact: painPoints.businessImpact,
+              magnitude: painPoints.magnitude,
+              frequency: painPoints.frequency,
+              timePerUnit: painPoints.timePerUnit,
+              totalHoursPerMonth: painPoints.totalHoursPerMonth,
+              fteCount: painPoints.fteCount,
+              rootCause: painPoints.rootCause,
+              workarounds: painPoints.workarounds,
+              dependencies: painPoints.dependencies,
+              riskLevel: painPoints.riskLevel,
+              effortSolving: painPoints.effortSolving,
+              taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
+              taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
+              taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              businessUnitId: painPoints.businessUnitId,
+              createdAt: painPoints.createdAt,
+              updatedAt: painPoints.updatedAt
+            })
+            .from(painPoints)
+            .innerJoin(processPainPoints, eq(painPoints.id, processPainPoints.painPointId))
+            .innerJoin(processes, eq(processPainPoints.processId, processes.id))
+            .innerJoin(businessUnits, eq(processes.businessUnitId, businessUnits.id))
+            .$dynamic();
 
-      if (companyId && typeof companyId === 'string') {
-        conditions.push(eq(businessUnits.companyId, companyId));
-      }
+          const conditions = [];
 
-      if (businessUnitId) {
-        // Support comma-separated business unit IDs for hierarchy filtering
-        const businessUnitIds = typeof businessUnitId === 'string' 
-          ? businessUnitId.split(',').filter(id => id.trim())
-          : Array.isArray(businessUnitId) ? businessUnitId.filter((id): id is string => typeof id === 'string') : [];
-        
-        if (businessUnitIds.length === 1) {
-          conditions.push(eq(processes.businessUnitId, businessUnitIds[0]));
-        } else if (businessUnitIds.length > 1) {
-          conditions.push(inArray(processes.businessUnitId, businessUnitIds));
+          if (companyId && typeof companyId === 'string') {
+            conditions.push(eq(businessUnits.companyId, companyId));
+          }
+
+          if (businessUnitIds.length === 1) {
+            conditions.push(eq(processes.businessUnitId, businessUnitIds[0]));
+          } else if (businessUnitIds.length > 1) {
+            conditions.push(inArray(processes.businessUnitId, businessUnitIds));
+          }
+
+          if (processIdsArray.length > 0) {
+            conditions.push(inArray(processes.id, processIdsArray));
+          }
+
+          if (conditions.length > 0) {
+            return await query.where(sql`${sql.join(conditions, sql` AND `)}`);
+          }
+          return await query;
+        }
+        return [];
+      })();
+
+      const painPointsViaDirect = await (async () => {
+        if (businessUnitIds.length > 0) {
+          const query = db
+            .select({
+              id: painPoints.id,
+              statement: painPoints.statement,
+              impactType: painPoints.impactType,
+              businessImpact: painPoints.businessImpact,
+              magnitude: painPoints.magnitude,
+              frequency: painPoints.frequency,
+              timePerUnit: painPoints.timePerUnit,
+              totalHoursPerMonth: painPoints.totalHoursPerMonth,
+              fteCount: painPoints.fteCount,
+              rootCause: painPoints.rootCause,
+              workarounds: painPoints.workarounds,
+              dependencies: painPoints.dependencies,
+              riskLevel: painPoints.riskLevel,
+              effortSolving: painPoints.effortSolving,
+              taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
+              taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
+              taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              businessUnitId: painPoints.businessUnitId,
+              createdAt: painPoints.createdAt,
+              updatedAt: painPoints.updatedAt
+            })
+            .from(painPoints)
+            .where(
+              businessUnitIds.length === 1
+                ? eq(painPoints.businessUnitId, businessUnitIds[0])
+                : inArray(painPoints.businessUnitId, businessUnitIds)
+            );
+          return await query;
+        } else if (companyId && typeof companyId === 'string') {
+          const query = db
+            .select({
+              id: painPoints.id,
+              statement: painPoints.statement,
+              impactType: painPoints.impactType,
+              businessImpact: painPoints.businessImpact,
+              magnitude: painPoints.magnitude,
+              frequency: painPoints.frequency,
+              timePerUnit: painPoints.timePerUnit,
+              totalHoursPerMonth: painPoints.totalHoursPerMonth,
+              fteCount: painPoints.fteCount,
+              rootCause: painPoints.rootCause,
+              workarounds: painPoints.workarounds,
+              dependencies: painPoints.dependencies,
+              riskLevel: painPoints.riskLevel,
+              effortSolving: painPoints.effortSolving,
+              taxonomyLevel1Id: painPoints.taxonomyLevel1Id,
+              taxonomyLevel2Id: painPoints.taxonomyLevel2Id,
+              taxonomyLevel3Id: painPoints.taxonomyLevel3Id,
+              businessUnitId: painPoints.businessUnitId,
+              createdAt: painPoints.createdAt,
+              updatedAt: painPoints.updatedAt
+            })
+            .from(painPoints)
+            .innerJoin(businessUnits, eq(painPoints.businessUnitId, businessUnits.id))
+            .where(eq(businessUnits.companyId, companyId));
+          return await query;
+        }
+        return [];
+      })();
+
+      const allPainPoints = [...painPointsViaProcesses, ...painPointsViaDirect];
+      const uniqueMap = new Map<string, typeof allPainPoints[0]>();
+      for (const pp of allPainPoints) {
+        if (!uniqueMap.has(pp.id)) {
+          uniqueMap.set(pp.id, pp);
         }
       }
-
-      if (processIdsArray.length > 0) {
-        conditions.push(inArray(processes.id, processIdsArray));
-      }
-
-      if (conditions.length > 0) {
-        results = await query.where(sql`${sql.join(conditions, sql` AND `)}`).orderBy(desc(painPoints.createdAt));
-      } else {
-        results = await query.orderBy(desc(painPoints.createdAt));
-      }
+      results = Array.from(uniqueMap.values()).sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     } else {
       results = await db
         .select()
@@ -137,7 +216,8 @@ router.post("/", async (req, res) => {
     processIds,
     taxonomyLevel1Id,
     taxonomyLevel2Id,
-    taxonomyLevel3Id
+    taxonomyLevel3Id,
+    businessUnitId
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -192,7 +272,8 @@ router.post("/", async (req, res) => {
           effortSolving: effortNum != null ? String(effortNum) : null,
           taxonomyLevel1Id: taxonomyLevel1Id || null,
           taxonomyLevel2Id: taxonomyLevel2Id || null,
-          taxonomyLevel3Id: taxonomyLevel3Id || null
+          taxonomyLevel3Id: taxonomyLevel3Id || null,
+          businessUnitId: businessUnitId || null
         })
         .returning();
 
@@ -231,7 +312,8 @@ router.put("/:id", async (req, res) => {
     processIds,
     taxonomyLevel1Id,
     taxonomyLevel2Id,
-    taxonomyLevel3Id
+    taxonomyLevel3Id,
+    businessUnitId
   } = req.body ?? {};
 
   const statementText = (statement ?? "").trim();
@@ -292,7 +374,8 @@ router.put("/:id", async (req, res) => {
           effortSolving: effortNum != null ? String(effortNum) : null,
           taxonomyLevel1Id: taxonomyLevel1Id || null,
           taxonomyLevel2Id: taxonomyLevel2Id || null,
-          taxonomyLevel3Id: taxonomyLevel3Id || null
+          taxonomyLevel3Id: taxonomyLevel3Id || null,
+          businessUnitId: businessUnitId || null
         })
         .where(eq(painPoints.id, id))
         .returning();

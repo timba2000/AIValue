@@ -55,6 +55,7 @@ interface FormState {
   taxonomyLevel1Id: string;
   taxonomyLevel2Id: string;
   taxonomyLevel3Id: string;
+  businessUnitId: string;
 }
 
 const emptyForm: FormState = {
@@ -73,7 +74,8 @@ const emptyForm: FormState = {
   processIds: [],
   taxonomyLevel1Id: "",
   taxonomyLevel2Id: "",
-  taxonomyLevel3Id: ""
+  taxonomyLevel3Id: "",
+  businessUnitId: ""
 };
 
 export default function PainPointList() {
@@ -209,7 +211,8 @@ export default function PainPointList() {
       processIds: painPoint.processIds ?? [],
       taxonomyLevel1Id: painPoint.taxonomyLevel1Id ?? "",
       taxonomyLevel2Id: painPoint.taxonomyLevel2Id ?? "",
-      taxonomyLevel3Id: painPoint.taxonomyLevel3Id ?? ""
+      taxonomyLevel3Id: painPoint.taxonomyLevel3Id ?? "",
+      businessUnitId: painPoint.businessUnitId ?? ""
     });
     setFormOpen(true);
   };
@@ -239,7 +242,8 @@ export default function PainPointList() {
       processIds: formState.processIds,
       taxonomyLevel1Id: formState.taxonomyLevel1Id || null,
       taxonomyLevel2Id: formState.taxonomyLevel2Id || null,
-      taxonomyLevel3Id: formState.taxonomyLevel3Id || null
+      taxonomyLevel3Id: formState.taxonomyLevel3Id || null,
+      businessUnitId: formState.businessUnitId || null
     };
 
     try {
@@ -323,6 +327,7 @@ export default function PainPointList() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Statement</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Business Unit</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Category</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact Type</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Risk Level</th>
@@ -336,6 +341,13 @@ export default function PainPointList() {
                 {filteredPainPoints.map((pp) => (
                   <tr key={pp.id} className="hover:bg-accent/50 transition-colors duration-150">
                     <td className="py-3 px-4">{pp.statement}</td>
+                    <td className="py-3 px-4">
+                      {pp.businessUnitId ? (
+                        <span className="text-sm">{businessUnits.find(bu => bu.id === pp.businessUnitId)?.name || "-"}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       {pp.taxonomyLevel1Id ? (
                         <span className="text-sm">
@@ -696,6 +708,22 @@ export default function PainPointList() {
                 className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
                 placeholder="What other systems or processes are involved?"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="businessUnitId">Business Unit</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Direct link to a business unit (optional)</p>
+              <Select
+                id="businessUnitId"
+                value={formState.businessUnitId}
+                onChange={(e) => setFormState({ ...formState, businessUnitId: e.target.value })}
+                className="mt-1.5"
+              >
+                <option value="">Select business unit (optional)</option>
+                {businessUnits.map((bu) => (
+                  <option key={bu.id} value={bu.id}>{bu.name}</option>
+                ))}
+              </Select>
             </div>
 
             <div>
