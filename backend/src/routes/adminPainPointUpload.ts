@@ -554,7 +554,7 @@ router.post("/add-company", async (req, res): Promise<void> => {
     const { name } = req.body;
     
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      res.status(400).json({ message: "Company name is required" });
+      res.status(400).json({ success: false, message: "Company name is required" });
       return;
     }
 
@@ -562,7 +562,7 @@ router.post("/add-company", async (req, res): Promise<void> => {
     const existing = await db.select().from(companies).where(eq(companies.name, trimmedName));
     
     if (existing.length > 0) {
-      res.status(400).json({ message: "Company already exists" });
+      res.status(409).json({ success: false, message: "Company already exists", existingId: existing[0].id });
       return;
     }
 
@@ -570,9 +570,9 @@ router.post("/add-company", async (req, res): Promise<void> => {
       name: trimmedName
     }).returning();
 
-    res.json({ success: true, company: newCompany });
+    res.json({ success: true, company: newCompany, message: `Company "${trimmedName}" created successfully` });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create company" });
+    res.status(500).json({ success: false, message: "Failed to create company" });
   }
 });
 
@@ -580,16 +580,24 @@ router.post("/add-business-unit", async (req, res): Promise<void> => {
   try {
     const { companyName, businessUnitName, fte } = req.body;
     
-    if (!companyName || !businessUnitName) {
-      res.status(400).json({ message: "Company name and business unit name are required" });
+    if (!companyName || typeof companyName !== "string" || !companyName.trim()) {
+      res.status(400).json({ success: false, message: "Company name is required" });
+      return;
+    }
+    
+    if (!businessUnitName || typeof businessUnitName !== "string" || !businessUnitName.trim()) {
+      res.status(400).json({ success: false, message: "Business unit name is required" });
       return;
     }
 
+    const trimmedCompany = companyName.trim();
+    const trimmedBU = businessUnitName.trim();
+
     const company = await db.select().from(companies)
-      .where(eq(companies.name, String(companyName).trim()));
+      .where(eq(companies.name, trimmedCompany));
     
     if (company.length === 0) {
-      res.status(400).json({ message: "Company not found" });
+      res.status(404).json({ success: false, message: `Company "${trimmedCompany}" not found. Please add it first.` });
       return;
     }
 
@@ -597,25 +605,25 @@ router.post("/add-business-unit", async (req, res): Promise<void> => {
       .where(eq(businessUnits.companyId, company[0].id));
     
     const duplicate = existingBU.find(bu => 
-      bu.name.toLowerCase() === String(businessUnitName).trim().toLowerCase() && 
+      bu.name.toLowerCase() === trimmedBU.toLowerCase() && 
       bu.parentId === null
     );
     
     if (duplicate) {
-      res.status(400).json({ message: "Business unit already exists" });
+      res.status(409).json({ success: false, message: "Business unit already exists", existingId: duplicate.id });
       return;
     }
 
     const [newBU] = await db.insert(businessUnits).values({
-      name: String(businessUnitName).trim(),
+      name: trimmedBU,
       companyId: company[0].id,
-      fte: fte ? Number(fte) : null,
+      fte: fte && !isNaN(Number(fte)) ? Number(fte) : null,
       parentId: null
     }).returning();
 
-    res.json({ success: true, businessUnit: newBU });
+    res.json({ success: true, businessUnit: newBU, message: `Business unit "${trimmedBU}" created successfully` });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create business unit" });
+    res.status(500).json({ success: false, message: "Failed to create business unit" });
   }
 });
 
@@ -623,16 +631,30 @@ router.post("/add-sub-unit", async (req, res): Promise<void> => {
   try {
     const { companyName, businessUnitName, subUnitName, fte } = req.body;
     
-    if (!companyName || !businessUnitName || !subUnitName) {
-      res.status(400).json({ message: "Company, business unit, and sub-unit names are required" });
+    if (!companyName || typeof companyName !== "string" || !companyName.trim()) {
+      res.status(400).json({ success: false, message: "Company name is required" });
+      return;
+    }
+    
+    if (!businessUnitName || typeof businessUnitName !== "string" || !businessUnitName.trim()) {
+      res.status(400).json({ success: false, message: "Business unit name is required" });
+      return;
+    }
+    
+    if (!subUnitName || typeof subUnitName !== "string" || !subUnitName.trim()) {
+      res.status(400).json({ success: false, message: "Sub-unit name is required" });
       return;
     }
 
+    const trimmedCompany = companyName.trim();
+    const trimmedBU = businessUnitName.trim();
+    const trimmedSub = subUnitName.trim();
+
     const company = await db.select().from(companies)
-      .where(eq(companies.name, String(companyName).trim()));
+      .where(eq(companies.name, trimmedCompany));
     
     if (company.length === 0) {
-      res.status(400).json({ message: "Company not found" });
+      res.status(404).json({ success: false, message: `Company "${trimmedCompany}" not found. Please add it first.` });
       return;
     }
 
@@ -640,35 +662,35 @@ router.post("/add-sub-unit", async (req, res): Promise<void> => {
       .where(eq(businessUnits.companyId, company[0].id));
     
     const parentBU = allUnits.find(bu => 
-      bu.name.toLowerCase() === String(businessUnitName).trim().toLowerCase() && 
+      bu.name.toLowerCase() === trimmedBU.toLowerCase() && 
       bu.parentId === null
     );
     
     if (!parentBU) {
-      res.status(400).json({ message: "Parent business unit not found" });
+      res.status(404).json({ success: false, message: `Business unit "${trimmedBU}" not found. Please add it first.` });
       return;
     }
 
     const duplicateSub = allUnits.find(bu => 
-      bu.name.toLowerCase() === String(subUnitName).trim().toLowerCase() && 
+      bu.name.toLowerCase() === trimmedSub.toLowerCase() && 
       bu.parentId === parentBU.id
     );
     
     if (duplicateSub) {
-      res.status(400).json({ message: "Sub-unit already exists" });
+      res.status(409).json({ success: false, message: "Sub-unit already exists", existingId: duplicateSub.id });
       return;
     }
 
     const [newSubUnit] = await db.insert(businessUnits).values({
-      name: String(subUnitName).trim(),
+      name: trimmedSub,
       companyId: company[0].id,
-      fte: fte ? Number(fte) : null,
+      fte: fte && !isNaN(Number(fte)) ? Number(fte) : null,
       parentId: parentBU.id
     }).returning();
 
-    res.json({ success: true, subUnit: newSubUnit });
+    res.json({ success: true, subUnit: newSubUnit, message: `Sub-unit "${trimmedSub}" created successfully` });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create sub-unit" });
+    res.status(500).json({ success: false, message: "Failed to create sub-unit" });
   }
 });
 
