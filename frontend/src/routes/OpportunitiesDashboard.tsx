@@ -441,6 +441,12 @@ export default function OpportunitiesDashboard() {
       totalPercentageSolved,
       potentialHoursSaved: Math.round(potentialHoursSaved)
     };
+  }).sort((a, b) => {
+    const effortA = a.effortSolving === 0 ? 0.1 : (a.effortSolving || 10);
+    const effortB = b.effortSolving === 0 ? 0.1 : (b.effortSolving || 10);
+    const ratioA = a.magnitude / effortA;
+    const ratioB = b.magnitude / effortB;
+    return ratioB - ratioA;
   });
 
   return (
