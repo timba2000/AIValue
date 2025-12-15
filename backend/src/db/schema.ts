@@ -96,6 +96,7 @@ export const painPoints = pgTable("pain_points", {
   taxonomyLevel1Id: uuid("taxonomy_level1_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
   taxonomyLevel2Id: uuid("taxonomy_level2_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
   taxonomyLevel3Id: uuid("taxonomy_level3_id").references(() => taxonomyCategories.id, { onDelete: "set null" }),
+  businessUnitId: uuid("business_unit_id").references(() => businessUnits.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
