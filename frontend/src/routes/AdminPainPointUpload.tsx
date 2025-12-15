@@ -599,6 +599,9 @@ export default function AdminPainPointUpload() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
+                  <tr><td className="py-2 px-3">Company</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Company name (optional, informational only)</td></tr>
+                  <tr><td className="py-2 px-3">Business Unit</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Business unit name (optional, informational only)</td></tr>
+                  <tr><td className="py-2 px-3">Sub Unit</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Sub-unit name (optional, informational only)</td></tr>
                   <tr><td className="py-2 px-3 font-medium">Statement</td><td className="py-2 px-3 text-red-500">Yes</td><td className="py-2 px-3 text-muted-foreground">Pain point description</td></tr>
                   <tr><td className="py-2 px-3">Impact Type</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Comma-separated: time_waste, quality_issue, compliance_risk, cost_overrun, customer_impact, other</td></tr>
                   <tr><td className="py-2 px-3">Business Impact</td><td className="py-2 px-3">No</td><td className="py-2 px-3 text-muted-foreground">Description of business impact</td></tr>
@@ -722,10 +725,14 @@ export default function AdminPainPointUpload() {
                     <tr className="border-b border-border">
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Row</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Status</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Company</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Business Unit</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Sub Unit</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Statement</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Category</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Process</th>
                       <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Errors</th>
+                      <th className="text-left py-2 px-3 font-semibold text-muted-foreground">Warnings</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -745,11 +752,29 @@ export default function AdminPainPointUpload() {
                             </span>
                           )}
                         </td>
+                        <td className="py-2 px-3">
+                          <span className={row.companyId ? "text-green-600 dark:text-green-400" : row.companyName ? "text-orange-500" : "text-muted-foreground"}>
+                            {row.companyName || "-"}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={row.businessUnitId ? "text-green-600 dark:text-green-400" : row.businessUnitName ? "text-orange-500" : "text-muted-foreground"}>
+                            {row.businessUnitName || "-"}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={row.subUnitId ? "text-green-600 dark:text-green-400" : row.subUnitName ? "text-orange-500" : "text-muted-foreground"}>
+                            {row.subUnitName || "-"}
+                          </span>
+                        </td>
                         <td className="py-2 px-3 max-w-xs truncate">{row.statement || "-"}</td>
                         <td className="py-2 px-3">{row.taxonomyL1Name || "-"}</td>
                         <td className="py-2 px-3">{row.processName || "-"}</td>
                         <td className="py-2 px-3 text-red-500 text-xs">
                           {row.errors.join(", ") || "-"}
+                        </td>
+                        <td className="py-2 px-3 text-orange-500 text-xs">
+                          {row.warnings?.join(", ") || "-"}
                         </td>
                       </tr>
                     ))}
