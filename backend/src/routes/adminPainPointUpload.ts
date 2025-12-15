@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { db } from "../db/client.js";
-import { painPoints, processes, processPainPoints, taxonomyCategories } from "../db/schema.js";
+import { painPoints, processes, processPainPoints, taxonomyCategories, companies, businessUnits } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -55,6 +55,14 @@ interface ExcelRow {
   taxonomyL3?: string;
   "L3 - Description"?: string;
   "Detail"?: string;
+  company?: string;
+  Company?: string;
+  "Business"?: string;
+  businessUnit?: string;
+  "Business Unit"?: string;
+  subUnit?: string;
+  "Sub Unit"?: string;
+  "Sub-unit"?: string;
 }
 
 function parseNumber(val: unknown): number | null {
@@ -92,6 +100,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
 
     const allProcesses = await db.select().from(processes);
     const allTaxonomy = await db.select().from(taxonomyCategories);
+    const allCompanies = await db.select().from(companies);
+    const allBusinessUnits = await db.select().from(businessUnits);
 
     const missingCategories: { l1Name: string; l2Name: string | null; l3Name: string | null; level: number }[] = [];
     const seenMissing = new Set<string>();
@@ -113,6 +123,26 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       const taxonomyL1Name = row.taxonomyL1 || row["L1 - Category"] || row["Category"] || "";
       const taxonomyL2Name = row.taxonomyL2 || row["L2 - Sub-category"] || row["Sub-category"] || "";
       const taxonomyL3Name = row.taxonomyL3 || row["L3 - Description"] || row["Detail"] || "";
+      
+      const companyName = row.company || row.Company || row["Business"] || "";
+      const businessUnitName = row.businessUnit || row["Business Unit"] || "";
+      const subUnitName = row.subUnit || row["Sub Unit"] || row["Sub-unit"] || "";
+
+      const matchedCompany = companyName ? allCompanies.find(c => 
+        c.name.toLowerCase() === String(companyName).toLowerCase()
+      ) : null;
+      
+      const matchedBusinessUnit = businessUnitName && matchedCompany ? allBusinessUnits.find(bu => 
+        bu.companyId === matchedCompany.id && 
+        bu.name.toLowerCase() === String(businessUnitName).toLowerCase() &&
+        bu.parentId === null
+      ) : null;
+      
+      const matchedSubUnit = subUnitName && matchedBusinessUnit ? allBusinessUnits.find(bu => 
+        bu.companyId === matchedCompany?.id && 
+        bu.name.toLowerCase() === String(subUnitName).toLowerCase() &&
+        bu.parentId === matchedBusinessUnit.id
+      ) : null;
 
       const matchedProcess = processName ? allProcesses.find(p => 
         p.name.toLowerCase() === String(processName).toLowerCase()
@@ -131,9 +161,24 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       ) : null;
 
       const errors: string[] = [];
+      const warnings: string[] = [];
       if (!statement) errors.push("Statement is required");
       if (processName && !matchedProcess) errors.push(`Process "${processName}" not found`);
       if (taxonomyL1Name && !matchedL1) errors.push(`L1 Category "${taxonomyL1Name}" not found`);
+      
+      if (companyName && !matchedCompany) {
+        warnings.push(`Company "${companyName}" not found`);
+      }
+      if (businessUnitName && matchedCompany && !matchedBusinessUnit) {
+        warnings.push(`Business Unit "${businessUnitName}" not found`);
+      } else if (businessUnitName && !matchedCompany) {
+        warnings.push(`Business Unit "${businessUnitName}" skipped (company not found)`);
+      }
+      if (subUnitName && matchedBusinessUnit && !matchedSubUnit) {
+        warnings.push(`Sub Unit "${subUnitName}" not found`);
+      } else if (subUnitName && !matchedBusinessUnit) {
+        warnings.push(`Sub Unit "${subUnitName}" skipped (business unit not found)`);
+      }
       
       if (taxonomyL2Name && matchedL1 && !matchedL2) {
         errors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
@@ -179,7 +224,14 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         taxonomyLevel2Id: matchedL2?.id || null,
         taxonomyL3Name: String(taxonomyL3Name) || null,
         taxonomyLevel3Id: matchedL3?.id || null,
+        companyName: String(companyName) || null,
+        companyId: matchedCompany?.id || null,
+        businessUnitName: String(businessUnitName) || null,
+        businessUnitId: matchedBusinessUnit?.id || null,
+        subUnitName: String(subUnitName) || null,
+        subUnitId: matchedSubUnit?.id || null,
         errors,
+        warnings,
         isValid: errors.length === 0 && !!statement
       };
     });
@@ -327,6 +379,9 @@ router.get("/template-info", async (_req, res) => {
 
   res.json({
     columns: [
+      { name: "Company", required: false, description: "Name of the company (optional)" },
+      { name: "Business Unit", required: false, description: "Name of the business unit (optional)" },
+      { name: "Sub Unit", required: false, description: "Name of the sub-unit (optional)" },
       { name: "Statement", required: true, description: "Description of the pain point" },
       { name: "Impact Type", required: false, description: "Comma-separated: time_waste, quality_issue, compliance_risk, cost_overrun, customer_impact, other" },
       { name: "Business Impact", required: false, description: "Description of business impact" },
@@ -451,19 +506,30 @@ router.get("/export", async (_req, res) => {
     const allProcesses = await db.select().from(processes);
     const allTaxonomy = await db.select().from(taxonomyCategories);
     const allProcessPainPoints = await db.select().from(processPainPoints);
+    const allCompanies = await db.select().from(companies);
+    const allBusinessUnits = await db.select().from(businessUnits);
 
     const rows = allPainPoints.map(pp => {
       const processLinks = allProcessPainPoints.filter(ppp => ppp.painPointId === pp.id);
-      const processNames = processLinks
-        .map(link => allProcesses.find(p => p.id === link.processId)?.name)
-        .filter(Boolean)
-        .join(", ");
+      const linkedProcesses = processLinks
+        .map(link => allProcesses.find(p => p.id === link.processId))
+        .filter(Boolean);
+      const processNames = linkedProcesses.map(p => p?.name).filter(Boolean).join(", ");
+
+      const firstProcess = linkedProcesses[0];
+      const company = firstProcess ? allCompanies.find(c => c.id === firstProcess.businessId) : null;
+      const businessUnit = firstProcess ? allBusinessUnits.find(bu => bu.id === firstProcess.businessUnitId) : null;
+      const subUnit = businessUnit?.parentId ? allBusinessUnits.find(bu => bu.id === businessUnit.id) : null;
+      const parentUnit = businessUnit?.parentId ? allBusinessUnits.find(bu => bu.id === businessUnit.parentId) : null;
 
       const l1 = pp.taxonomyLevel1Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel1Id) : null;
       const l2 = pp.taxonomyLevel2Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel2Id) : null;
       const l3 = pp.taxonomyLevel3Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel3Id) : null;
 
       return {
+        "Company": company?.name || "",
+        "Business Unit": parentUnit?.name || businessUnit?.name || "",
+        "Sub Unit": parentUnit ? businessUnit?.name : "",
         "Statement": pp.statement || "",
         "Impact Type": pp.impactType ? pp.impactType.join(", ") : "",
         "Business Impact": pp.businessImpact || "",
@@ -487,6 +553,9 @@ router.get("/export", async (_req, res) => {
     const worksheet = XLSX.utils.json_to_sheet(rows);
 
     const colWidths = [
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 25 },
       { wch: 50 },
       { wch: 20 },
       { wch: 30 },

@@ -27,7 +27,14 @@ interface PreviewRow {
   taxonomyLevel2Id: string | null;
   taxonomyL3Name: string | null;
   taxonomyLevel3Id: string | null;
+  companyName: string | null;
+  companyId: string | null;
+  businessUnitName: string | null;
+  businessUnitId: string | null;
+  subUnitName: string | null;
+  subUnitId: string | null;
   errors: string[];
+  warnings: string[];
   isValid: boolean;
 }
 
