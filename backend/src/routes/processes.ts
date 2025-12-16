@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   businessUnits,
@@ -183,7 +183,10 @@ router.put("/:id", async (req, res) => {
         fte: fteValue != null ? String(fteValue) : null,
         owner
       })
-      .where(and(eq(processes.id, id), eq(processes.businessUnitId, existing.businessUnitId)))
+      .where(and(
+        eq(processes.id, id), 
+        existing.businessUnitId ? eq(processes.businessUnitId, existing.businessUnitId) : isNull(processes.businessUnitId)
+      ))
       .returning();
 
     await replaceProcessLinks(id, normalizeIdArray(painPointIds), normalizeIdArray(useCaseIds));
