@@ -275,7 +275,9 @@ export default function ProcessList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  {!selectedUnitId && <TableHead>Business Unit</TableHead>}
+                  <TableHead>L1</TableHead>
+                  <TableHead>L2</TableHead>
+                  <TableHead>L3</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Volume</TableHead>
                   <TableHead>FTE</TableHead>
@@ -287,46 +289,54 @@ export default function ProcessList() {
               <TableBody>
                 {filteredProcesses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={selectedUnitId ? 7 : 8} className="text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center text-sm text-muted-foreground">
                       {loading ? "Loading processes..." : "No processes found. Create your first process to get started."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProcesses.map((process) => (
-                    <TableRow key={process.id}>
-                      <TableCell className="font-medium">{process.name}</TableCell>
-                      {!selectedUnitId && (
+                  filteredProcesses.map((process) => {
+                    // Try different delimiters for hierarchy parsing
+                    let nameParts: string[] = [];
+                    if (process.name.includes(" > ")) {
+                      nameParts = process.name.split(" > ");
+                    } else if (process.name.includes(" - ")) {
+                      nameParts = process.name.split(" - ");
+                    } else if (process.name.includes("/")) {
+                      nameParts = process.name.split("/");
+                    }
+                    const l1 = nameParts[0]?.trim() || "-";
+                    const l2 = nameParts[1]?.trim() || "-";
+                    const l3 = nameParts[2]?.trim() || "-";
+                    
+                    return (
+                      <TableRow key={process.id}>
+                        <TableCell className="font-medium">{process.name}</TableCell>
+                        <TableCell>{l1}</TableCell>
+                        <TableCell>{l2}</TableCell>
+                        <TableCell>{l3}</TableCell>
+                        <TableCell>{process.owner ?? "-"}</TableCell>
                         <TableCell>
-                          <div className="text-sm">
-                            <span className="font-medium">{process.businessUnitName ?? "-"}</span>
-                            {process.companyName && (
-                              <span className="text-muted-foreground ml-1">({process.companyName})</span>
-                            )}
-                          </div>
+                          {process.volume ?? "-"} {process.volumeUnit ?? ""}
                         </TableCell>
-                      )}
-                      <TableCell>{process.owner ?? "-"}</TableCell>
-                      <TableCell>
-                        {process.volume ?? "-"} {process.volumeUnit ?? ""}
-                      </TableCell>
-                      <TableCell>{process.fte ?? "-"}</TableCell>
-                      <TableCell>{process.painPointCount}</TableCell>
-                      <TableCell>{process.useCaseCount}</TableCell>
-                      <TableCell className="space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => handleDelete(process)}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell>{process.fte ?? "-"}</TableCell>
+                        <TableCell>{process.painPointCount}</TableCell>
+                        <TableCell>{process.useCaseCount}</TableCell>
+                        <TableCell className="space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDelete(process)}
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
           </Table>
