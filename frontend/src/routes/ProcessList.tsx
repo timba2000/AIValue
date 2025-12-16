@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,23 @@ import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
 import { useCompanies, useBusinessUnits } from "../hooks/useApiData";
 import type { ProcessOptionsResponse, ProcessPayload, ProcessRecord, PainPointOption, UseCaseOption } from "@/types/process";
+
+// Helper to parse L1/L2/L3 from process name
+function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: string } {
+  let nameParts: string[] = [];
+  if (name.includes(" > ")) {
+    nameParts = name.split(" > ");
+  } else if (name.includes(" - ")) {
+    nameParts = name.split(" - ");
+  } else if (name.includes("/")) {
+    nameParts = name.split("/");
+  }
+  return {
+    l1: nameParts[0]?.trim() || "-",
+    l2: nameParts[1]?.trim() || "-",
+    l3: nameParts[2]?.trim() || "-"
+  };
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -56,6 +74,7 @@ export default function ProcessList() {
   const [isSaving, setIsSaving] = useState(false);
   const [painPointSearch, setPainPointSearch] = useState("");
   const [solutionSearch, setSolutionSearch] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useBusinessUnits(selectedCompanyId || undefined);
@@ -104,6 +123,50 @@ export default function ProcessList() {
     if (!search.trim()) return processes;
     return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
   }, [processes, search]);
+
+  // Group processes by L1
+  const groupedProcesses = useMemo(() => {
+    const groups: Map<string, Array<ProcessRecord & { l1: string; l2: string; l3: string }>> = new Map();
+    
+    for (const process of filteredProcesses) {
+      const hierarchy = parseProcessHierarchy(process.name);
+      const l1Key = hierarchy.l1;
+      
+      if (!groups.has(l1Key)) {
+        groups.set(l1Key, []);
+      }
+      groups.get(l1Key)!.push({ ...process, ...hierarchy });
+    }
+    
+    // Sort groups alphabetically by L1 name
+    return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [filteredProcesses]);
+
+  // Auto-expand all groups when processes load or change
+  useEffect(() => {
+    const allL1s = new Set(groupedProcesses.map(([l1]) => l1));
+    setExpandedGroups(allL1s);
+  }, [groupedProcesses]);
+
+  const toggleGroup = (l1: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(l1)) {
+        next.delete(l1);
+      } else {
+        next.add(l1);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedGroups(new Set(groupedProcesses.map(([l1]) => l1)));
+  };
+
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
 
   const filteredPainPoints = useMemo(() => {
     if (!painPointSearch.trim()) return options.painPoints;
@@ -261,86 +324,108 @@ export default function ProcessList() {
             <h2 className="text-xl font-semibold text-foreground">Processes</h2>
             {loading && <span className="text-sm text-muted-foreground">Loading...</span>}
           </div>
-          <div className="w-full sm:w-64">
-            <Input
-              placeholder="Search by name..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="rounded-xl"
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={expandAll} disabled={groupedProcesses.length === 0}>
+                Expand All
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAll} disabled={groupedProcesses.length === 0}>
+                Collapse All
+              </Button>
+            </div>
+            <div className="w-full sm:w-64">
+              <Input
+                placeholder="Search by name..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="rounded-xl"
+              />
+            </div>
           </div>
         </div>
-        <div className="overflow-hidden rounded-xl border border-border">
-          <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>L1</TableHead>
-                  <TableHead>L2</TableHead>
-                  <TableHead>L3</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Volume</TableHead>
-                  <TableHead>FTE</TableHead>
-                  <TableHead>Pain Points</TableHead>
-                  <TableHead>Solutions</TableHead>
-                  <TableHead className="w-32">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProcesses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center text-sm text-muted-foreground">
-                      {loading ? "Loading processes..." : "No processes found. Create your first process to get started."}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProcesses.map((process) => {
-                    // Try different delimiters for hierarchy parsing
-                    let nameParts: string[] = [];
-                    if (process.name.includes(" > ")) {
-                      nameParts = process.name.split(" > ");
-                    } else if (process.name.includes(" - ")) {
-                      nameParts = process.name.split(" - ");
-                    } else if (process.name.includes("/")) {
-                      nameParts = process.name.split("/");
-                    }
-                    const l1 = nameParts[0]?.trim() || "-";
-                    const l2 = nameParts[1]?.trim() || "-";
-                    const l3 = nameParts[2]?.trim() || "-";
-                    
-                    return (
-                      <TableRow key={process.id}>
-                        <TableCell className="font-medium">{process.name}</TableCell>
-                        <TableCell>{l1}</TableCell>
-                        <TableCell>{l2}</TableCell>
-                        <TableCell>{l3}</TableCell>
-                        <TableCell>{process.owner ?? "-"}</TableCell>
-                        <TableCell>
-                          {process.volume ?? "-"} {process.volumeUnit ?? ""}
-                        </TableCell>
-                        <TableCell>{process.fte ?? "-"}</TableCell>
-                        <TableCell>{process.painPointCount}</TableCell>
-                        <TableCell>{process.useCaseCount}</TableCell>
-                        <TableCell className="space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDelete(process)}
-                          >
-                            Delete
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-          </Table>
-        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading processes...</div>
+        ) : groupedProcesses.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            {search ? `No processes match "${search}"` : "No processes found. Create your first process to get started."}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {groupedProcesses.map(([l1, processesInGroup]) => {
+              const isExpanded = expandedGroups.has(l1);
+              return (
+                <div key={l1} className="border border-border rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleGroup(l1)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <span className="font-semibold text-foreground">{l1}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({processesInGroup.length} {processesInGroup.length === 1 ? 'process' : 'processes'})
+                      </span>
+                    </div>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>L2</TableHead>
+                            <TableHead>L3</TableHead>
+                            <TableHead>Owner</TableHead>
+                            <TableHead>Volume</TableHead>
+                            <TableHead>FTE</TableHead>
+                            <TableHead>Pain Points</TableHead>
+                            <TableHead>Solutions</TableHead>
+                            <TableHead className="w-32">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {processesInGroup.map((process) => (
+                            <TableRow key={process.id}>
+                              <TableCell className="font-medium">{process.name}</TableCell>
+                              <TableCell>{process.l2}</TableCell>
+                              <TableCell>{process.l3}</TableCell>
+                              <TableCell>{process.owner ?? "-"}</TableCell>
+                              <TableCell>
+                                {process.volume ?? "-"} {process.volumeUnit ?? ""}
+                              </TableCell>
+                              <TableCell>{process.fte ?? "-"}</TableCell>
+                              <TableCell>{process.painPointCount}</TableCell>
+                              <TableCell>{process.useCaseCount}</TableCell>
+                              <TableCell className="space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive"
+                                  onClick={() => handleDelete(process)}
+                                >
+                                  Delete
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Dialog
