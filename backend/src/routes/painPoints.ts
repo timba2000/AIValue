@@ -233,6 +233,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [result] = await db
+      .select()
+      .from(painPoints)
+      .where(eq(painPoints.id, id));
+    
+    if (!result) {
+      return res.status(404).json({ message: "Pain point not found" });
+    }
+    
+    const processLinks = await db
+      .select({ processId: processPainPoints.processId })
+      .from(processPainPoints)
+      .where(eq(processPainPoints.painPointId, id));
+    
+    res.json({
+      ...result,
+      processIds: processLinks.map(link => link.processId)
+    });
+  } catch {
+    res.status(500).json({ message: "Failed to fetch pain point" });
+  }
+});
+
 router.post("/", async (req, res) => {
   const {
     statement,

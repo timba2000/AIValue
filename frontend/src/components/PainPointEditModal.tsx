@@ -141,11 +141,17 @@ export function PainPointEditModal({
   }, [painPoint, open]);
 
   useEffect(() => {
-    if (!open && !painPointId) {
+    if (!open) {
       setFormState(emptyForm);
       setError(null);
     }
-  }, [open, painPointId]);
+  }, [open]);
+  
+  useEffect(() => {
+    if (painPointId && open) {
+      setFormState(emptyForm);
+    }
+  }, [painPointId, open]);
 
   const level1Categories = useMemo(() => 
     taxonomyCategories.filter(c => c.level === 1), 
