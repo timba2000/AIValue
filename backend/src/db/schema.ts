@@ -56,8 +56,7 @@ export const processes = pgTable("processes", {
     .notNull()
     .references(() => companies.id, { onDelete: "cascade" }),
   businessUnitId: uuid("business_unit_id")
-    .notNull()
-    .references(() => businessUnits.id, { onDelete: "restrict" }),
+    .references(() => businessUnits.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   volume: numeric("volume"),

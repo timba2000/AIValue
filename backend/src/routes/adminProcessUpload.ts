@@ -14,6 +14,7 @@ const upload = multer({
 
 interface ExcelRow {
   "Business Unit"?: string;
+  "Business Unit (Optional)"?: string;
   businessUnit?: string;
   "L1 Process"?: string;
   l1Process?: string;
@@ -76,7 +77,7 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
     const existingProcesses = await db.select().from(processes).where(eq(processes.businessId, companyId));
 
     const rows = data.map((row, index) => {
-      const businessUnitName = row["Business Unit"] || row.businessUnit || "";
+      const businessUnitName = row["Business Unit"] || row["Business Unit (Optional)"] || row.businessUnit || "";
       const l1Process = row["L1 Process"] || row.l1Process || "";
       const l2Process = row["L2 Process"] || row.l2Process || "";
       const l3Process = row["L3 Process"] || row.l3Process || "";
@@ -112,25 +113,24 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
           bu.name.toLowerCase() === String(businessUnitName).toLowerCase()
         );
         if (!matchedBusinessUnit) {
-          errors.push(`Business Unit "${businessUnitName}" not found in this company`);
+          errors.push(`Business Unit "${businessUnitName}" not found in this company (will be skipped, can assign later)`);
         }
-      } else {
-        errors.push("Business Unit is required (either select one or include in Excel)");
       }
 
+      const targetBuId = matchedBusinessUnit?.id ?? null;
       const isDuplicate = existingProcesses.some(p => 
         p.name.toLowerCase() === String(processName).toLowerCase() &&
-        p.businessUnitId === matchedBusinessUnit?.id
+        (p.businessUnitId ?? null) === targetBuId
       );
       
       if (isDuplicate) {
-        errors.push("Process already exists in this business unit");
+        errors.push("Process already exists" + (matchedBusinessUnit ? " in this business unit" : ""));
       }
 
       return {
         rowIndex: index + 2,
         businessUnitName: String(businessUnitName) || null,
-        businessUnitId: matchedBusinessUnit?.id || null,
+        businessUnitId: targetBuId,
         l1Process: String(l1Process) || null,
         l2Process: String(l2Process) || null,
         l3Process: String(l3Process) || null,
@@ -142,7 +142,7 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         owner: String(owner) || null,
         systemsUsed: String(systemsUsed) || null,
         errors,
-        isValid: errors.length === 0 && !!processName && !!matchedBusinessUnit,
+        isValid: errors.length === 0 && !!processName,
         isDuplicate
       };
     });
@@ -198,7 +198,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       
-      const businessUnitName = row["Business Unit"] || row.businessUnit || "";
+      const businessUnitName = row["Business Unit"] || row["Business Unit (Optional)"] || row.businessUnit || "";
       const l1Process = row["L1 Process"] || row.l1Process || "";
       const l2Process = row["L2 Process"] || row.l2Process || "";
       const l3Process = row["L3 Process"] || row.l3Process || "";
@@ -226,22 +226,22 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         matchedBusinessUnit = companyBusinessUnits.find(bu => 
           bu.name.toLowerCase() === String(businessUnitName).toLowerCase()
         );
-      }
-      
-      if (!matchedBusinessUnit) {
-        skipped++;
-        errors.push({ row: i + 2, error: businessUnitName ? `Business Unit "${businessUnitName}" not found` : "Business Unit is required" });
-        continue;
+        if (!matchedBusinessUnit) {
+          skipped++;
+          errors.push({ row: i + 2, error: `Business Unit "${businessUnitName}" not found - can assign later via edit` });
+          continue;
+        }
       }
 
+      const targetBuId = matchedBusinessUnit?.id ?? null;
       const isDuplicate = existingProcesses.some(p => 
         p.name.toLowerCase() === String(processName).toLowerCase() &&
-        p.businessUnitId === matchedBusinessUnit.id
+        (p.businessUnitId ?? null) === targetBuId
       );
       
       if (isDuplicate) {
         skipped++;
-        errors.push({ row: i + 2, error: "Process already exists in this business unit" });
+        errors.push({ row: i + 2, error: "Process already exists" + (matchedBusinessUnit ? " in this business unit" : "") });
         continue;
       }
 
@@ -255,7 +255,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       try {
         const [newProcess] = await db.insert(processes).values({
           businessId: companyId,
-          businessUnitId: matchedBusinessUnit.id,
+          businessUnitId: targetBuId,
           name: String(processName),
           description: String(description) || null,
           volume: parseNumber(volume)?.toString() || null,
@@ -356,7 +356,7 @@ router.get("/template", async (_req, res): Promise<void> => {
   try {
     const templateRows = [
       {
-        "Business Unit": "Sales",
+        "Business Unit (Optional)": "Sales",
         "L1 Process": "Finance",
         "L2 Process": "Accounts Payable",
         "L3 Process": "Invoice Processing",
@@ -369,12 +369,12 @@ router.get("/template", async (_req, res): Promise<void> => {
         "Systems Used": "SAP, Excel"
       },
       {
-        "Business Unit": "Operations",
+        "Business Unit (Optional)": "",
         "L1 Process": "HR",
         "L2 Process": "Recruitment",
         "L3 Process": "",
         "Process Name": "",
-        "Description": "Hiring process for new employees",
+        "Description": "Hiring process for new employees (no BU assigned)",
         "Volume": 20,
         "Volume Unit": "per month",
         "FTE": 1,
