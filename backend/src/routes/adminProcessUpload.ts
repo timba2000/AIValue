@@ -78,18 +78,16 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
 
     const rows = data.map((row, index) => {
       const businessUnitName = row["Business Unit"] || row["Business Unit (Optional)"] || row.businessUnit || "";
-      const l1Process = row["L1 Process"] || row.l1Process || "";
-      const l2Process = row["L2 Process"] || row.l2Process || "";
-      const l3Process = row["L3 Process"] || row.l3Process || "";
+      const l1Process = (row["L1 Process"] || row.l1Process || "").toString().trim();
+      const l2Process = (row["L2 Process"] || row.l2Process || "").toString().trim();
+      const l3Process = (row["L3 Process"] || row.l3Process || "").toString().trim();
       
       let processName = row["Process Name"] || row.processName || row.name || row.Name || "";
       
-      if (!processName && l3Process) {
-        processName = l3Process;
-      } else if (!processName && l2Process) {
-        processName = l2Process;
-      } else if (!processName && l1Process) {
-        processName = l1Process;
+      // Build hierarchical name from L1 > L2 > L3 if process name not explicitly provided
+      if (!processName) {
+        const parts = [l1Process, l2Process, l3Process].filter(Boolean);
+        processName = parts.join(" > ");
       }
 
       const description = row.description || row.Description || "";
@@ -199,18 +197,16 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
       const row = data[i];
       
       const businessUnitName = row["Business Unit"] || row["Business Unit (Optional)"] || row.businessUnit || "";
-      const l1Process = row["L1 Process"] || row.l1Process || "";
-      const l2Process = row["L2 Process"] || row.l2Process || "";
-      const l3Process = row["L3 Process"] || row.l3Process || "";
+      const l1Process = (row["L1 Process"] || row.l1Process || "").toString().trim();
+      const l2Process = (row["L2 Process"] || row.l2Process || "").toString().trim();
+      const l3Process = (row["L3 Process"] || row.l3Process || "").toString().trim();
       
       let processName = row["Process Name"] || row.processName || row.name || row.Name || "";
       
-      if (!processName && l3Process) {
-        processName = l3Process;
-      } else if (!processName && l2Process) {
-        processName = l2Process;
-      } else if (!processName && l1Process) {
-        processName = l1Process;
+      // Build hierarchical name from L1 > L2 > L3 if process name not explicitly provided
+      if (!processName) {
+        const parts = [l1Process, l2Process, l3Process].filter(Boolean);
+        processName = parts.join(" > ");
       }
 
       if (!processName) {
@@ -369,17 +365,56 @@ router.get("/template", async (_req, res): Promise<void> => {
         "Systems Used": "SAP, Excel"
       },
       {
+        "Business Unit (Optional)": "Sales",
+        "L1 Process": "Finance",
+        "L2 Process": "Accounts Payable",
+        "L3 Process": "Payment Approval",
+        "Process Name": "",
+        "Description": "Review and approve payments (same L1/L2, different L3)",
+        "Volume": 300,
+        "Volume Unit": "per month",
+        "FTE": 1.5,
+        "Owner": "John Smith",
+        "Systems Used": "SAP"
+      },
+      {
+        "Business Unit (Optional)": "Sales",
+        "L1 Process": "Finance",
+        "L2 Process": "Accounts Receivable",
+        "L3 Process": "Collections",
+        "Process Name": "",
+        "Description": "Collect outstanding payments (same L1, different L2)",
+        "Volume": 200,
+        "Volume Unit": "per month",
+        "FTE": 2,
+        "Owner": "Mary Johnson",
+        "Systems Used": "SAP, CRM"
+      },
+      {
         "Business Unit (Optional)": "",
         "L1 Process": "HR",
         "L2 Process": "Recruitment",
         "L3 Process": "",
         "Process Name": "",
-        "Description": "Hiring process for new employees (no BU assigned)",
+        "Description": "Hiring process (L1 + L2 only, no L3)",
         "Volume": 20,
         "Volume Unit": "per month",
         "FTE": 1,
         "Owner": "Jane Doe",
         "Systems Used": "Workday"
+      },
+      {
+        "Business Unit (Optional)": "",
+        "L1 Process": "HR",
+        "L2 Process": "Onboarding",
+        "L3 Process": "New Employee Setup",
+        "Process Name": "",
+        "Description": "Setup accounts for new hires (same L1, different L2)",
+        "Volume": 15,
+        "Volume Unit": "per month",
+        "FTE": 0.5,
+        "Owner": "Jane Doe",
+        "Systems Used": "Workday, JIRA"
       }
     ];
 
