@@ -1,4 +1,5 @@
-import { Settings, Pencil } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Settings, Pencil, Search, X } from "lucide-react";
 
 interface PainPointData {
   id: string;
@@ -26,8 +27,19 @@ export function PainPointsOverviewTable({
   onManageClick,
   onEditClick 
 }: PainPointsOverviewTableProps) {
-  const linkedCount = data.filter(p => p.hasLinks).length;
-  const unlinkedCount = data.filter(p => !p.hasLinks).length;
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    const term = searchTerm.toLowerCase();
+    return data.filter(p => 
+      p.statement.toLowerCase().includes(term) ||
+      p.linkedSolutions.some(s => s.toLowerCase().includes(term))
+    );
+  }, [data, searchTerm]);
+  
+  const linkedCount = filteredData.filter(p => p.hasLinks).length;
+  const unlinkedCount = filteredData.filter(p => !p.hasLinks).length;
 
   if (isLoading) {
     return (
@@ -59,7 +71,7 @@ export function PainPointsOverviewTable({
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">Pain Points Overview</h2>
@@ -67,16 +79,49 @@ export function PainPointsOverviewTable({
             ({linkedCount} linked, {unlinkedCount} unlinked)
           </span>
         </div>
-        <div className="flex gap-2 text-xs">
-          <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-lg font-medium">Linked</span>
-          <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-medium">Unlinked</span>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search pain points..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-8 py-2 w-full sm:w-64 text-sm rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-md transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="hidden sm:flex gap-2 text-xs">
+            <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-lg font-medium">Linked</span>
+            <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-medium">Unlinked</span>
+          </div>
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
         Manage solution links for each pain point. Click "Manage" to add, edit, or remove linked solutions.
       </p>
 
-      <div className="hidden lg:block overflow-x-auto">
+      {filteredData.length === 0 && searchTerm && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p>No pain points match "{searchTerm}"</p>
+          <button 
+            onClick={() => setSearchTerm("")}
+            className="mt-2 text-sm text-primary hover:underline"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
+
+      <div className={`hidden lg:block overflow-x-auto ${filteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-border">
@@ -110,7 +155,7 @@ export function PainPointsOverviewTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {data.map((row) => (
+            {filteredData.map((row) => (
               <tr 
                 key={row.id} 
                 className={`transition-colors duration-150 ${
@@ -204,8 +249,8 @@ export function PainPointsOverviewTable({
         </table>
       </div>
 
-      <div className="lg:hidden space-y-3">
-        {data.map((row) => (
+      <div className={`lg:hidden space-y-3 ${filteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
+        {filteredData.map((row) => (
           <div 
             key={row.id}
             className={`p-4 border rounded-xl transition-all duration-200 ${
