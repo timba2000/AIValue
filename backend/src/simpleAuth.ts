@@ -18,12 +18,13 @@ export function getSession() {
     throw new Error("SESSION_SECRET environment variable is required");
   }
   
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000;
+  const sessionTtlMs = 1 * 24 * 60 * 60 * 1000; // 1 day in milliseconds (for cookie)
+  const sessionTtlSeconds = sessionTtlMs / 1000; // 1 day in seconds (for pg store)
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionTtlSeconds,
     tableName: "sessions",
   });
   return session({
@@ -34,7 +35,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: sessionTtl,
+      maxAge: sessionTtlMs,
       sameSite: "lax",
     },
   });
