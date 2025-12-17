@@ -14,6 +14,7 @@ import AdminPainPointUpload from "@/routes/AdminPainPointUpload";
 import AdminProcessUpload from "@/routes/AdminProcessUpload";
 import AdminDatabaseDashboard from "@/routes/AdminDatabaseDashboard";
 import AIConfigPage from "@/routes/AIConfigPage";
+import AIPage from "@/routes/AIPage";
 import LoginPage from "@/routes/LoginPage";
 
 function NotFoundPage() {
@@ -114,6 +115,11 @@ function App() {
             <Route path="/admin/ai">
               <ProtectedRoute>
                 <AIConfigPage />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/ai">
+              <ProtectedRoute>
+                <AIPage />
               </ProtectedRoute>
             </Route>
             <Route>
