@@ -86,6 +86,35 @@ function parseRiskLevel(val: unknown): string | null {
   return validLevels.includes(level) ? level : null;
 }
 
+// Extract L1 (first part) from a hierarchical process name like "Finance > Accounts Payable > Invoice Processing"
+function extractL1FromProcessName(name: string): string {
+  const parts = name.split(" > ");
+  return parts[0]?.trim() || "";
+}
+
+// Get unique L1 process names from all processes
+function getUniqueL1Processes(allProcesses: { id: string; name: string }[]): { l1Name: string; processIds: string[] }[] {
+  const l1Map = new Map<string, string[]>();
+  
+  for (const process of allProcesses) {
+    const l1Name = extractL1FromProcessName(process.name);
+    if (l1Name) {
+      const existing = l1Map.get(l1Name.toLowerCase()) || [];
+      existing.push(process.id);
+      l1Map.set(l1Name.toLowerCase(), existing);
+    }
+  }
+  
+  return Array.from(l1Map.entries()).map(([l1Lower, processIds]) => {
+    // Get the original casing from the first matching process
+    const originalProcess = allProcesses.find(p => extractL1FromProcessName(p.name).toLowerCase() === l1Lower);
+    return {
+      l1Name: originalProcess ? extractL1FromProcessName(originalProcess.name) : l1Lower,
+      processIds
+    };
+  });
+}
+
 router.post("/preview", upload.single("file"), async (req, res): Promise<void> => {
   try {
     if (!req.file) {
@@ -150,11 +179,16 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         bu.parentId === matchedBusinessUnit.id
       ) : null;
 
-      // Match process by L1 only - strict matching to true L1 processes (no hierarchy)
-      // Process Name from Excel must match an L1 process exactly (no " > " in name)
-      const matchedProcess = processName ? allProcesses.find(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase() && !p.name.includes(" > ")
-      ) : null;
+      // Match process by L1 - find processes where L1 part matches the provided process name
+      // This allows "Finance" to match "Finance > Accounts Payable > Invoice Processing"
+      const processNameLower = String(processName).toLowerCase().trim();
+      const matchedProcess = processName ? allProcesses.find(p => {
+        const l1Part = extractL1FromProcessName(p.name).toLowerCase();
+        return l1Part === processNameLower;
+      }) : null;
+      
+      // Track if process needs manual linking (provided but not matched)
+      const processNeedsLinking = processName && !matchedProcess;
 
       const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
         t.level === 1 && t.name.toLowerCase() === String(taxonomyL1Name).toLowerCase()
@@ -184,7 +218,10 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         }
       }
       
-      if (processName && !matchedProcess) errors.push(`Process "${processName}" not found`);
+      // Process mismatch is now a warning (can be linked manually), not an error
+      if (processNeedsLinking) {
+        warnings.push(`Process "${processName}" not found - select L1 process to link`);
+      }
       if (taxonomyL1Name && !matchedL1) errors.push(`L1 Category "${taxonomyL1Name}" not found`);
       
       // Business unit and sub-unit are optional, but warn if provided and not found
@@ -247,6 +284,7 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         effortSolving: parseNumber(effortSolving),
         processName: String(processName) || null,
         processId: matchedProcess?.id || null,
+        processNeedsLinking: processNeedsLinking,
         taxonomyL1Name: String(taxonomyL1Name) || null,
         taxonomyLevel1Id: matchedL1?.id || null,
         taxonomyL2Name: String(taxonomyL2Name) || null,
@@ -265,6 +303,9 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       };
     });
 
+    // Get unique L1 processes for dropdown selection
+    const availableL1Processes = getUniqueL1Processes(allProcesses);
+
     res.json({
       totalRows: rows.length,
       validRows: rows.filter(r => r.isValid).length,
@@ -273,7 +314,8 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
       missingCategories,
       missingCompanies,
       missingBusinessUnits,
-      missingSubUnits
+      missingSubUnits,
+      availableL1Processes
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to parse Excel file" });
@@ -285,6 +327,17 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
     if (!req.file) {
       res.status(400).json({ message: "No file uploaded" });
       return;
+    }
+
+    // Parse process overrides from query string (JSON encoded map of rowIndex -> processId)
+    // Note: JSON keys are always strings, so we type this as Record<string, string>
+    let processOverrides: Record<string, string> = {};
+    if (req.query.processOverrides) {
+      try {
+        processOverrides = JSON.parse(req.query.processOverrides as string);
+      } catch {
+        // Ignore invalid JSON
+      }
     }
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
@@ -303,11 +356,12 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
+      const rowIndex = i + 2; // Excel row number (1-indexed, header is row 1)
       const statement = row.statement || row.Statement || "";
 
       if (!statement) {
         skipped++;
-        errors.push({ row: i + 2, error: "Statement is required" });
+        errors.push({ row: rowIndex, error: "Statement is required" });
         continue;
       }
 
@@ -347,11 +401,29 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         bu.parentId === matchedBusinessUnit.id
       ) : null;
 
-      // Match process by L1 only - strict matching to true L1 processes (no hierarchy)
-      // Process Name from Excel must match an L1 process exactly (no " > " in name)
-      const matchedProcess = processName ? allProcesses.find(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase() && !p.name.includes(" > ")
-      ) : null;
+      // Check for manual override first, then try L1 matching
+      let finalProcessId: string | null = null;
+      
+      // Check if admin provided a manual override for this row
+      const overrideProcessId = processOverrides[String(rowIndex)];
+      if (overrideProcessId) {
+        const overrideProcess = allProcesses.find(p => p.id === overrideProcessId);
+        if (overrideProcess) {
+          finalProcessId = overrideProcess.id;
+        }
+      }
+      
+      // If no override, try L1 matching
+      if (!finalProcessId && processName) {
+        const processNameLower = String(processName).toLowerCase().trim();
+        const matchedProcess = allProcesses.find(p => {
+          const l1Part = extractL1FromProcessName(p.name).toLowerCase();
+          return l1Part === processNameLower;
+        });
+        if (matchedProcess) {
+          finalProcessId = matchedProcess.id;
+        }
+      }
 
       const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
         t.level === 1 && t.name.toLowerCase() === String(taxonomyL1Name).toLowerCase()
@@ -382,14 +454,14 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         rowErrors.push(`Sub-unit "${subUnitName}" not found under business unit "${businessUnitName}"`);
       }
       
-      if (processName && !matchedProcess) rowErrors.push(`Process "${processName}" not found`);
+      // Process is now optional - no error if not matched (can be linked later or via override)
       if (taxonomyL1Name && !matchedL1) rowErrors.push(`L1 Category "${taxonomyL1Name}" not found`);
       if (taxonomyL2Name && !matchedL2) rowErrors.push(`L2 Sub-category "${taxonomyL2Name}" not found`);
       if (taxonomyL3Name && !matchedL3) rowErrors.push(`L3 Description "${taxonomyL3Name}" not found`);
 
       if (rowErrors.length > 0) {
         skipped++;
-        errors.push({ row: i + 2, error: rowErrors.join("; ") });
+        errors.push({ row: rowIndex, error: rowErrors.join("; ") });
         continue;
       }
 
@@ -421,9 +493,9 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
           businessUnitId: linkedBusinessUnitId
         }).returning();
 
-        if (matchedProcess && insertedPainPoint) {
+        if (finalProcessId && insertedPainPoint) {
           await db.insert(processPainPoints).values({
-            processId: matchedProcess.id,
+            processId: finalProcessId,
             painPointId: insertedPainPoint.id
           });
         }
@@ -431,7 +503,7 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         imported++;
       } catch (err) {
         skipped++;
-        errors.push({ row: i + 2, error: "Database error while importing row" });
+        errors.push({ row: rowIndex, error: "Database error while importing row" });
       }
     }
 

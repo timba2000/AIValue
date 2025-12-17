@@ -21,6 +21,7 @@ interface PreviewRow {
   effortSolving: number | null;
   processName: string | null;
   processId: string | null;
+  processNeedsLinking?: boolean;
   taxonomyL1Name: string | null;
   taxonomyLevel1Id: string | null;
   taxonomyL2Name: string | null;
@@ -36,6 +37,11 @@ interface PreviewRow {
   errors: string[];
   warnings: string[];
   isValid: boolean;
+}
+
+interface L1ProcessOption {
+  l1Name: string;
+  processIds: string[];
 }
 
 interface MissingCategory {
@@ -65,6 +71,7 @@ interface PreviewData {
   missingCompanies?: string[];
   missingBusinessUnits?: MissingBusinessUnit[];
   missingSubUnits?: MissingSubUnit[];
+  availableL1Processes?: L1ProcessOption[];
 }
 
 interface ImportResult {
@@ -129,6 +136,7 @@ export default function AdminPainPointUpload() {
   const [addingBusinessUnits, setAddingBusinessUnits] = useState(false);
   const [addingSubUnits, setAddingSubUnits] = useState(false);
   const [addEntityResult, setAddEntityResult] = useState<{ type: string; added: number; errors: string[] } | null>(null);
+  const [processOverrides, setProcessOverrides] = useState<Record<number, string>>({});
 
   const [taxonomyData, setTaxonomyData] = useState<TaxonomyCategory[]>([]);
   const [taxonomyLoading, setTaxonomyLoading] = useState(false);
@@ -148,7 +156,19 @@ export default function AdminPainPointUpload() {
       setImportResult(null);
       setError(null);
       setAddCategoryResult(null);
+      setProcessOverrides({});
     }
+  }, []);
+
+  const handleProcessOverride = useCallback((rowIndex: number, processId: string) => {
+    setProcessOverrides(prev => {
+      if (!processId) {
+        const next = { ...prev };
+        delete next[rowIndex];
+        return next;
+      }
+      return { ...prev, [rowIndex]: processId };
+    });
   }, []);
 
   const handlePreview = useCallback(async () => {
@@ -173,6 +193,7 @@ export default function AdminPainPointUpload() {
 
       const data = await response.json();
       setPreview(data);
+      setProcessOverrides({});
     } catch (err) {
       setError("Failed to parse Excel file. Please check the format.");
     } finally {
@@ -190,7 +211,14 @@ export default function AdminPainPointUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(`${API_BASE}/api/admin/pain-points/import`, {
+      const queryParams = new URLSearchParams();
+      if (Object.keys(processOverrides).length > 0) {
+        queryParams.set("processOverrides", JSON.stringify(processOverrides));
+      }
+      const queryString = queryParams.toString();
+      const url = `${API_BASE}/api/admin/pain-points/import${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
         method: "POST",
         body: formData,
         credentials: "include"
@@ -203,12 +231,13 @@ export default function AdminPainPointUpload() {
       const data = await response.json();
       setImportResult(data);
       setPreview(null);
+      setProcessOverrides({});
     } catch (err) {
       setError("Failed to import pain points. Please try again.");
     } finally {
       setImporting(false);
     }
-  }, [file]);
+  }, [file, processOverrides]);
 
   const handleReset = useCallback(() => {
     setFile(null);
@@ -217,6 +246,7 @@ export default function AdminPainPointUpload() {
     setError(null);
     setAddCategoryResult(null);
     setAddEntityResult(null);
+    setProcessOverrides({});
   }, []);
 
   const handleAddMissingCompanies = useCallback(async (companies: string[]) => {
@@ -1080,7 +1110,34 @@ export default function AdminPainPointUpload() {
                         </td>
                         <td className="py-2 px-3 max-w-xs truncate">{row.statement || "-"}</td>
                         <td className="py-2 px-3">{row.taxonomyL1Name || "-"}</td>
-                        <td className="py-2 px-3">{row.processName || "-"}</td>
+                        <td className="py-2 px-3">
+                          {row.processNeedsLinking && preview.availableL1Processes && preview.availableL1Processes.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-orange-500 text-xs">{row.processName} (not found)</span>
+                              <select
+                                className={`text-xs border rounded px-2 py-1 bg-background text-foreground min-w-[120px] ${
+                                  processOverrides[row.rowIndex] ? "border-green-500 bg-green-500/10" : "border-border"
+                                }`}
+                                value={processOverrides[row.rowIndex] || ""}
+                                onChange={(e) => handleProcessOverride(row.rowIndex, e.target.value)}
+                              >
+                                <option value="">-- Select L1 Process --</option>
+                                {preview.availableL1Processes.map((l1) => (
+                                  <option key={l1.l1Name} value={l1.processIds[0]}>
+                                    {l1.l1Name}
+                                  </option>
+                                ))}
+                              </select>
+                              {processOverrides[row.rowIndex] && (
+                                <span className="text-green-600 dark:text-green-400 text-xs">Linked</span>
+                              )}
+                            </div>
+                          ) : row.processId ? (
+                            <span className="text-green-600 dark:text-green-400">{row.processName}</span>
+                          ) : (
+                            <span className="text-muted-foreground">{row.processName || "-"}</span>
+                          )}
+                        </td>
                         <td className="py-2 px-3 text-red-500 text-xs">
                           {row.errors.join(", ") || "-"}
                         </td>
