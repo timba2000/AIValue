@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 
 interface ChartSpec {
   type: "bar" | "line" | "pie" | "area";
@@ -152,7 +153,7 @@ export function AIChartRenderer({ spec }: { spec: ChartSpec }) {
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
-                label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={(props: PieLabelRenderProps) => `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                 labelLine={false}
               >
                 {spec.data.map((_, index) => (
