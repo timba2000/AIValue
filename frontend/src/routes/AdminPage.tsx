@@ -422,9 +422,9 @@ export default function AdminPage() {
           <div className="space-y-4">
             <AIToggleSetting />
             
-            <p className="text-xs text-muted-foreground">
-              More settings will be available in future updates.
-            </p>
+            <Button variant="outline" className="w-full" onClick={() => window.location.href = "/admin/ai"}>
+              Configure AI
+            </Button>
           </div>
         </div>
       </div>

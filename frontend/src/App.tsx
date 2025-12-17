@@ -13,6 +13,7 @@ import AdminPage from "@/routes/AdminPage";
 import AdminPainPointUpload from "@/routes/AdminPainPointUpload";
 import AdminProcessUpload from "@/routes/AdminProcessUpload";
 import AdminDatabaseDashboard from "@/routes/AdminDatabaseDashboard";
+import AIConfigPage from "@/routes/AIConfigPage";
 import LoginPage from "@/routes/LoginPage";
 
 function NotFoundPage() {
@@ -108,6 +109,11 @@ function App() {
             <Route path="/admin/database">
               <ProtectedRoute>
                 <AdminDatabaseDashboard />
+              </ProtectedRoute>
+            </Route>
+            <Route path="/admin/ai">
+              <ProtectedRoute>
+                <AIConfigPage />
               </ProtectedRoute>
             </Route>
             <Route>
