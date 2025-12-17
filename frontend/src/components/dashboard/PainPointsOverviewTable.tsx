@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Settings, Pencil, Search, X } from "lucide-react";
+import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface PainPointData {
   id: string;
@@ -21,6 +21,14 @@ interface PainPointsOverviewTableProps {
   onEditClick?: (painPointId: string) => void;
 }
 
+type SortColumn = 'statement' | 'solutions' | 'magnitude' | 'effortSolving' | 'totalHoursPerMonth' | 'fteCount' | 'totalPercentageSolved' | 'potentialHoursSaved';
+type SortDirection = 'asc' | 'desc';
+
+interface SortState {
+  column: SortColumn | null;
+  direction: SortDirection;
+}
+
 export function PainPointsOverviewTable({ 
   data, 
   isLoading, 
@@ -28,18 +36,96 @@ export function PainPointsOverviewTable({
   onEditClick 
 }: PainPointsOverviewTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortState, setSortState] = useState<SortState>({ column: null, direction: 'desc' });
   
-  const filteredData = useMemo(() => {
-    if (!searchTerm.trim()) return data;
-    const term = searchTerm.toLowerCase();
-    return data.filter(p => 
-      p.statement.toLowerCase().includes(term) ||
-      p.linkedSolutions.some(s => s.toLowerCase().includes(term))
-    );
-  }, [data, searchTerm]);
+  const handleSort = (column: SortColumn) => {
+    setSortState(prev => {
+      if (prev.column === column) {
+        return { column, direction: prev.direction === 'desc' ? 'asc' : 'desc' };
+      }
+      return { column, direction: 'desc' };
+    });
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortState.column !== column) {
+      return <ArrowUpDown className="h-3 w-3 opacity-50" />;
+    }
+    return sortState.direction === 'desc' 
+      ? <ArrowDown className="h-3 w-3 text-primary" />
+      : <ArrowUp className="h-3 w-3 text-primary" />;
+  };
+
+  const sortedAndFilteredData = useMemo(() => {
+    let result = [...data];
+    
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(p => 
+        p.statement.toLowerCase().includes(term) ||
+        p.linkedSolutions.some(s => s.toLowerCase().includes(term))
+      );
+    }
+    
+    if (sortState.column) {
+      result.sort((a, b) => {
+        let aVal: number | string;
+        let bVal: number | string;
+        
+        switch (sortState.column) {
+          case 'statement':
+            aVal = a.statement.toLowerCase();
+            bVal = b.statement.toLowerCase();
+            break;
+          case 'solutions':
+            aVal = a.linkedSolutions.length;
+            bVal = b.linkedSolutions.length;
+            break;
+          case 'magnitude':
+            aVal = a.magnitude;
+            bVal = b.magnitude;
+            break;
+          case 'effortSolving':
+            aVal = a.effortSolving;
+            bVal = b.effortSolving;
+            break;
+          case 'totalHoursPerMonth':
+            aVal = a.totalHoursPerMonth;
+            bVal = b.totalHoursPerMonth;
+            break;
+          case 'fteCount':
+            aVal = a.fteCount;
+            bVal = b.fteCount;
+            break;
+          case 'totalPercentageSolved':
+            aVal = a.totalPercentageSolved;
+            bVal = b.totalPercentageSolved;
+            break;
+          case 'potentialHoursSaved':
+            aVal = a.potentialHoursSaved;
+            bVal = b.potentialHoursSaved;
+            break;
+          default:
+            return 0;
+        }
+        
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortState.direction === 'desc' 
+            ? bVal.localeCompare(aVal)
+            : aVal.localeCompare(bVal);
+        }
+        
+        return sortState.direction === 'desc' 
+          ? (bVal as number) - (aVal as number)
+          : (aVal as number) - (bVal as number);
+      });
+    }
+    
+    return result;
+  }, [data, searchTerm, sortState]);
   
-  const linkedCount = filteredData.filter(p => p.hasLinks).length;
-  const unlinkedCount = filteredData.filter(p => !p.hasLinks).length;
+  const linkedCount = sortedAndFilteredData.filter(p => p.hasLinks).length;
+  const unlinkedCount = sortedAndFilteredData.filter(p => !p.hasLinks).length;
 
   if (isLoading) {
     return (
@@ -68,6 +154,26 @@ export function PainPointsOverviewTable({
       </div>
     );
   }
+
+  const SortableHeader = ({ 
+    column, 
+    children, 
+    className = "" 
+  }: { 
+    column: SortColumn; 
+    children: React.ReactNode; 
+    className?: string;
+  }) => (
+    <th 
+      className={`px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground hover:bg-accent/50 transition-colors select-none ${className}`}
+      onClick={() => handleSort(column)}
+    >
+      <div className={`flex items-center gap-1 ${className.includes('text-right') ? 'justify-end' : className.includes('text-center') ? 'justify-center' : ''}`}>
+        <span>{children}</span>
+        <SortIcon column={column} />
+      </div>
+    </th>
+  );
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
@@ -98,6 +204,14 @@ export function PainPointsOverviewTable({
               </button>
             )}
           </div>
+          {sortState.column && (
+            <button
+              onClick={() => setSortState({ column: null, direction: 'desc' })}
+              className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-accent transition-colors"
+            >
+              Clear sort
+            </button>
+          )}
           <div className="hidden sm:flex gap-2 text-xs">
             <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded-lg font-medium">Linked</span>
             <span className="px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-medium">Unlinked</span>
@@ -105,10 +219,10 @@ export function PainPointsOverviewTable({
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Manage solution links for each pain point. Click "Manage" to add, edit, or remove linked solutions.
+        Manage solution links for each pain point. Click column headers to sort.
       </p>
 
-      {filteredData.length === 0 && searchTerm && (
+      {sortedAndFilteredData.length === 0 && searchTerm && (
         <div className="text-center py-8 text-muted-foreground">
           <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p>No pain points match "{searchTerm}"</p>
@@ -121,41 +235,41 @@ export function PainPointsOverviewTable({
         </div>
       )}
 
-      <div className={`hidden lg:block overflow-x-auto ${filteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
+      <div className={`hidden lg:block overflow-x-auto ${sortedAndFilteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-border">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <SortableHeader column="statement" className="text-left">
                 Pain Point
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="solutions" className="text-left">
                 Solutions
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="magnitude" className="text-center">
                 Benefit
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="effortSolving" className="text-center">
                 Effort
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="totalHoursPerMonth" className="text-right">
                 Hours/Month
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="fteCount" className="text-right">
                 FTE
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="totalPercentageSolved" className="text-right">
                 % Addressed
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader column="potentialHoursSaved" className="text-right">
                 Hours Saved
-              </th>
+              </SortableHeader>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredData.map((row) => (
+            {sortedAndFilteredData.map((row) => (
               <tr 
                 key={row.id} 
                 className={`transition-colors duration-150 ${
@@ -249,8 +363,8 @@ export function PainPointsOverviewTable({
         </table>
       </div>
 
-      <div className={`lg:hidden space-y-3 ${filteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
-        {filteredData.map((row) => (
+      <div className={`lg:hidden space-y-3 ${sortedAndFilteredData.length === 0 && searchTerm ? 'hidden' : ''}`}>
+        {sortedAndFilteredData.map((row) => (
           <div 
             key={row.id}
             className={`p-4 border rounded-xl transition-all duration-200 ${
