@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { useFilterStore } from "../stores/filterStore";
-import { useCompanies, useBusinessUnitsFlat, useProcessesByBusinessUnit } from "../hooks/useApiData";
+import { useCompanies, useBusinessUnitsFlat, useProcessesByBusinessUnit, useAllProcesses, useAllBusinessUnits } from "../hooks/useApiData";
 
 export function FilterByContext() {
   const {
@@ -13,7 +14,20 @@ export function FilterByContext() {
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useBusinessUnitsFlat(selectedCompanyId);
-  const { data: processes = [] } = useProcessesByBusinessUnit(selectedBusinessUnitId);
+  const { data: allBusinessUnits = [] } = useAllBusinessUnits();
+  const { data: processesByBU = [] } = useProcessesByBusinessUnit(selectedBusinessUnitId);
+  const { data: allProcesses = [] } = useAllProcesses();
+
+  const processes = useMemo(() => {
+    if (selectedBusinessUnitId) {
+      return processesByBU;
+    }
+    if (selectedCompanyId) {
+      const companyBuIds = new Set(allBusinessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+      return allProcesses.filter(p => companyBuIds.has(p.businessUnitId));
+    }
+    return allProcesses;
+  }, [selectedBusinessUnitId, selectedCompanyId, processesByBU, allProcesses, allBusinessUnits]);
 
   const getIndent = (depth: number) => "\u2003".repeat(depth - 1);
 
@@ -65,7 +79,7 @@ export function FilterByContext() {
           <select
             value={selectedProcessId}
             onChange={(e) => setSelectedProcessId(e.target.value)}
-            disabled={!selectedBusinessUnitId}
+            disabled={processes.length === 0}
             className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             <option value="">All Processes</option>
