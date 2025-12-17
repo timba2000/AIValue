@@ -1,7 +1,78 @@
 import { Router, Request, Response } from "express";
 import { generateChatResponse, ChatMessage, AIConfig } from "../services/aiService.js";
+import { db } from "../db/client.js";
+import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 const router = Router();
+
+async function getDataSummary(): Promise<string> {
+  try {
+    const allCompanies = await db.select().from(companies);
+    const allBusinessUnits = await db.select().from(businessUnits);
+    const allProcesses = await db.select().from(processes);
+    const allPainPoints = await db.select().from(painPoints);
+    const allUseCases = await db.select().from(useCases);
+    const allLinks = await db.select().from(painPointUseCases);
+
+    const summary: string[] = [];
+    
+    summary.push("=== DATABASE CONTEXT ===\n");
+    
+    summary.push(`COMPANIES (${allCompanies.length} total):`);
+    for (const company of allCompanies) {
+      const companyBUs = allBusinessUnits.filter(bu => bu.companyId === company.id);
+      const companyProcesses = allProcesses.filter(p => p.businessId === company.id);
+      const companyPainPoints = allPainPoints.filter(pp => pp.companyId === company.id);
+      summary.push(`- ${company.name} (Industry: ${company.industry || 'N/A'})`);
+      summary.push(`  Business Units: ${companyBUs.length}, Processes: ${companyProcesses.length}, Pain Points: ${companyPainPoints.length}`);
+    }
+    
+    summary.push(`\nBUSINESS UNITS (${allBusinessUnits.length} total):`);
+    for (const bu of allBusinessUnits) {
+      const company = allCompanies.find(c => c.id === bu.companyId);
+      summary.push(`- ${bu.name} (Company: ${company?.name || 'Unknown'}, FTE: ${bu.fte || 0})`);
+    }
+    
+    summary.push(`\nPROCESSES (${allProcesses.length} total):`);
+    for (const proc of allProcesses) {
+      const company = allCompanies.find(c => c.id === proc.businessId);
+      const bu = allBusinessUnits.find(b => b.id === proc.businessUnitId);
+      summary.push(`- ${proc.name}`);
+      summary.push(`  Company: ${company?.name || 'Unknown'}, Business Unit: ${bu?.name || 'N/A'}`);
+      if (proc.description) summary.push(`  Description: ${proc.description}`);
+    }
+    
+    summary.push(`\nPAIN POINTS (${allPainPoints.length} total):`);
+    for (const pp of allPainPoints) {
+      const company = allCompanies.find(c => c.id === pp.companyId);
+      const bu = allBusinessUnits.find(b => b.id === pp.businessUnitId);
+      const linkedSolutions = allLinks.filter(l => l.painPointId === pp.id);
+      summary.push(`- "${pp.statement}"`);
+      summary.push(`  Company: ${company?.name || 'Unknown'}, Business Unit: ${bu?.name || 'N/A'}`);
+      summary.push(`  Magnitude: ${pp.magnitude || 'N/A'}, Frequency: ${pp.frequency || 'N/A'}, Hours/Month: ${pp.totalHoursPerMonth || 'N/A'}`);
+      summary.push(`  Impact Type: ${pp.impactType?.join(', ') || 'N/A'}, Risk Level: ${pp.riskLevel || 'N/A'}`);
+      summary.push(`  Linked Solutions: ${linkedSolutions.length}`);
+    }
+    
+    summary.push(`\nSOLUTIONS/USE CASES (${allUseCases.length} total):`);
+    for (const uc of allUseCases) {
+      const linkedPainPoints = allLinks.filter(l => l.useCaseId === uc.id);
+      summary.push(`- ${uc.name} (Provider: ${uc.solutionProvider || 'N/A'})`);
+      summary.push(`  Problem: ${uc.problemToSolve}`);
+      summary.push(`  Solution: ${uc.solutionOverview}`);
+      summary.push(`  Complexity: ${uc.complexity}, Cost: ${uc.costRange || 'N/A'}, Delivery: ${uc.estimatedDeliveryTime || 'N/A'}`);
+      summary.push(`  Linked Pain Points: ${linkedPainPoints.length}`);
+    }
+    
+    summary.push("\n=== END DATABASE CONTEXT ===");
+    
+    return summary.join('\n');
+  } catch (error) {
+    console.error("Error fetching data summary:", error);
+    return "Unable to fetch database summary.";
+  }
+}
 
 router.post("/chat", async (req: Request, res: Response) => {
   try {
@@ -14,7 +85,14 @@ router.post("/chat", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
-    const response = await generateChatResponse(messages, config);
+    const dataSummary = await getDataSummary();
+    
+    const enrichedConfig: AIConfig = {
+      ...config,
+      dataContext: dataSummary,
+    };
+
+    const response = await generateChatResponse(messages, enrichedConfig);
     
     res.json({ 
       success: true,

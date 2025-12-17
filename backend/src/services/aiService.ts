@@ -14,6 +14,7 @@ export interface ChatMessage {
 export interface AIConfig {
   persona?: string;
   rules?: string;
+  dataContext?: string;
 }
 
 export async function generateChatResponse(
@@ -39,19 +40,22 @@ export async function generateChatResponse(
 function buildSystemPrompt(config?: AIConfig): string {
   const parts: string[] = [];
   
+  parts.push("You are a helpful AI assistant for a business process management application. Help users with questions about processes, pain points, and solutions.");
+  
   if (config?.persona) {
-    parts.push(`Persona: ${config.persona}`);
+    parts.push(`\nPersona: ${config.persona}`);
   }
   
   if (config?.rules) {
-    parts.push(`Rules and Guidelines:\n${config.rules}`);
+    parts.push(`\nRules and Guidelines:\n${config.rules}`);
   }
   
-  if (parts.length === 0) {
-    return "You are a helpful AI assistant for a business process management application. Help users with questions about processes, pain points, and solutions.";
+  if (config?.dataContext) {
+    parts.push(`\n${config.dataContext}`);
+    parts.push("\nUse the database context above to answer questions about the user's data. Be specific and reference actual data when possible.");
   }
   
-  return parts.join("\n\n");
+  return parts.join("\n");
 }
 
 export { openai };
