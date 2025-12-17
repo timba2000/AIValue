@@ -411,11 +411,11 @@ export default function AdminPage() {
         <div className="bg-card rounded-2xl border border-border p-6 slide-up hover:shadow-lg transition-shadow">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-              <Settings className="h-6 w-6 text-purple-500" />
+              <Sparkles className="h-6 w-6 text-purple-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Settings</h2>
-              <p className="text-sm text-muted-foreground">Application configuration</p>
+              <h2 className="text-lg font-semibold text-foreground">AI</h2>
+              <p className="text-sm text-muted-foreground">Manage AI features</p>
             </div>
           </div>
           
