@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2 } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
+import { AIChartRenderer, parseChartSpecs } from "@/components/AIChartRenderer";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -172,40 +173,58 @@ export default function AIPage() {
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={cn(
-              "flex gap-3",
-              message.role === "user" && "flex-row-reverse"
-            )}
-          >
+        {messages.map((message, index) => {
+          const { text, charts } = message.role === "assistant" 
+            ? parseChartSpecs(message.content) 
+            : { text: message.content, charts: [] };
+          
+          return (
             <div
+              key={index}
               className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                message.role === "user"
-                  ? "bg-primary"
-                  : "bg-gradient-to-br from-violet-500 to-purple-600"
+                "flex gap-3",
+                message.role === "user" && "flex-row-reverse"
               )}
             >
-              {message.role === "user" ? (
-                <User className="h-4 w-4 text-primary-foreground" />
-              ) : (
-                <Bot className="h-4 w-4 text-white" />
-              )}
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                  message.role === "user"
+                    ? "bg-primary"
+                    : "bg-gradient-to-br from-violet-500 to-purple-600"
+                )}
+              >
+                {message.role === "user" ? (
+                  <User className="h-4 w-4 text-primary-foreground" />
+                ) : (
+                  <Bot className="h-4 w-4 text-white" />
+                )}
+              </div>
+              <div
+                className={cn(
+                  "max-w-[80%]",
+                  message.role === "user" && "text-right"
+                )}
+              >
+                {text && (
+                  <div
+                    className={cn(
+                      "rounded-2xl px-4 py-3",
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    )}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{text}</p>
+                  </div>
+                )}
+                {charts.map((chart, chartIndex) => (
+                  <AIChartRenderer key={chartIndex} spec={chart} />
+                ))}
+              </div>
             </div>
-            <div
-              className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3",
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              )}
-            >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isThinking && (
           <div className="flex gap-3">
