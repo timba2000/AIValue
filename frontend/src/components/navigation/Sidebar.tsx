@@ -1,15 +1,17 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Briefcase, Gauge, Lightbulb, Shield, Workflow } from "lucide-react";
+import { AlertTriangle, Briefcase, Gauge, Lightbulb, Shield, Workflow, Sparkles } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "../ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
+import { useAISettingsStore } from "@/stores/aiSettingsStore";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
   { label: "Businesses", href: "/businesses", icon: Briefcase },
   { label: "Processes", href: "/processes", icon: Workflow },
   { label: "Pain Points", href: "/pain-points", icon: AlertTriangle },
-  { label: "Solutions", href: "/use-cases", icon: Lightbulb }
+  { label: "Solutions", href: "/use-cases", icon: Lightbulb },
+  { label: "AI", href: "/ai", icon: Sparkles, requiresAi: true }
 ];
 
 interface SidebarProps {
@@ -20,6 +22,7 @@ interface SidebarProps {
 export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
   const [location] = useLocation();
   const { isAdmin } = useAuth();
+  const { aiEnabled } = useAISettingsStore();
 
   const isActive = (href: string) =>
     location === href ||
@@ -55,6 +58,24 @@ export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
+            const isAiItem = 'requiresAi' in item && item.requiresAi;
+            const isDisabled = isAiItem && !aiEnabled;
+
+            if (isDisabled) {
+              return (
+                <div
+                  key={item.href}
+                  className="group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium opacity-40 cursor-not-allowed"
+                  title="Enable AI in Admin settings to access this feature"
+                >
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                    Off
+                  </span>
+                </div>
+              );
+            }
 
             return (
               <Link

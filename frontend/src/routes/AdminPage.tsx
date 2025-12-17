@@ -1,9 +1,53 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Check, X } from "lucide-react";
+import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Check, X, Sparkles } from "lucide-react";
+import { useAISettingsStore } from "@/stores/aiSettingsStore";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
+function AIToggleSetting() {
+  const { aiEnabled, toggleAi } = useAISettingsStore();
+  
+  return (
+    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border">
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+          aiEnabled ? "bg-gradient-to-br from-violet-500 to-purple-600" : "bg-muted"
+        )}>
+          <Sparkles className={cn("h-5 w-5", aiEnabled ? "text-white" : "text-muted-foreground")} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">AI Features</p>
+          <p className="text-xs text-muted-foreground">
+            {aiEnabled ? "AI features are enabled" : "AI features are disabled"}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={toggleAi}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+          aiEnabled ? "bg-primary" : "bg-muted"
+        )}
+        role="switch"
+        aria-checked={aiEnabled}
+      >
+        <span
+          className={cn(
+            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+            aiEnabled ? "translate-x-5" : "translate-x-0"
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 interface AdminStats {
   companies: number;
@@ -371,15 +415,17 @@ export default function AdminPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">Settings</h2>
-              <p className="text-sm text-muted-foreground">Coming soon</p>
+              <p className="text-sm text-muted-foreground">Application configuration</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Application settings and configuration will be available in a future update.
-          </p>
-          <Button variant="outline" className="w-full" disabled>
-            Coming Soon
-          </Button>
+          
+          <div className="space-y-4">
+            <AIToggleSetting />
+            
+            <p className="text-xs text-muted-foreground">
+              More settings will be available in future updates.
+            </p>
+          </div>
         </div>
       </div>
 
