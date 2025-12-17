@@ -13,6 +13,7 @@ import taxonomyRouter from "./routes/taxonomy.js";
 import adminPainPointUploadRouter from "./routes/adminPainPointUpload.js";
 import adminTaxonomyRouter from "./routes/adminTaxonomy.js";
 import adminProcessUploadRouter from "./routes/adminProcessUpload.js";
+import adminBusinessRouter from "./routes/adminBusiness.js";
 import aiRouter from "./routes/ai.js";
 import { setupAuth, isAuthenticated, isAdmin, getUser } from "./simpleAuth.js";
 
@@ -48,6 +49,7 @@ async function startServer() {
   app.use("/api/admin/pain-points", isAuthenticated, isAdmin, adminPainPointUploadRouter);
   app.use("/api/admin/taxonomy", isAuthenticated, isAdmin, adminTaxonomyRouter);
   app.use("/api/admin/processes", isAuthenticated, isAdmin, adminProcessUploadRouter);
+  app.use("/api/admin/business", isAuthenticated, isAdmin, adminBusinessRouter);
   app.use("/api/ai", isAuthenticated, aiRouter);
 
   app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {

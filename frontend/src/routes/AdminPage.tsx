@@ -422,7 +422,7 @@ export default function AdminPage() {
       <div className="bg-card rounded-2xl border border-border p-6 slide-up">
         <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={() => window.location.href = "/businesses"}>
+          <Button onClick={() => window.location.href = "/admin/business"}>
             Manage Businesses
           </Button>
           <Button onClick={() => window.location.href = "/admin/processes-upload"}>
