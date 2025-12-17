@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 
+const baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "";
 const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  baseURL: baseUrl.endsWith("/openai") ? baseUrl : baseUrl,
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
 });
 
