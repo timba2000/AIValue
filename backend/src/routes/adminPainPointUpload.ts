@@ -150,8 +150,10 @@ router.post("/preview", upload.single("file"), async (req, res): Promise<void> =
         bu.parentId === matchedBusinessUnit.id
       ) : null;
 
+      // Match process by L1 only - strict matching to true L1 processes (no hierarchy)
+      // Process Name from Excel must match an L1 process exactly (no " > " in name)
       const matchedProcess = processName ? allProcesses.find(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase()
+        p.name.toLowerCase() === String(processName).toLowerCase() && !p.name.includes(" > ")
       ) : null;
 
       const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
@@ -345,8 +347,10 @@ router.post("/import", upload.single("file"), async (req, res): Promise<void> =>
         bu.parentId === matchedBusinessUnit.id
       ) : null;
 
+      // Match process by L1 only - strict matching to true L1 processes (no hierarchy)
+      // Process Name from Excel must match an L1 process exactly (no " > " in name)
       const matchedProcess = processName ? allProcesses.find(p => 
-        p.name.toLowerCase() === String(processName).toLowerCase()
+        p.name.toLowerCase() === String(processName).toLowerCase() && !p.name.includes(" > ")
       ) : null;
 
       const matchedL1 = taxonomyL1Name ? allTaxonomy.find(t => 
