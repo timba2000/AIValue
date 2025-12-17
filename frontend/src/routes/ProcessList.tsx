@@ -39,6 +39,12 @@ function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: stri
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
+// Nested hierarchy types for process grouping
+type ProcessWithHierarchy = ProcessRecord & { l1: string; l2: string; l3: string };
+type L3Group = { processes: ProcessWithHierarchy[] };
+type L2Group = { l3Groups: Map<string, L3Group>; directProcesses: ProcessWithHierarchy[] };
+type L1Group = { l2Groups: Map<string, L2Group>; directProcesses: ProcessWithHierarchy[] };
+
 type FormState = {
   name: string;
   description: string;
@@ -74,7 +80,8 @@ export default function ProcessList() {
   const [isSaving, setIsSaving] = useState(false);
   const [painPointSearch, setPainPointSearch] = useState("");
   const [solutionSearch, setSolutionSearch] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedL1, setExpandedL1] = useState<Set<string>>(new Set());
+  const [expandedL2, setExpandedL2] = useState<Set<string>>(new Set());
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useBusinessUnits(selectedCompanyId || undefined);
@@ -124,32 +131,95 @@ export default function ProcessList() {
     return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
   }, [processes, search]);
 
-  // Group processes by L1
   const groupedProcesses = useMemo(() => {
-    const groups: Map<string, Array<ProcessRecord & { l1: string; l2: string; l3: string }>> = new Map();
+    const groups: Map<string, L1Group> = new Map();
     
     for (const process of filteredProcesses) {
       const hierarchy = parseProcessHierarchy(process.name);
-      const l1Key = hierarchy.l1;
+      const processWithHierarchy = { ...process, ...hierarchy };
       
-      if (!groups.has(l1Key)) {
-        groups.set(l1Key, []);
+      // Initialize L1 group if needed
+      if (!groups.has(hierarchy.l1)) {
+        groups.set(hierarchy.l1, { l2Groups: new Map(), directProcesses: [] });
       }
-      groups.get(l1Key)!.push({ ...process, ...hierarchy });
+      const l1Group = groups.get(hierarchy.l1)!;
+      
+      // If no L2, it's a direct L1 process
+      if (hierarchy.l2 === "-") {
+        l1Group.directProcesses.push(processWithHierarchy);
+        continue;
+      }
+      
+      // Initialize L2 group if needed
+      if (!l1Group.l2Groups.has(hierarchy.l2)) {
+        l1Group.l2Groups.set(hierarchy.l2, { l3Groups: new Map(), directProcesses: [] });
+      }
+      const l2Group = l1Group.l2Groups.get(hierarchy.l2)!;
+      
+      // If no L3, it's a direct L2 process
+      if (hierarchy.l3 === "-") {
+        l2Group.directProcesses.push(processWithHierarchy);
+        continue;
+      }
+      
+      // Initialize L3 group if needed
+      if (!l2Group.l3Groups.has(hierarchy.l3)) {
+        l2Group.l3Groups.set(hierarchy.l3, { processes: [] });
+      }
+      l2Group.l3Groups.get(hierarchy.l3)!.processes.push(processWithHierarchy);
     }
     
-    // Sort groups alphabetically by L1 name
+    // Sort and return as array
     return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredProcesses]);
+
+  // Count total processes in L1 group
+  const countL1Processes = (l1Group: L1Group): number => {
+    let count = l1Group.directProcesses.length;
+    for (const [, l2Group] of l1Group.l2Groups) {
+      count += l2Group.directProcesses.length;
+      for (const [, l3Group] of l2Group.l3Groups) {
+        count += l3Group.processes.length;
+      }
+    }
+    return count;
+  };
+
+  // Count total processes in L2 group
+  const countL2Processes = (l2Group: L2Group): number => {
+    let count = l2Group.directProcesses.length;
+    for (const [, l3Group] of l2Group.l3Groups) {
+      count += l3Group.processes.length;
+    }
+    return count;
+  };
+
+  // Helper to check if two sets have the same contents
+  const setsEqual = (a: Set<string>, b: Set<string>): boolean => {
+    if (a.size !== b.size) return false;
+    for (const item of a) {
+      if (!b.has(item)) return false;
+    }
+    return true;
+  };
 
   // Auto-expand all groups when processes load or change
   useEffect(() => {
     const allL1s = new Set(groupedProcesses.map(([l1]) => l1));
-    setExpandedGroups(allL1s);
+    const allL2s = new Set<string>();
+    for (const [l1, l1Group] of groupedProcesses) {
+      for (const [l2] of l1Group.l2Groups) {
+        allL2s.add(`${l1}:${l2}`);
+      }
+    }
+    
+    // Only update if the sets actually changed
+    setExpandedL1(prev => setsEqual(prev, allL1s) ? prev : allL1s);
+    setExpandedL2(prev => setsEqual(prev, allL2s) ? prev : allL2s);
   }, [groupedProcesses]);
 
-  const toggleGroup = (l1: string) => {
-    setExpandedGroups(prev => {
+  const toggleL1 = (l1: string) => {
+    setExpandedL1(prev => {
       const next = new Set(prev);
       if (next.has(l1)) {
         next.delete(l1);
@@ -160,12 +230,34 @@ export default function ProcessList() {
     });
   };
 
+  const toggleL2 = (l1: string, l2: string) => {
+    const key = `${l1}:${l2}`;
+    setExpandedL2(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const expandAll = () => {
-    setExpandedGroups(new Set(groupedProcesses.map(([l1]) => l1)));
+    const allL1s = new Set(groupedProcesses.map(([l1]) => l1));
+    const allL2s = new Set<string>();
+    for (const [l1, l1Group] of groupedProcesses) {
+      for (const [l2] of l1Group.l2Groups) {
+        allL2s.add(`${l1}:${l2}`);
+      }
+    }
+    setExpandedL1(allL1s);
+    setExpandedL2(allL2s);
   };
 
   const collapseAll = () => {
-    setExpandedGroups(new Set());
+    setExpandedL1(new Set());
+    setExpandedL2(new Set());
   };
 
   const filteredPainPoints = useMemo(() => {
@@ -352,73 +444,132 @@ export default function ProcessList() {
           </div>
         ) : (
           <div className="space-y-3">
-            {groupedProcesses.map(([l1, processesInGroup]) => {
-              const isExpanded = expandedGroups.has(l1);
+            {groupedProcesses.map(([l1, l1Group]) => {
+              const isL1Expanded = expandedL1.has(l1);
+              const l1ProcessCount = countL1Processes(l1Group);
+              const sortedL2Groups = Array.from(l1Group.l2Groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+              
               return (
                 <div key={l1} className="border border-border rounded-xl overflow-hidden">
+                  {/* L1 Header */}
                   <button
-                    onClick={() => toggleGroup(l1)}
+                    onClick={() => toggleL1(l1)}
                     className="w-full flex items-center justify-between px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-left"
                   >
                     <div className="flex items-center gap-3">
-                      {isExpanded ? (
+                      {isL1Expanded ? (
                         <ChevronDown className="h-5 w-5 text-muted-foreground" />
                       ) : (
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       )}
                       <span className="font-semibold text-foreground">{l1}</span>
                       <span className="text-sm text-muted-foreground">
-                        ({processesInGroup.length} {processesInGroup.length === 1 ? 'process' : 'processes'})
+                        ({l1ProcessCount} {l1ProcessCount === 1 ? 'process' : 'processes'})
                       </span>
                     </div>
                   </button>
                   
-                  {isExpanded && (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>L2</TableHead>
-                            <TableHead>L3</TableHead>
-                            <TableHead>Owner</TableHead>
-                            <TableHead>Volume</TableHead>
-                            <TableHead>FTE</TableHead>
-                            <TableHead>Pain Points</TableHead>
-                            <TableHead>Solutions</TableHead>
-                            <TableHead className="w-32">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {processesInGroup.map((process) => (
-                            <TableRow key={process.id}>
-                              <TableCell className="font-medium">{process.name}</TableCell>
-                              <TableCell>{process.l2}</TableCell>
-                              <TableCell>{process.l3}</TableCell>
-                              <TableCell>{process.owner ?? "-"}</TableCell>
-                              <TableCell>
-                                {process.volume ?? "-"} {process.volumeUnit ?? ""}
-                              </TableCell>
-                              <TableCell>{process.fte ?? "-"}</TableCell>
-                              <TableCell>{process.painPointCount}</TableCell>
-                              <TableCell>{process.useCaseCount}</TableCell>
-                              <TableCell className="space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-destructive"
-                                  onClick={() => handleDelete(process)}
-                                >
-                                  Delete
-                                </Button>
-                              </TableCell>
-                            </TableRow>
+                  {isL1Expanded && (
+                    <div className="pl-4">
+                      {/* Direct L1 processes (no L2) */}
+                      {l1Group.directProcesses.length > 0 && (
+                        <div className="py-2 space-y-1">
+                          {l1Group.directProcesses.map((process) => (
+                            <div key={process.id} className="flex items-center justify-between px-4 py-2 hover:bg-accent/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <span className="w-4" />
+                                <span className="text-foreground">{process.l1}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span>Owner: {process.owner ?? "-"}</span>
+                                <span>FTE: {process.fte ?? "-"}</span>
+                                <span>Pain Points: {process.painPointCount}</span>
+                                <span>Solutions: {process.useCaseCount}</span>
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                  <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                </div>
+                              </div>
+                            </div>
                           ))}
-                        </TableBody>
-                      </Table>
+                        </div>
+                      )}
+                      
+                      {/* L2 Groups */}
+                      {sortedL2Groups.map(([l2, l2Group]) => {
+                        const l2Key = `${l1}:${l2}`;
+                        const isL2Expanded = expandedL2.has(l2Key);
+                        const l2ProcessCount = countL2Processes(l2Group);
+                        const sortedL3Groups = Array.from(l2Group.l3Groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                        
+                        return (
+                          <div key={l2} className="border-l-2 border-border ml-2">
+                            {/* L2 Header */}
+                            <button
+                              onClick={() => toggleL2(l1, l2)}
+                              className="w-full flex items-center justify-between px-4 py-2 hover:bg-accent/50 transition-colors text-left"
+                            >
+                              <div className="flex items-center gap-3">
+                                {isL2Expanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="font-medium text-foreground">{l2}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  ({l2ProcessCount})
+                                </span>
+                              </div>
+                            </button>
+                            
+                            {isL2Expanded && (
+                              <div className="pl-6">
+                                {/* Direct L2 processes (no L3) */}
+                                {l2Group.directProcesses.map((process) => (
+                                  <div key={process.id} className="flex items-center justify-between px-4 py-2 hover:bg-accent/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                      <span className="w-4" />
+                                      <span className="text-foreground">{process.l2}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <span>Owner: {process.owner ?? "-"}</span>
+                                      <span>FTE: {process.fte ?? "-"}</span>
+                                      <span>Pain Points: {process.painPointCount}</span>
+                                      <span>Solutions: {process.useCaseCount}</span>
+                                      <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                        <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                
+                                {/* L3 Groups */}
+                                {sortedL3Groups.map(([l3, l3Group]) => (
+                                  <div key={l3} className="border-l-2 border-border/50 ml-2 pl-4 py-1">
+                                    <div className="text-sm font-medium text-muted-foreground mb-1">{l3}</div>
+                                    {l3Group.processes.map((process) => (
+                                      <div key={process.id} className="flex items-center justify-between px-3 py-2 hover:bg-accent/50 rounded-lg">
+                                        <span className="text-foreground">{process.l3}</span>
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                          <span>Owner: {process.owner ?? "-"}</span>
+                                          <span>FTE: {process.fte ?? "-"}</span>
+                                          <span>Pain Points: {process.painPointCount}</span>
+                                          <span>Solutions: {process.useCaseCount}</span>
+                                          <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                            <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
