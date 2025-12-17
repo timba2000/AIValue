@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useThemeStore } from "../../stores/themeStore";
 
 interface PainPoint {
@@ -15,8 +15,17 @@ interface PrioritizationMatrixProps {
   painPoints: PainPoint[];
 }
 
+interface GroupedPoint {
+  key: string;
+  magnitude: number;
+  effortSolving: number;
+  points: PainPoint[];
+  maxHoursPerMonth: number;
+  hasAnyLinks: boolean;
+}
+
 interface TooltipData {
-  point: PainPoint;
+  group: GroupedPoint;
   x: number;
   y: number;
 }
@@ -27,6 +36,32 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const { resolvedTheme } = useThemeStore();
   const isDark = resolvedTheme === 'dark';
+
+  const groupedPoints = useMemo(() => {
+    const groups = new Map<string, GroupedPoint>();
+    
+    painPoints.forEach((point) => {
+      const key = `${point.magnitude}-${point.effortSolving}`;
+      
+      if (groups.has(key)) {
+        const existing = groups.get(key)!;
+        existing.points.push(point);
+        existing.maxHoursPerMonth = Math.max(existing.maxHoursPerMonth, point.totalHoursPerMonth);
+        existing.hasAnyLinks = existing.hasAnyLinks || point.hasLinks;
+      } else {
+        groups.set(key, {
+          key,
+          magnitude: point.magnitude,
+          effortSolving: point.effortSolving,
+          points: [point],
+          maxHoursPerMonth: point.totalHoursPerMonth,
+          hasAnyLinks: point.hasLinks
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [painPoints]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -147,24 +182,54 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
 
     const maxHours = Math.max(...painPoints.map(p => p.totalHoursPerMonth), 1);
 
-    painPoints.forEach((point) => {
-      const x = padding + (point.effortSolving / 10) * chartWidth;
-      const y = height - padding - (point.magnitude / 10) * chartHeight;
-      const radius = Math.max(5, Math.min(30, (point.totalHoursPerMonth / maxHours) * 30));
+    groupedPoints.forEach((group) => {
+      const x = padding + (group.effortSolving / 10) * chartWidth;
+      const y = height - padding - (group.magnitude / 10) * chartHeight;
+      const radius = Math.max(8, Math.min(30, (group.maxHoursPerMonth / maxHours) * 30));
+      const isStacked = group.points.length > 1;
 
-      if (point.hasLinks) {
+      if (group.hasAnyLinks) {
         ctx.fillStyle = isDark ? "rgba(139, 92, 246, 0.6)" : "rgba(124, 58, 237, 0.6)";
         ctx.strokeStyle = isDark ? "rgba(139, 92, 246, 1)" : "rgba(124, 58, 237, 1)";
       } else {
         ctx.fillStyle = isDark ? "rgba(251, 146, 60, 0.6)" : "rgba(249, 115, 22, 0.6)";
         ctx.strokeStyle = isDark ? "rgba(251, 146, 60, 1)" : "rgba(249, 115, 22, 1)";
       }
-      ctx.lineWidth = 2;
+      
+      ctx.lineWidth = isStacked ? 3 : 2;
 
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
+
+      if (isStacked) {
+        ctx.shadowColor = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        const badgeRadius = 10;
+        const badgeX = x + radius * 0.7;
+        const badgeY = y - radius * 0.7;
+
+        ctx.fillStyle = isDark ? "#dc2626" : "#ef4444";
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, badgeRadius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.strokeStyle = isDark ? "#1f2937" : "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(group.points.length), badgeX, badgeY);
+      }
     });
 
     const legendY = padding + 20;
@@ -191,7 +256,22 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
     ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.8)" : "#374151";
     ctx.fillText("No Linked Solutions", width - 135, legendY + 29);
 
-  }, [painPoints, isDark]);
+    ctx.fillStyle = "#dc2626";
+    ctx.beginPath();
+    ctx.arc(width - 150, legendY + 50, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 9px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("3", width - 150, legendY + 50);
+
+    ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.8)" : "#374151";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Stacked Points", width - 135, legendY + 54);
+
+  }, [painPoints, groupedPoints, isDark]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -210,18 +290,18 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
       const chartHeight = height - padding * 2;
       const maxHours = Math.max(...painPoints.map(p => p.totalHoursPerMonth), 1);
 
-      let hoveredPoint: TooltipData | null = null;
+      let hoveredGroup: TooltipData | null = null;
 
-      for (const point of painPoints) {
-        const x = padding + (point.effortSolving / 10) * chartWidth;
-        const y = height - padding - (point.magnitude / 10) * chartHeight;
-        const radius = Math.max(5, Math.min(30, (point.totalHoursPerMonth / maxHours) * 30));
+      for (const group of groupedPoints) {
+        const x = padding + (group.effortSolving / 10) * chartWidth;
+        const y = height - padding - (group.magnitude / 10) * chartHeight;
+        const radius = Math.max(8, Math.min(30, (group.maxHoursPerMonth / maxHours) * 30));
 
         const distance = Math.sqrt((mouseX - x) ** 2 + (mouseY - y) ** 2);
 
         if (distance <= radius) {
-          hoveredPoint = {
-            point,
+          hoveredGroup = {
+            group,
             x: e.clientX,
             y: e.clientY
           };
@@ -229,7 +309,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
         }
       }
 
-      setTooltip(hoveredPoint);
+      setTooltip(hoveredGroup);
     };
 
     const handleMouseLeave = () => {
@@ -243,7 +323,7 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [painPoints]);
+  }, [painPoints, groupedPoints]);
 
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
@@ -272,19 +352,40 @@ export function PrioritizationMatrix({ painPoints }: PrioritizationMatrixProps) 
                 top: tooltip.y + 15,
               }}
             >
-              <div className="font-semibold mb-2 text-sm">{tooltip.point.statement}</div>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <div>Benefit: {tooltip.point.magnitude}/10</div>
-                <div>Effort: {tooltip.point.effortSolving}/10</div>
-                <div>Hours/Month: {Math.round(tooltip.point.totalHoursPerMonth)}</div>
-                {tooltip.point.linkedUseCases.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <div className="font-semibold mb-1 text-foreground">Linked Solutions:</div>
-                    {tooltip.point.linkedUseCases.map((useCase, idx) => (
-                      <div key={idx} className="text-primary">• {useCase}</div>
-                    ))}
+              {tooltip.group.points.length > 1 && (
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {tooltip.group.points.length} stacked
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Same position: Benefit {tooltip.group.magnitude}/10, Effort {tooltip.group.effortSolving}/10
+                  </span>
+                </div>
+              )}
+              <div className={tooltip.group.points.length > 1 ? "space-y-3 max-h-64 overflow-y-auto" : ""}>
+                {tooltip.group.points.map((point, idx) => (
+                  <div key={point.id} className={tooltip.group.points.length > 1 ? "pb-3 border-b border-border last:border-0 last:pb-0" : ""}>
+                    <div className="font-semibold mb-2 text-sm flex items-start gap-2">
+                      {tooltip.group.points.length > 1 && (
+                        <span className="text-xs text-muted-foreground shrink-0">#{idx + 1}</span>
+                      )}
+                      <span>{point.statement}</span>
+                    </div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div>Benefit: {point.magnitude}/10</div>
+                      <div>Effort: {point.effortSolving}/10</div>
+                      <div>Hours/Month: {Math.round(point.totalHoursPerMonth)}</div>
+                      {point.linkedUseCases.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-border">
+                          <div className="font-semibold mb-1 text-foreground">Linked Solutions:</div>
+                          {point.linkedUseCases.map((useCase, ucIdx) => (
+                            <div key={ucIdx} className="text-primary">• {useCase}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           )}
