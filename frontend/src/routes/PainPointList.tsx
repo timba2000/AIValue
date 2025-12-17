@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
+import { PainPointMetricsCards } from "@/components/PainPointMetricsCards";
 import { useFilterStore } from "../stores/filterStore";
 import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat, useCompanies } from "../hooks/useApiData";
 import { getDescendantIds } from "../utils/hierarchy";
@@ -204,6 +205,48 @@ export default function PainPointList() {
     return filtered;
   }, [painPoints, validProcessIds, validBusinessUnitIds, search]);
 
+  const metricsData = useMemo(() => {
+    const level2BuIds = new Set<string>();
+    businessUnits.forEach(bu => {
+      if (bu.parentId !== null) {
+        const parent = businessUnits.find(p => p.id === bu.parentId);
+        if (parent && parent.parentId === null) {
+          level2BuIds.add(bu.id);
+        }
+      }
+    });
+    
+    const l2BusWithPainPoints = new Set<string>();
+    painPoints.forEach(pp => {
+      if (pp.businessUnitId && level2BuIds.has(pp.businessUnitId)) {
+        l2BusWithPainPoints.add(pp.businessUnitId);
+      }
+    });
+
+    const totalHoursPerMonth = filteredPainPoints.reduce((sum, pp) => 
+      sum + (pp.totalHoursPerMonth || 0), 0);
+
+    const linkedCount = filteredPainPoints.filter(pp => 
+      linkStats[pp.id] && linkStats[pp.id] > 0).length;
+    const linkedPercentage = filteredPainPoints.length > 0 
+      ? Math.round((linkedCount / filteredPainPoints.length) * 100) 
+      : 0;
+
+    const validMagnitudes = filteredPainPoints.filter(pp => pp.magnitude != null);
+    const avgBenefitScore = validMagnitudes.length > 0
+      ? validMagnitudes.reduce((sum, pp) => sum + (pp.magnitude || 0), 0) / validMagnitudes.length
+      : 0;
+
+    return {
+      totalPainPoints: painPoints.length,
+      filteredPainPoints: filteredPainPoints.length,
+      level2BusinessUnitsAssessed: l2BusWithPainPoints.size,
+      totalHoursPerMonth,
+      linkedPercentage,
+      avgBenefitScore
+    };
+  }, [painPoints, filteredPainPoints, businessUnits, linkStats]);
+
 
   const handleCreate = () => {
     setEditingPainPoint(null);
@@ -322,6 +365,15 @@ export default function PainPointList() {
           <p className="text-sm text-red-500">{error}</p>
         </div>
       )}
+
+      <PainPointMetricsCards
+        totalPainPoints={metricsData.totalPainPoints}
+        filteredPainPoints={metricsData.filteredPainPoints}
+        level2BusinessUnitsAssessed={metricsData.level2BusinessUnitsAssessed}
+        totalHoursPerMonth={metricsData.totalHoursPerMonth}
+        linkedPercentage={metricsData.linkedPercentage}
+        avgBenefitScore={metricsData.avgBenefitScore}
+      />
 
       <FilterByContext />
 
