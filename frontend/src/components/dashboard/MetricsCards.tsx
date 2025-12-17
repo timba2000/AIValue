@@ -66,9 +66,9 @@ export function MetricsCards({
       iconColor: "text-purple-500"
     },
     {
-      label: "Total FTE Impacted",
-      value: totalFTE,
-      subtitle: "full-time equivalents",
+      label: "FTE Capacity Created",
+      value: (totalHoursPerMonth / 35).toFixed(1),
+      subtitle: "based on 35 hrs/week",
       icon: Users,
       gradient: "from-indigo-500 to-purple-500",
       iconBg: "bg-gradient-to-br from-indigo-500/10 to-purple-500/10",
