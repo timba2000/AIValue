@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -7,8 +7,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
+  const hasRenderedOnce = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -28,8 +29,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
+    if (hasRenderedOnce.current) {
+      return (
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">Session expired. Redirecting...</p>
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 
+  hasRenderedOnce.current = true;
   return <>{children}</>;
 }

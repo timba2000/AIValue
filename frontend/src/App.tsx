@@ -4,6 +4,7 @@ import { Route, Switch, useLocation } from "wouter";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PageTransition } from "@/components/PageTransition";
 import OpportunitiesDashboard from "@/routes/OpportunitiesDashboard";
 import PainPointList from "@/routes/PainPointList";
 import ProcessList from "@/routes/ProcessList";
@@ -56,6 +57,7 @@ function App() {
 
       <main className={`flex-1 ${shouldShowSidebar ? "pt-24 md:pt-0 md:pl-64" : ""}`}>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <PageTransition>
           <Switch>
             <Route path="/login" component={LoginPage} />
             <Route path="/">
@@ -134,6 +136,7 @@ function App() {
               </ProtectedRoute>
             </Route>
           </Switch>
+          </PageTransition>
         </div>
       </main>
     </div>
