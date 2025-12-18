@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Layers, Link2, Lightbulb, Users, AlertTriangle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -130,6 +130,37 @@ export default function ProcessList() {
     if (!search.trim()) return processes;
     return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
   }, [processes, search]);
+
+  const processStats = useMemo(() => {
+    const totalProcesses = processes.length;
+    const withPainPoints = processes.filter(p => p.painPointCount > 0).length;
+    const withUseCases = processes.filter(p => p.useCaseCount > 0).length;
+    const withoutLinks = processes.filter(p => p.painPointCount === 0 && p.useCaseCount === 0).length;
+    const totalFTE = processes.reduce((sum, p) => sum + (p.fte || 0), 0);
+    const totalPainPointLinks = processes.reduce((sum, p) => sum + p.painPointCount, 0);
+    const totalUseCaseLinks = processes.reduce((sum, p) => sum + p.useCaseCount, 0);
+    
+    const l1Breakdown: Record<string, number> = {};
+    for (const process of processes) {
+      const l1 = parseProcessHierarchy(process.name).l1;
+      l1Breakdown[l1] = (l1Breakdown[l1] || 0) + 1;
+    }
+    
+    const allCategories = Object.entries(l1Breakdown).sort((a, b) => b[1] - a[1]);
+    const totalCategories = allCategories.length;
+    
+    return {
+      totalProcesses,
+      withPainPoints,
+      withUseCases,
+      withoutLinks,
+      totalFTE,
+      totalPainPointLinks,
+      totalUseCaseLinks,
+      totalCategories,
+      l1Breakdown: allCategories.slice(0, 5)
+    };
+  }, [processes]);
 
   const groupedProcesses = useMemo(() => {
     const groups: Map<string, L1Group> = new Map();
@@ -409,6 +440,98 @@ export default function ProcessList() {
       </div>
 
       <FilterByContext />
+
+      {!loading && processes.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Process Overview</h2>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <Layers className="h-4 w-4" />
+                <span className="text-xs font-medium">Total Processes</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.totalProcesses}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-xl p-4 border border-green-500/20">
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
+                <Link2 className="h-4 w-4" />
+                <span className="text-xs font-medium">With Pain Points</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.withPainPoints}</p>
+              <p className="text-xs text-muted-foreground">{processStats.totalPainPointLinks} links</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-xl p-4 border border-blue-500/20">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+                <Lightbulb className="h-4 w-4" />
+                <span className="text-xs font-medium">With Solutions</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.withUseCases}</p>
+              <p className="text-xs text-muted-foreground">{processStats.totalUseCaseLinks} links</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl p-4 border border-amber-500/20">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-xs font-medium">Unlinked</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.withoutLinks}</p>
+              <p className="text-xs text-muted-foreground">no connections</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 rounded-xl p-4 border border-purple-500/20">
+              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-1">
+                <Users className="h-4 w-4" />
+                <span className="text-xs font-medium">Total FTE</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.totalFTE.toFixed(1)}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 rounded-xl p-4 border border-slate-500/20">
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
+                <BarChart3 className="h-4 w-4" />
+                <span className="text-xs font-medium">Categories</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{processStats.totalCategories}</p>
+              <p className="text-xs text-muted-foreground">L1 categories</p>
+            </div>
+          </div>
+          
+          {processStats.l1Breakdown.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Top Categories by Process Count</h3>
+              <div className="space-y-2">
+                {processStats.l1Breakdown.map(([category, count]) => {
+                  const percentage = processStats.totalProcesses > 0 
+                    ? Math.round((count / processStats.totalProcesses) * 100) 
+                    : 0;
+                  return (
+                    <div key={category} className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-foreground truncate">{category}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{count} ({percentage}%)</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
