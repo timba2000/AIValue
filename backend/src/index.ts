@@ -31,12 +31,19 @@ app.use(
 );
 app.use(express.json());
 
+const isProduction = process.env.NODE_ENV === "production";
+const frontendDistPath = isProduction 
+  ? path.join(__dirname, "../public")
+  : path.join(__dirname, "../../../frontend/dist");
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.use(express.static(frontendDistPath));
+
 async function startServer() {
   await setupAuth(app);
-
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
 
   app.use("/usecases", isAuthenticated, useCaseRouter);
   app.use("/api/use-cases", isAuthenticated, useCaseRouter);
@@ -219,13 +226,6 @@ async function startServer() {
       res.status(500).json({ message: "Failed to delete all data" });
     }
   });
-
-  const isProduction = process.env.NODE_ENV === "production";
-  const frontendDistPath = isProduction 
-    ? path.join(__dirname, "../public")
-    : path.join(__dirname, "../../../frontend/dist");
-
-  app.use(express.static(frontendDistPath));
 
   app.get("*", (_req, res, next) => {
     if (_req.path.startsWith("/api") || _req.path.startsWith("/usecases") || _req.path === "/health") {
