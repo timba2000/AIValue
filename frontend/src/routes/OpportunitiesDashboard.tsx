@@ -416,9 +416,9 @@ export default function OpportunitiesDashboard() {
   const matrixData = (allPainPoints.data || []).map(pp => ({
     id: pp.id,
     statement: pp.statement,
-    magnitude: pp.magnitude || 0,
-    effortSolving: pp.effortSolving || 0,
-    totalHoursPerMonth: pp.totalHoursPerMonth || 0,
+    magnitude: Number(pp.magnitude || 0),
+    effortSolving: Number(pp.effortSolving || 0),
+    totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
     hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
     linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
   }));
@@ -427,15 +427,15 @@ export default function OpportunitiesDashboard() {
     const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
     const totalPercentageSolved = ppLinks.reduce((sum, link) => sum + (link.percentageSolved ? Number(link.percentageSolved) : 0), 0);
     const cappedPercentage = Math.min(totalPercentageSolved, 100);
-    const potentialHoursSaved = (pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
+    const potentialHoursSaved = Number(pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
     
     return {
       id: pp.id,
       statement: pp.statement,
-      magnitude: pp.magnitude || 0,
-      effortSolving: pp.effortSolving || 0,
-      totalHoursPerMonth: pp.totalHoursPerMonth || 0,
-      fteCount: pp.fteCount || 0,
+      magnitude: Number(pp.magnitude || 0),
+      effortSolving: Number(pp.effortSolving || 0),
+      totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
+      fteCount: Number(pp.fteCount || 0),
       hasLinks: ppLinks.length > 0,
       linkedSolutions: ppLinks.map(link => link.useCaseName).filter((name): name is string => name !== null),
       totalPercentageSolved,

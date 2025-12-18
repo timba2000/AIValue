@@ -224,7 +224,7 @@ export default function PainPointList() {
     });
 
     const totalHoursPerMonth = filteredPainPoints.reduce((sum, pp) => 
-      sum + (pp.totalHoursPerMonth || 0), 0);
+      sum + Number(pp.totalHoursPerMonth || 0), 0);
 
     const linkedCount = filteredPainPoints.filter(pp => 
       linkStats[pp.id] && linkStats[pp.id] > 0).length;
@@ -234,7 +234,7 @@ export default function PainPointList() {
 
     const validMagnitudes = filteredPainPoints.filter(pp => pp.magnitude != null);
     const avgBenefitScore = validMagnitudes.length > 0
-      ? validMagnitudes.reduce((sum, pp) => sum + (pp.magnitude || 0), 0) / validMagnitudes.length
+      ? validMagnitudes.reduce((sum, pp) => sum + Number(pp.magnitude || 0), 0) / validMagnitudes.length
       : 0;
 
     return {
