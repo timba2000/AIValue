@@ -247,7 +247,7 @@ export function LinkManagerModal({
           </DialogTitle>
           <div className="mt-2 p-3 bg-primary/10 rounded-xl border border-primary/20">
             <p className="text-sm text-muted-foreground">Linking to:</p>
-            <p className="font-medium text-foreground line-clamp-2">{sourceName}</p>
+            <p className="font-medium text-foreground line-clamp-2" title={sourceName}>{sourceName}</p>
           </div>
         </DialogHeader>
 
@@ -290,7 +290,7 @@ export function LinkManagerModal({
                           className="p-3 rounded-xl border-2 border-green-500/30 bg-green-500/10 flex items-start justify-between gap-3"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground line-clamp-2">
+                            <p className="font-medium text-foreground line-clamp-2" title={mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}>
                               {mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}
                             </p>
                             {link?.percentageSolved && (
@@ -329,7 +329,7 @@ export function LinkManagerModal({
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground line-clamp-2 group-hover:text-primary">
+                            <p className="font-medium text-foreground line-clamp-2 group-hover:text-primary" title={mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}>
                               {mode === "pain-point" ? (item as UseCase).name : (item as PainPoint).statement}
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">

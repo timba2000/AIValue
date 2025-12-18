@@ -1096,7 +1096,7 @@ export default function AdminPainPointUpload() {
                             {row.subUnitName || "-"}
                           </span>
                         </td>
-                        <td className="py-2 px-3 max-w-xs truncate">{row.statement || "-"}</td>
+                        <td className="py-2 px-3 max-w-xs truncate" title={row.statement || ""}>{row.statement || "-"}</td>
                         <td className="py-2 px-3">{row.taxonomyL1Name || "-"}</td>
                         <td className="py-2 px-3">
                           {row.processNeedsLinking && preview.availableL1Processes && preview.availableL1Processes.length > 0 ? (

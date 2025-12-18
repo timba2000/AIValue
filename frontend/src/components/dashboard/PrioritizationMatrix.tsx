@@ -484,7 +484,7 @@ export function PrioritizationMatrix({ painPoints, onPainPointClick }: Prioritiz
                     <div className="mt-2 pt-2 border-t border-border">
                       <div className="font-semibold mb-1 text-xs text-foreground">Linked Solutions:</div>
                       {tooltip.group.points[0].linkedUseCases.slice(0, 3).map((useCase, idx) => (
-                        <div key={idx} className="text-xs text-primary truncate">• {useCase}</div>
+                        <div key={idx} className="text-xs text-primary truncate" title={useCase}>• {useCase}</div>
                       ))}
                       {tooltip.group.points[0].linkedUseCases.length > 3 && (
                         <div className="text-xs text-muted-foreground">
@@ -548,7 +548,7 @@ export function PrioritizationMatrix({ painPoints, onPainPointClick }: Prioritiz
                           {idx + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                          <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors" title={point.statement}>
                             {point.statement}
                           </p>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">

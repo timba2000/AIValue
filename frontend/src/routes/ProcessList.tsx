@@ -488,7 +488,7 @@ export default function ProcessList() {
                     <div key={category} className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground truncate">{category}</span>
+                          <span className="text-sm font-medium text-foreground truncate" title={category}>{category}</span>
                           <span className="text-xs text-muted-foreground ml-2">{count} ({percentage}%)</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">

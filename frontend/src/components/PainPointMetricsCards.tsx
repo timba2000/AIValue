@@ -88,10 +88,10 @@ export function PainPointMetricsCards({
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{metric.label}</p>
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate" title={metric.label}>{metric.label}</p>
               <p className="text-xl sm:text-2xl font-bold text-foreground mt-1.5 animate-count">{metric.value}</p>
               {metric.subtitle && (
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">{metric.subtitle}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate" title={metric.subtitle}>{metric.subtitle}</p>
               )}
             </div>
             <div className={`${metric.iconBg} p-2 sm:p-2.5 rounded-xl shrink-0 transition-transform duration-300 group-hover:scale-110`}>

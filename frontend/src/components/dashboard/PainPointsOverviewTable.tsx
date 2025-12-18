@@ -280,7 +280,7 @@ export function PainPointsOverviewTable({
               >
                 <td className="px-4 py-4 text-sm text-foreground max-w-xs">
                   <div className="relative group">
-                    <div className="truncate font-medium cursor-help">
+                    <div className="truncate font-medium cursor-help" title={row.statement}>
                       {row.statement}
                     </div>
                     <div className="absolute left-0 top-full mt-2 z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">

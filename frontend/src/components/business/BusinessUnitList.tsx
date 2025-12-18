@@ -55,7 +55,7 @@ function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowP
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground truncate">{unit.name}</span>
+            <span className="font-medium text-foreground truncate" title={unit.name}>{unit.name}</span>
             {unit.depth === 1 && (
               <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">Level 1</span>
             )}
@@ -67,7 +67,7 @@ function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowP
             )}
           </div>
           {unit.description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{unit.description}</p>
+            <p className="text-xs text-muted-foreground truncate mt-0.5" title={unit.description}>{unit.description}</p>
           )}
         </div>
 
