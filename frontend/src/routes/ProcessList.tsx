@@ -225,30 +225,6 @@ export default function ProcessList() {
     return count;
   };
 
-  // Helper to check if two sets have the same contents
-  const setsEqual = (a: Set<string>, b: Set<string>): boolean => {
-    if (a.size !== b.size) return false;
-    for (const item of a) {
-      if (!b.has(item)) return false;
-    }
-    return true;
-  };
-
-  // Auto-expand all groups when processes load or change
-  useEffect(() => {
-    const allL1s = new Set(groupedProcesses.map(([l1]) => l1));
-    const allL2s = new Set<string>();
-    for (const [l1, l1Group] of groupedProcesses) {
-      for (const [l2] of l1Group.l2Groups) {
-        allL2s.add(`${l1}:${l2}`);
-      }
-    }
-    
-    // Only update if the sets actually changed
-    setExpandedL1(prev => setsEqual(prev, allL1s) ? prev : allL1s);
-    setExpandedL2(prev => setsEqual(prev, allL2s) ? prev : allL2s);
-  }, [groupedProcesses]);
-
   const toggleL1 = (l1: string) => {
     setExpandedL1(prev => {
       const next = new Set(prev);
@@ -439,8 +415,6 @@ export default function ProcessList() {
         {error ? <p className="text-sm text-red-500 font-medium mt-3">{error}</p> : null}
       </div>
 
-      <FilterByContext />
-
       {!loading && processes.length > 0 && (
         <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
           <div className="flex items-center gap-2 mb-4">
@@ -532,6 +506,8 @@ export default function ProcessList() {
           )}
         </div>
       )}
+
+      <FilterByContext />
 
       <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
