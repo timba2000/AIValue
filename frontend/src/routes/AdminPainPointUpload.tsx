@@ -115,7 +115,7 @@ interface TaxonomyCategory {
 }
 
 export default function AdminPainPointUpload() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -496,10 +496,9 @@ export default function AdminPainPointUpload() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      fetchTaxonomyData();
-    }
-  }, [isAuthenticated, isAdmin, fetchTaxonomyData]);
+    if (!isAdmin) return;
+    fetchTaxonomyData();
+  }, [isAdmin, fetchTaxonomyData]);
 
   const handleAddNewL2 = useCallback(async () => {
     if (!selectedL1 || !newL2Name.trim()) return;
@@ -586,18 +585,7 @@ export default function AdminPainPointUpload() {
   const l2Categories = taxonomyData.filter(t => t.level === 2 && String(t.parentId) === selectedL1);
   const l3Categories = taxonomyData.filter(t => t.level === 3 && String(t.parentId) === selectedL2);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">

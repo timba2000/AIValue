@@ -68,7 +68,7 @@ interface UserRecord {
 }
 
 export default function AdminPage() {
-  const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
@@ -76,33 +76,27 @@ export default function AdminPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/login";
-    }
-  }, [isAuthenticated, isLoading]);
   
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      setStatsLoading(true);
-      fetch(`${API_BASE}/api/admin/stats`, { credentials: "include" })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => setStats(data))
-        .finally(() => setStatsLoading(false));
-      
-      setUsersLoading(true);
-      setUsersError(null);
-      fetch(`${API_BASE}/api/admin/users`, { credentials: "include" })
-        .then(res => {
-          if (!res.ok) throw new Error("Failed to load users");
-          return res.json();
-        })
-        .then(data => setUsersList(data))
-        .catch(err => setUsersError(err.message || "Failed to load users"))
-        .finally(() => setUsersLoading(false));
-    }
-  }, [isAuthenticated, isAdmin]);
+    if (!isAdmin) return;
+    
+    setStatsLoading(true);
+    fetch(`${API_BASE}/api/admin/stats`, { credentials: "include" })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => setStats(data))
+      .finally(() => setStatsLoading(false));
+    
+    setUsersLoading(true);
+    setUsersError(null);
+    fetch(`${API_BASE}/api/admin/users`, { credentials: "include" })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to load users");
+        return res.json();
+      })
+      .then(data => setUsersList(data))
+      .catch(err => setUsersError(err.message || "Failed to load users"))
+      .finally(() => setUsersLoading(false));
+  }, [isAdmin]);
 
   const toggleAdmin = async (userId: string, currentIsAdmin: number) => {
     setUpdatingUserId(userId);
@@ -127,32 +121,6 @@ export default function AdminPage() {
       setUpdatingUserId(null);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Shield className="h-16 w-16 text-muted-foreground mx-auto" />
-          <h1 className="text-2xl font-bold text-foreground">Admin Access Required</h1>
-          <p className="text-muted-foreground">Please log in to access the admin panel.</p>
-          <Button onClick={() => window.location.href = "/login"}>
-            Log In
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   if (!isAdmin) {
     return (

@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2 } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
@@ -18,7 +17,6 @@ interface Message {
 }
 
 export default function AIPage() {
-  const { isLoading, isAuthenticated } = useAuth();
   const { aiEnabled, persona, rules } = useAISettingsStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -26,12 +24,6 @@ export default function AIPage() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/login";
-    }
-  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,14 +104,6 @@ export default function AIPage() {
       handleSubmit();
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   if (!aiEnabled) {
     return (

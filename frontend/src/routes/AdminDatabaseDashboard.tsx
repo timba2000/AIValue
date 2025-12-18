@@ -22,7 +22,7 @@ interface DeleteConfirmation {
 }
 
 export default function AdminDatabaseDashboard() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmation>({ type: null, label: "", description: "" });
@@ -46,16 +46,9 @@ export default function AdminDatabaseDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/login";
-    }
-  }, [isAuthenticated, isLoading]);
-
-  useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      fetchStats();
-    }
-  }, [isAuthenticated, isAdmin, fetchStats]);
+    if (!isAdmin) return;
+    fetchStats();
+  }, [isAdmin, fetchStats]);
 
   const handleDelete = async () => {
     if (!deleteConfirm.type) return;
@@ -98,18 +91,7 @@ export default function AdminDatabaseDashboard() {
     setConfirmText("");
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">

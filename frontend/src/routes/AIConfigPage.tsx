@@ -10,17 +10,11 @@ function cn(...classes: (string | boolean | undefined)[]) {
 }
 
 export default function AIConfigPage() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { aiEnabled, persona, rules, setPersona, setRules } = useAISettingsStore();
   const [localPersona, setLocalPersona] = useState(persona);
   const [localRules, setLocalRules] = useState(rules);
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/login";
-    }
-  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
     setLocalPersona(persona);
@@ -35,14 +29,6 @@ export default function AIConfigPage() {
   };
 
   const hasChanges = localPersona !== persona || localRules !== rules;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   if (!isAdmin) {
     return (

@@ -60,7 +60,7 @@ interface CompanyInsights {
 }
 
 export default function AdminBusinessPage() {
-  const { isLoading: authLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [companiesLoading, setCompaniesLoading] = useState(true);
@@ -70,24 +70,20 @@ export default function AdminBusinessPage() {
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      window.location.href = "/login";
+    if (!isAdmin) {
+      setCompaniesLoading(false);
+      return;
     }
-  }, [isAuthenticated, authLoading]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetch(`${API_BASE}/api/companies`, { credentials: "include" })
-        .then((res) => res.json())
-        .then((data) => {
-          setCompanies(data);
-          if (data.length > 0) {
-            setSelectedCompanyId(data[0].id);
-          }
-        })
-        .finally(() => setCompaniesLoading(false));
-    }
-  }, [isAuthenticated]);
+    fetch(`${API_BASE}/api/companies`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        setCompanies(data);
+        if (data.length > 0) {
+          setSelectedCompanyId(data[0].id);
+        }
+      })
+      .finally(() => setCompaniesLoading(false));
+  }, [isAdmin]);
 
   useEffect(() => {
     if (selectedCompanyId) {
@@ -166,7 +162,7 @@ export default function AdminBusinessPage() {
     }
   };
 
-  if (authLoading || companiesLoading) {
+  if (companiesLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

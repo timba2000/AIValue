@@ -53,7 +53,7 @@ interface ImportResult {
 }
 
 export default function AdminProcessUpload() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
@@ -64,22 +64,24 @@ export default function AdminProcessUpload() {
   const [uploading, setUploading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingData, setLoadingData] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      setLoadingData(true);
-      Promise.all([
-        fetch(`${API_BASE}/api/companies`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_BASE}/api/business-units`, { credentials: "include" }).then(r => r.json())
-      ])
-        .then(([companiesData, businessUnitsData]) => {
-          setCompanies(companiesData);
-          setBusinessUnits(businessUnitsData);
-        })
-        .finally(() => setLoadingData(false));
+    if (!isAdmin) {
+      setLoadingData(false);
+      return;
     }
-  }, [isAuthenticated, isAdmin]);
+    setLoadingData(true);
+    Promise.all([
+      fetch(`${API_BASE}/api/companies`, { credentials: "include" }).then(r => r.json()),
+      fetch(`${API_BASE}/api/business-units`, { credentials: "include" }).then(r => r.json())
+    ])
+      .then(([companiesData, businessUnitsData]) => {
+        setCompanies(companiesData);
+        setBusinessUnits(businessUnitsData);
+      })
+      .finally(() => setLoadingData(false));
+  }, [isAdmin]);
 
   const filteredBusinessUnits = businessUnits.filter(bu => bu.companyId === selectedCompanyId);
 
@@ -200,7 +202,7 @@ export default function AdminProcessUpload() {
     window.location.href = url;
   }, [selectedCompanyId, selectedBusinessUnitId]);
 
-  if (isLoading) {
+  if (loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -211,7 +213,7 @@ export default function AdminProcessUpload() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
