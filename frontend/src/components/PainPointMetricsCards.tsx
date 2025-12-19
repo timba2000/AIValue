@@ -1,21 +1,27 @@
-import { AlertTriangle, Link2, Unlink, Layers, Layers2, Layers3 } from "lucide-react";
+import { AlertTriangle, Link2, Unlink, Users, Settings, Cpu } from "lucide-react";
 
 interface PainPointMetricsCardsProps {
   totalPainPoints: number;
   linkedCount: number;
   unlinkedCount: number;
-  l1Count: number;
-  l2Count: number;
-  l3Count: number;
+  peopleCount: number;
+  peoplePercent: number;
+  processCount: number;
+  processPercent: number;
+  technologyCount: number;
+  technologyPercent: number;
 }
 
 export function PainPointMetricsCards({
   totalPainPoints,
   linkedCount,
   unlinkedCount,
-  l1Count,
-  l2Count,
-  l3Count
+  peopleCount,
+  peoplePercent,
+  processCount,
+  processPercent,
+  technologyCount,
+  technologyPercent
 }: PainPointMetricsCardsProps) {
   const row1Metrics = [
     {
@@ -46,32 +52,32 @@ export function PainPointMetricsCards({
 
   const row2Metrics = [
     {
-      label: "Category L1",
-      value: l1Count,
-      subtitle: "level 1 categorized",
-      icon: Layers,
+      label: "People",
+      value: `${peoplePercent}%`,
+      subtitle: `${peopleCount} categorized`,
+      icon: Users,
       iconBg: "bg-gradient-to-br from-blue-500/10 to-cyan-500/10",
       iconColor: "text-blue-500"
     },
     {
-      label: "Category L2",
-      value: l2Count,
-      subtitle: "level 2 categorized",
-      icon: Layers2,
+      label: "Process",
+      value: `${processPercent}%`,
+      subtitle: `${processCount} categorized`,
+      icon: Settings,
       iconBg: "bg-gradient-to-br from-violet-500/10 to-purple-500/10",
       iconColor: "text-violet-500"
     },
     {
-      label: "Category L3",
-      value: l3Count,
-      subtitle: "level 3 categorized",
-      icon: Layers3,
+      label: "Technology",
+      value: `${technologyPercent}%`,
+      subtitle: `${technologyCount} categorized`,
+      icon: Cpu,
       iconBg: "bg-gradient-to-br from-indigo-500/10 to-blue-500/10",
       iconColor: "text-indigo-500"
     }
   ];
 
-  const renderCard = (metric: typeof row1Metrics[0], index: number) => (
+  const renderCard = (metric: { label: string; value: string | number; subtitle: string; icon: React.ElementType; iconBg: string; iconColor: string }, index: number) => (
     <div 
       key={index} 
       className="group bg-card rounded-2xl border border-border p-4 sm:p-5 card-hover slide-up"

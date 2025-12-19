@@ -231,19 +231,40 @@ export default function PainPointList() {
       linkStats[pp.id] && linkStats[pp.id] > 0).length;
     const unlinkedCount = filteredPainPoints.length - linkedCount;
 
-    const l1Count = filteredPainPoints.filter(pp => pp.taxonomyLevel1Id).length;
-    const l2Count = filteredPainPoints.filter(pp => pp.taxonomyLevel2Id).length;
-    const l3Count = filteredPainPoints.filter(pp => pp.taxonomyLevel3Id).length;
+    const getL1Name = (l1Id: string | null | undefined) => {
+      if (!l1Id) return null;
+      const category = taxonomyCategories.find(c => c.id === l1Id);
+      return category?.name?.toLowerCase() || null;
+    };
+
+    let peopleCount = 0;
+    let processCount = 0;
+    let technologyCount = 0;
+
+    filteredPainPoints.forEach(pp => {
+      const l1Name = getL1Name(pp.taxonomyLevel1Id);
+      if (l1Name?.includes('people')) peopleCount++;
+      else if (l1Name?.includes('process')) processCount++;
+      else if (l1Name?.includes('technology') || l1Name?.includes('tech')) technologyCount++;
+    });
+
+    const total = filteredPainPoints.length;
+    const peoplePercent = total > 0 ? Math.round((peopleCount / total) * 100) : 0;
+    const processPercent = total > 0 ? Math.round((processCount / total) * 100) : 0;
+    const technologyPercent = total > 0 ? Math.round((technologyCount / total) * 100) : 0;
 
     return {
       totalPainPoints: filteredPainPoints.length,
       linkedCount,
       unlinkedCount,
-      l1Count,
-      l2Count,
-      l3Count
+      peopleCount,
+      peoplePercent,
+      processCount,
+      processPercent,
+      technologyCount,
+      technologyPercent
     };
-  }, [filteredPainPoints, linkStats]);
+  }, [filteredPainPoints, linkStats, taxonomyCategories]);
 
 
   const handleCreate = () => {
@@ -368,9 +389,12 @@ export default function PainPointList() {
         totalPainPoints={metricsData.totalPainPoints}
         linkedCount={metricsData.linkedCount}
         unlinkedCount={metricsData.unlinkedCount}
-        l1Count={metricsData.l1Count}
-        l2Count={metricsData.l2Count}
-        l3Count={metricsData.l3Count}
+        peopleCount={metricsData.peopleCount}
+        peoplePercent={metricsData.peoplePercent}
+        processCount={metricsData.processCount}
+        processPercent={metricsData.processPercent}
+        technologyCount={metricsData.technologyCount}
+        technologyPercent={metricsData.technologyPercent}
       />
 
       <FilterByContext />
