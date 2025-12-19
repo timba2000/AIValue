@@ -180,3 +180,25 @@ export type NewProcessUseCase = typeof processUseCases.$inferInsert;
 
 export type TaxonomyCategory = typeof taxonomyCategories.$inferSelect;
 export type NewTaxonomyCategory = typeof taxonomyCategories.$inferInsert;
+
+export const aiConversations = pgTable("ai_conversations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const aiMessages = pgTable("ai_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  conversationId: uuid("conversation_id").notNull().references(() => aiConversations.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 20 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export type AIConversation = typeof aiConversations.$inferSelect;
+export type NewAIConversation = typeof aiConversations.$inferInsert;
+
+export type AIMessage = typeof aiMessages.$inferSelect;
+export type NewAIMessage = typeof aiMessages.$inferInsert;
