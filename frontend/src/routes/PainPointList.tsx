@@ -99,6 +99,16 @@ export default function PainPointList() {
   const [selectedImpactTypes, setSelectedImpactTypes] = useState<string[]>([]);
   const [showImpactFilter, setShowImpactFilter] = useState(false);
   const impactFilterRef = useRef<HTMLDivElement>(null);
+  
+  const [filterBusinessUnit, setFilterBusinessUnit] = useState<string>("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterEffortMin, setFilterEffortMin] = useState<string>("");
+  const [filterEffortMax, setFilterEffortMax] = useState<string>("");
+  const [filterImpactMin, setFilterImpactMin] = useState<string>("");
+  const [filterImpactMax, setFilterImpactMax] = useState<string>("");
+  const [filterHoursMin, setFilterHoursMin] = useState<string>("");
+  const [filterHoursMax, setFilterHoursMax] = useState<string>("");
+  const [filterLinked, setFilterLinked] = useState<string>("");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -222,9 +232,62 @@ export default function PainPointList() {
         pp.impactType && pp.impactType.some(type => selectedImpactTypes.includes(type))
       );
     }
+
+    if (filterBusinessUnit) {
+      filtered = filtered.filter(pp => pp.businessUnitId === filterBusinessUnit);
+    }
+
+    if (filterCategory) {
+      filtered = filtered.filter(pp => pp.taxonomyLevel1Id === filterCategory);
+    }
+
+    if (filterEffortMin) {
+      const min = parseInt(filterEffortMin);
+      if (!isNaN(min)) {
+        filtered = filtered.filter(pp => pp.effortSolving != null && pp.effortSolving >= min);
+      }
+    }
+    if (filterEffortMax) {
+      const max = parseInt(filterEffortMax);
+      if (!isNaN(max)) {
+        filtered = filtered.filter(pp => pp.effortSolving != null && pp.effortSolving <= max);
+      }
+    }
+
+    if (filterImpactMin) {
+      const min = parseInt(filterImpactMin);
+      if (!isNaN(min)) {
+        filtered = filtered.filter(pp => pp.magnitude != null && pp.magnitude >= min);
+      }
+    }
+    if (filterImpactMax) {
+      const max = parseInt(filterImpactMax);
+      if (!isNaN(max)) {
+        filtered = filtered.filter(pp => pp.magnitude != null && pp.magnitude <= max);
+      }
+    }
+
+    if (filterHoursMin) {
+      const min = parseFloat(filterHoursMin);
+      if (!isNaN(min)) {
+        filtered = filtered.filter(pp => Number(pp.totalHoursPerMonth || 0) >= min);
+      }
+    }
+    if (filterHoursMax) {
+      const max = parseFloat(filterHoursMax);
+      if (!isNaN(max)) {
+        filtered = filtered.filter(pp => Number(pp.totalHoursPerMonth || 0) <= max);
+      }
+    }
+
+    if (filterLinked === "linked") {
+      filtered = filtered.filter(pp => linkStats[pp.id] && linkStats[pp.id] > 0);
+    } else if (filterLinked === "unlinked") {
+      filtered = filtered.filter(pp => !linkStats[pp.id] || linkStats[pp.id] === 0);
+    }
     
     return filtered;
-  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes]);
+  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes, filterBusinessUnit, filterCategory, filterEffortMin, filterEffortMax, filterImpactMin, filterImpactMax, filterHoursMin, filterHoursMax, filterLinked, linkStats]);
 
   const metricsData = useMemo(() => {
     const linkedCount = filteredPainPoints.filter(pp => 
@@ -499,6 +562,126 @@ export default function PainPointList() {
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Total Hrs/Month</th>
                   <th className="text-center py-3 px-4 font-semibold text-muted-foreground">Linked Solutions</th>
                   <th className="text-right py-3 px-4 font-semibold text-muted-foreground">Actions</th>
+                </tr>
+                <tr className="border-b border-border bg-muted/30">
+                  <td className="py-2 px-4"></td>
+                  <td className="py-2 px-4">
+                    <select
+                      value={filterBusinessUnit}
+                      onChange={(e) => setFilterBusinessUnit(e.target.value)}
+                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">All</option>
+                      {businessUnits.map(bu => (
+                        <option key={bu.id} value={bu.id}>{bu.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="py-2 px-4">
+                    <select
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">All</option>
+                      {level1Categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="py-2 px-4">
+                    <select
+                      value={selectedImpactTypes.length === 1 ? selectedImpactTypes[0] : selectedImpactTypes.length > 1 ? "_multi_" : ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") setSelectedImpactTypes([]);
+                        else if (val !== "_multi_") setSelectedImpactTypes([val]);
+                      }}
+                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">All</option>
+                      {IMPACT_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
+                      ))}
+                      {selectedImpactTypes.length > 1 && <option value="_multi_" disabled>Multiple ({selectedImpactTypes.length})</option>}
+                    </select>
+                  </td>
+                  <td className="py-2 px-4">
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        placeholder="Min"
+                        value={filterEffortMin}
+                        onChange={(e) => setFilterEffortMin(e.target.value)}
+                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        placeholder="Max"
+                        value={filterEffortMax}
+                        onChange={(e) => setFilterEffortMax(e.target.value)}
+                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </td>
+                  <td className="py-2 px-4">
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        placeholder="Min"
+                        value={filterImpactMin}
+                        onChange={(e) => setFilterImpactMin(e.target.value)}
+                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        placeholder="Max"
+                        value={filterImpactMax}
+                        onChange={(e) => setFilterImpactMax(e.target.value)}
+                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </td>
+                  <td className="py-2 px-4">
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={filterHoursMin}
+                        onChange={(e) => setFilterHoursMin(e.target.value)}
+                        className="w-14 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={filterHoursMax}
+                        onChange={(e) => setFilterHoursMax(e.target.value)}
+                        className="w-14 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </td>
+                  <td className="py-2 px-4">
+                    <select
+                      value={filterLinked}
+                      onChange={(e) => setFilterLinked(e.target.value)}
+                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      <option value="">All</option>
+                      <option value="linked">Linked</option>
+                      <option value="unlinked">Unlinked</option>
+                    </select>
+                  </td>
+                  <td className="py-2 px-4"></td>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
