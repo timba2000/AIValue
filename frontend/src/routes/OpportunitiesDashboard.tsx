@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Trash2, Grid3X3, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
 import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatrix";
+import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { PainPointEditModal } from "@/components/PainPointEditModal";
 import { FilterByContext } from "@/components/FilterByContext";
@@ -66,6 +67,7 @@ export default function OpportunitiesDashboard() {
   const [editingLink, setEditingLink] = useState<PainPointLink | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingPainPointId, setEditingPainPointId] = useState<string | null>(null);
+  const [activeVisualization, setActiveVisualization] = useState<"matrix" | "graph">("matrix");
 
   const { data: selectedPainPointLinks = [] } = useQuery<PainPointLink[]>({
     queryKey: ["painPointLinks", selectedPainPoint?.id],
@@ -463,8 +465,39 @@ export default function OpportunitiesDashboard() {
       <FilterByContext />
 
       <MetricsCards {...metricsData} />
-      
-      <PrioritizationMatrix painPoints={matrixData} />
+
+      <div className="bg-card rounded-2xl border border-border p-4 slide-up">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveVisualization("matrix")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              activeVisualization === "matrix"
+                ? "gradient-bg text-white shadow-lg"
+                : "bg-accent hover:bg-accent/80 text-foreground"
+            }`}
+          >
+            <Grid3X3 className="h-4 w-4" />
+            Prioritization Matrix
+          </button>
+          <button
+            onClick={() => setActiveVisualization("graph")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              activeVisualization === "graph"
+                ? "gradient-bg text-white shadow-lg"
+                : "bg-accent hover:bg-accent/80 text-foreground"
+            }`}
+          >
+            <Share2 className="h-4 w-4" />
+            Knowledge Graph
+          </button>
+        </div>
+      </div>
+
+      {activeVisualization === "matrix" ? (
+        <PrioritizationMatrix painPoints={matrixData} />
+      ) : (
+        <KnowledgeGraph />
+      )}
       
       <PainPointsOverviewTable 
         data={overviewTableData} 
