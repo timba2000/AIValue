@@ -494,7 +494,13 @@ export default function OpportunitiesDashboard() {
       </div>
 
       {activeVisualization === "matrix" ? (
-        <PrioritizationMatrix painPoints={matrixData} />
+        <PrioritizationMatrix 
+          painPoints={matrixData} 
+          onPainPointClick={(painPointId) => {
+            setEditingPainPointId(painPointId);
+            setEditModalOpen(true);
+          }}
+        />
       ) : (
         <KnowledgeGraph />
       )}
