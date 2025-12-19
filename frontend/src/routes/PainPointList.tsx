@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { PainPointMetricsCards } from "@/components/PainPointMetricsCards";
 import { useFilterStore } from "../stores/filterStore";
 import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat, useCompanies } from "../hooks/useApiData";
 import { getDescendantIds } from "../utils/hierarchy";
-import { Link2, Check, AlertCircle } from "lucide-react";
+import { Link2, Check, AlertCircle, Filter, ChevronDown } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -96,6 +96,21 @@ export default function PainPointList() {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPointForLink, setSelectedPainPointForLink] = useState<PainPoint | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedImpactTypes, setSelectedImpactTypes] = useState<string[]>([]);
+  const [showImpactFilter, setShowImpactFilter] = useState(false);
+  const impactFilterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (impactFilterRef.current && !impactFilterRef.current.contains(event.target as Node)) {
+        setShowImpactFilter(false);
+      }
+    };
+    if (showImpactFilter) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showImpactFilter]);
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useAllBusinessUnits();
@@ -201,9 +216,15 @@ export default function PainPointList() {
         pp.statement.toLowerCase().includes(search.toLowerCase())
       );
     }
+
+    if (selectedImpactTypes.length > 0) {
+      filtered = filtered.filter(pp => 
+        pp.impactType && pp.impactType.some(type => selectedImpactTypes.includes(type))
+      );
+    }
     
     return filtered;
-  }, [painPoints, validProcessIds, validBusinessUnitIds, search]);
+  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes]);
 
   const metricsData = useMemo(() => {
     const level2BuIds = new Set<string>();
@@ -380,14 +401,80 @@ export default function PainPointList() {
       <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-foreground">Pain Points List</h2>
-          <div className="w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search by statement..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
-            />
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={impactFilterRef}>
+              <button
+                onClick={() => setShowImpactFilter(!showImpactFilter)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all duration-200 ${
+                  selectedImpactTypes.length > 0
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-foreground hover:bg-accent"
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                <span>Category</span>
+                {selectedImpactTypes.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs font-medium bg-primary text-white rounded-full">
+                    {selectedImpactTypes.length}
+                  </span>
+                )}
+                <ChevronDown className={`h-4 w-4 transition-transform ${showImpactFilter ? "rotate-180" : ""}`} />
+              </button>
+              
+              {showImpactFilter && (
+                <div className="absolute top-full right-0 mt-2 w-56 bg-popover border border-border rounded-xl shadow-lg z-50 p-2">
+                  <div className="flex items-center justify-between px-2 py-1.5 mb-1">
+                    <span className="text-xs font-medium text-muted-foreground">Filter by Impact Type</span>
+                    {selectedImpactTypes.length > 0 && (
+                      <button
+                        onClick={() => setSelectedImpactTypes([])}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {IMPACT_TYPES.map((type) => {
+                      const isSelected = selectedImpactTypes.includes(type.value);
+                      return (
+                        <button
+                          key={type.value}
+                          onClick={() => {
+                            setSelectedImpactTypes(prev =>
+                              isSelected
+                                ? prev.filter(t => t !== type.value)
+                                : [...prev, type.value]
+                            );
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                            isSelected
+                              ? "bg-primary/10 text-primary"
+                              : "text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            isSelected ? "bg-primary border-primary" : "border-border"
+                          }`}>
+                            {isSelected && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          {type.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search by statement..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
+              />
+            </div>
           </div>
         </div>
 
