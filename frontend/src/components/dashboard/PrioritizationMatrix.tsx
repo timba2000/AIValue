@@ -307,22 +307,6 @@ export function PrioritizationMatrix({ painPoints, onPainPointClick }: Prioritiz
       drawBubble(ctx, x, y, radius, group.hasAnyLinks, isStacked, group.points.length, isDark);
     });
 
-    const legendY = padding + 20;
-    drawBubble(ctx, width - 150, legendY, 10, true, false, 0, isDark);
-    ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.8)" : "#374151";
-    ctx.font = "12px -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Has Linked Solutions", width - 135, legendY);
-
-    drawBubble(ctx, width - 150, legendY + 28, 10, false, false, 0, isDark);
-    ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.8)" : "#374151";
-    ctx.fillText("No Linked Solutions", width - 135, legendY + 28);
-
-    drawBubble(ctx, width - 150, legendY + 56, 10, true, true, 3, isDark);
-    ctx.fillStyle = isDark ? "rgba(255, 255, 255, 0.8)" : "#374151";
-    ctx.fillText("Stacked (click to view)", width - 135, legendY + 56);
-
   }, [painPoints, groupedPoints, isDark, drawBubble]);
 
   useEffect(() => {
@@ -439,8 +423,26 @@ export function PrioritizationMatrix({ painPoints, onPainPointClick }: Prioritiz
           No pain points to visualize
         </div>
       ) : (
-        <div ref={containerRef} className="relative w-full" style={{ height: "500px" }}>
-          <canvas
+        <>
+          <div className="flex flex-wrap items-center gap-6 mb-4 pb-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-300 via-violet-500 to-violet-700 border-2 border-violet-400"></div>
+              <span className="text-sm text-muted-foreground">Has Linked Solutions</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-300 via-orange-400 to-orange-600 border-2 border-orange-400"></div>
+              <span className="text-sm text-muted-foreground">No Linked Solutions</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative w-5 h-5">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-300 via-violet-500 to-violet-700 border-2 border-violet-400"></div>
+                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-red-400 to-red-600 border border-white text-white text-[8px] font-bold flex items-center justify-center">3</div>
+              </div>
+              <span className="text-sm text-muted-foreground">Stacked (click to view)</span>
+            </div>
+          </div>
+          <div ref={containerRef} className="relative w-full" style={{ height: "500px" }}>
+            <canvas
             ref={canvasRef}
             className="w-full h-full rounded-xl"
             style={{ width: "100%", height: "100%" }}
@@ -566,7 +568,8 @@ export function PrioritizationMatrix({ painPoints, onPainPointClick }: Prioritiz
               </div>
             </>
           )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
