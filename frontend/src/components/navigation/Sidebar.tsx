@@ -59,22 +59,9 @@ export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
             const Icon = item.icon;
             const active = isActive(item.href);
             const isAiItem = 'requiresAi' in item && item.requiresAi;
-            const isDisabled = isAiItem && !aiEnabled;
 
-            if (isDisabled) {
-              return (
-                <div
-                  key={item.href}
-                  className="group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium opacity-40 cursor-not-allowed"
-                  title="Enable AI in Admin settings to access this feature"
-                >
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-muted-foreground">{item.label}</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                    Off
-                  </span>
-                </div>
-              );
+            if (isAiItem && !aiEnabled) {
+              return null;
             }
 
             return (
