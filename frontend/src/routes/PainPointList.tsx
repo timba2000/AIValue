@@ -227,46 +227,23 @@ export default function PainPointList() {
   }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes]);
 
   const metricsData = useMemo(() => {
-    const level2BuIds = new Set<string>();
-    businessUnits.forEach(bu => {
-      if (bu.parentId !== null) {
-        const parent = businessUnits.find(p => p.id === bu.parentId);
-        if (parent && parent.parentId === null) {
-          level2BuIds.add(bu.id);
-        }
-      }
-    });
-    
-    const l2BusWithPainPoints = new Set<string>();
-    painPoints.forEach(pp => {
-      if (pp.businessUnitId && level2BuIds.has(pp.businessUnitId)) {
-        l2BusWithPainPoints.add(pp.businessUnitId);
-      }
-    });
-
-    const totalHoursPerMonth = filteredPainPoints.reduce((sum, pp) => 
-      sum + Number(pp.totalHoursPerMonth || 0), 0);
-
     const linkedCount = filteredPainPoints.filter(pp => 
       linkStats[pp.id] && linkStats[pp.id] > 0).length;
-    const linkedPercentage = filteredPainPoints.length > 0 
-      ? Math.round((linkedCount / filteredPainPoints.length) * 100) 
-      : 0;
+    const unlinkedCount = filteredPainPoints.length - linkedCount;
 
-    const validMagnitudes = filteredPainPoints.filter(pp => pp.magnitude != null);
-    const avgBenefitScore = validMagnitudes.length > 0
-      ? validMagnitudes.reduce((sum, pp) => sum + Number(pp.magnitude || 0), 0) / validMagnitudes.length
-      : 0;
+    const l1Count = filteredPainPoints.filter(pp => pp.taxonomyLevel1Id).length;
+    const l2Count = filteredPainPoints.filter(pp => pp.taxonomyLevel2Id).length;
+    const l3Count = filteredPainPoints.filter(pp => pp.taxonomyLevel3Id).length;
 
     return {
-      totalPainPoints: painPoints.length,
-      filteredPainPoints: filteredPainPoints.length,
-      level2BusinessUnitsAssessed: l2BusWithPainPoints.size,
-      totalHoursPerMonth,
-      linkedPercentage,
-      avgBenefitScore
+      totalPainPoints: filteredPainPoints.length,
+      linkedCount,
+      unlinkedCount,
+      l1Count,
+      l2Count,
+      l3Count
     };
-  }, [painPoints, filteredPainPoints, businessUnits, linkStats]);
+  }, [filteredPainPoints, linkStats]);
 
 
   const handleCreate = () => {
@@ -389,11 +366,11 @@ export default function PainPointList() {
 
       <PainPointMetricsCards
         totalPainPoints={metricsData.totalPainPoints}
-        filteredPainPoints={metricsData.filteredPainPoints}
-        level2BusinessUnitsAssessed={metricsData.level2BusinessUnitsAssessed}
-        totalHoursPerMonth={metricsData.totalHoursPerMonth}
-        linkedPercentage={metricsData.linkedPercentage}
-        avgBenefitScore={metricsData.avgBenefitScore}
+        linkedCount={metricsData.linkedCount}
+        unlinkedCount={metricsData.unlinkedCount}
+        l1Count={metricsData.l1Count}
+        l2Count={metricsData.l2Count}
+        l3Count={metricsData.l3Count}
       />
 
       <FilterByContext />
