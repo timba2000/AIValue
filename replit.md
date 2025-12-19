@@ -18,6 +18,7 @@ Preferred communication style: Simple, everyday language.
 **Design Decisions:** Component-based architecture, type-safe API layer, responsive mobile-first design, consolidated Dashboard, modal-based forms, global filter context, comprehensive light/dark mode theming with modern contemporary design principles (gradients, glassmorphism, smooth transitions).
 **Linking System:** Pain points link to use cases with percentage solved validation and impact calculations.
 **Admin Features:** Secure admin section with Replit Auth, user management, bulk Excel uploads/exports for pain points, processes, and taxonomy, manual taxonomy management, and auto-detection/addition of missing entities during uploads.
+**AI Assistant Features:** Conversational AI with persistent chat history, searchable conversation sidebar, ability to continue previous conversations. AI uses persona and rules configured in /admin/ai settings.
 
 ### Backend Architecture
 
