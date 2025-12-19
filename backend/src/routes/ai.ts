@@ -120,9 +120,13 @@ router.get("/status", (_req: Request, res: Response) => {
 
 router.get("/conversations", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { search } = req.query;
@@ -165,9 +169,13 @@ router.get("/conversations", async (req: Request, res: Response) => {
 
 router.post("/conversations", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { title } = req.body;
@@ -186,9 +194,13 @@ router.post("/conversations", async (req: Request, res: Response) => {
 
 router.get("/conversations/:id", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { id } = req.params;
@@ -221,9 +233,13 @@ router.get("/conversations/:id", async (req: Request, res: Response) => {
 
 router.put("/conversations/:id", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { id } = req.params;
@@ -254,9 +270,13 @@ router.put("/conversations/:id", async (req: Request, res: Response) => {
 
 router.delete("/conversations/:id", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { id } = req.params;
@@ -283,9 +303,13 @@ router.delete("/conversations/:id", async (req: Request, res: Response) => {
 
 router.post("/conversations/:id/messages", async (req: Request, res: Response) => {
   try {
-    const user = await getUser(req);
-    if (!user) {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
     }
 
     const { id } = req.params;
