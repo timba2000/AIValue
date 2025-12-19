@@ -493,7 +493,7 @@ export default function PainPointList() {
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Business Unit</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Category</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Risk Level</th>
+                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Effort (1-10)</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact (1-10)</th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Total Hrs/Month</th>
                   <th className="text-center py-3 px-4 font-semibold text-muted-foreground">Linked Solutions</th>
@@ -535,25 +535,7 @@ export default function PainPointList() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-4">
-                      {pp.riskLevel ? (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            pp.riskLevel === "critical"
-                              ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                              : pp.riskLevel === "high"
-                              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-                              : pp.riskLevel === "medium"
-                              ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                              : "bg-green-500/10 text-green-600 dark:text-green-400"
-                          }`}
-                        >
-                          {RISK_LEVELS.find((r) => r.value === pp.riskLevel)?.label ?? pp.riskLevel}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
+                    <td className="py-3 px-4">{pp.effortSolving ?? "-"}</td>
                     <td className="py-3 px-4">{pp.magnitude ?? "-"}</td>
                     <td className="py-3 px-4">
                       {pp.totalHoursPerMonth ? (
