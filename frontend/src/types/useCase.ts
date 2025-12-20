@@ -20,7 +20,11 @@ export interface UseCase {
   confidenceLevel: ConfidenceLevel | null;
   processId: string | null;
   processName: string | null;
+  companyId: string | null;
+  companyName: string | null;
+  businessUnitId: string | null;
+  businessUnitName: string | null;
   createdAt: string;
 }
 
-export type UseCasePayload = Omit<UseCase, "id" | "processName" | "createdAt">;
+export type UseCasePayload = Omit<UseCase, "id" | "processName" | "companyName" | "businessUnitName" | "createdAt">;

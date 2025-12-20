@@ -64,6 +64,8 @@ export function UseCaseList({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Business Unit</TableHead>
                     <TableHead>Solution Provider</TableHead>
                     <TableHead>Complexity</TableHead>
                     <TableHead>Confidence</TableHead>
@@ -77,6 +79,8 @@ export function UseCaseList({
                   {filtered.map((useCase) => (
                     <TableRow key={useCase.id} className="hover:bg-muted/40">
                       <TableCell className="font-medium">{useCase.name}</TableCell>
+                      <TableCell>{useCase.companyName ?? "-"}</TableCell>
+                      <TableCell>{useCase.businessUnitName ?? "-"}</TableCell>
                       <TableCell>{useCase.solutionProvider ?? "-"}</TableCell>
                       <TableCell>{useCase.complexity}</TableCell>
                       <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>

@@ -43,6 +43,49 @@ router.get("/", async (_req, res) => {
   }
 });
 
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [result] = await db
+      .select({
+        id: useCases.id,
+        name: useCases.name,
+        solutionProvider: useCases.solutionProvider,
+        problemToSolve: useCases.problemToSolve,
+        solutionOverview: useCases.solutionOverview,
+        complexity: useCases.complexity,
+        dataRequirements: useCases.dataRequirements,
+        systemsImpacted: useCases.systemsImpacted,
+        risks: useCases.risks,
+        estimatedDeliveryTime: useCases.estimatedDeliveryTime,
+        costRange: useCases.costRange,
+        confidenceLevel: useCases.confidenceLevel,
+        processId: useCases.processId,
+        companyId: useCases.companyId,
+        businessUnitId: useCases.businessUnitId,
+        createdAt: useCases.createdAt,
+        processName: processes.name,
+        companyName: companies.name,
+        businessUnitName: businessUnits.name
+      })
+      .from(useCases)
+      .leftJoin(processes, eq(useCases.processId, processes.id))
+      .leftJoin(companies, eq(useCases.companyId, companies.id))
+      .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
+      .where(eq(useCases.id, id));
+
+    if (!result) {
+      return res.status(404).json({ message: "Use case not found" });
+    }
+
+    res.json(result);
+  } catch {
+    
+    res.status(500).json({ message: "Failed to fetch use case" });
+  }
+});
+
 router.post("/", async (req, res) => {
   const {
     name: rawName,

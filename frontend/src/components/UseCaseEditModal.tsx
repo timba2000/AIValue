@@ -30,6 +30,9 @@ interface FormState {
   estimatedDeliveryTime: string;
   costRange: string;
   confidenceLevel: string;
+  companyId: string;
+  businessUnitId: string;
+  processId: string;
 }
 
 const emptyForm: FormState = {
@@ -43,8 +46,28 @@ const emptyForm: FormState = {
   riskLevel: "",
   estimatedDeliveryTime: "Quick Win",
   costRange: "Medium",
-  confidenceLevel: "Medium"
+  confidenceLevel: "Medium",
+  companyId: "",
+  businessUnitId: "",
+  processId: ""
 };
+
+interface Company {
+  id: string;
+  name: string;
+}
+
+interface BusinessUnit {
+  id: string;
+  name: string;
+  companyId: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  businessUnitId: string | null;
+}
 
 interface UseCaseEditModalProps {
   open: boolean;
@@ -74,6 +97,41 @@ export function UseCaseEditModal({
     staleTime: 0
   });
 
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const response = await axios.get<Company[]>(`${API_BASE}/api/companies`);
+      return response.data;
+    },
+    enabled: open
+  });
+
+  const { data: businessUnits = [] } = useQuery<BusinessUnit[]>({
+    queryKey: ["businessUnits"],
+    queryFn: async () => {
+      const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/business-units`);
+      return response.data;
+    },
+    enabled: open
+  });
+
+  const { data: processes = [] } = useQuery<Process[]>({
+    queryKey: ["processes"],
+    queryFn: async () => {
+      const response = await axios.get<Process[]>(`${API_BASE}/api/processes`);
+      return response.data;
+    },
+    enabled: open
+  });
+
+  const filteredBusinessUnits = formState.companyId
+    ? businessUnits.filter(bu => bu.companyId === formState.companyId)
+    : businessUnits;
+
+  const filteredProcesses = formState.businessUnitId
+    ? processes.filter(p => p.businessUnitId === formState.businessUnitId)
+    : processes;
+
   useEffect(() => {
     if (useCaseId && open) {
       setFormState(emptyForm);
@@ -94,7 +152,10 @@ export function UseCaseEditModal({
         riskLevel: useCase.risks ?? "",
         estimatedDeliveryTime: useCase.estimatedDeliveryTime ?? "Quick Win",
         costRange: useCase.costRange ?? "Medium",
-        confidenceLevel: useCase.confidenceLevel ?? "Medium"
+        confidenceLevel: useCase.confidenceLevel ?? "Medium",
+        companyId: useCase.companyId ?? "",
+        businessUnitId: useCase.businessUnitId ?? "",
+        processId: useCase.processId ?? ""
       });
       setError(null);
     }
@@ -136,7 +197,9 @@ export function UseCaseEditModal({
       estimatedDeliveryTime: formState.estimatedDeliveryTime as "Quick Win" | "1 to 3 months" | "3 to 6 months" | "6 plus months",
       costRange: formState.costRange as "Low" | "Medium" | "High" | "Very High",
       confidenceLevel: formState.confidenceLevel as "Low" | "Medium" | "High",
-      processId: useCase?.processId ?? null
+      processId: formState.processId || null,
+      companyId: formState.companyId || null,
+      businessUnitId: formState.businessUnitId || null
     };
 
     try {
@@ -197,6 +260,62 @@ export function UseCaseEditModal({
                 placeholder="Company or team providing this solution"
                 className="mt-1.5"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="companyId">Company</Label>
+                <Select
+                  id="companyId"
+                  value={formState.companyId}
+                  onChange={(e) => setFormState({ 
+                    ...formState, 
+                    companyId: e.target.value,
+                    businessUnitId: "",
+                    processId: ""
+                  })}
+                  className="mt-1.5"
+                >
+                  <option value="">Select company...</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>{company.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="businessUnitId">Business Unit</Label>
+                <Select
+                  id="businessUnitId"
+                  value={formState.businessUnitId}
+                  onChange={(e) => setFormState({ 
+                    ...formState, 
+                    businessUnitId: e.target.value,
+                    processId: ""
+                  })}
+                  className="mt-1.5"
+                >
+                  <option value="">Select business unit...</option>
+                  {filteredBusinessUnits.map((bu) => (
+                    <option key={bu.id} value={bu.id}>{bu.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="processId">Process</Label>
+                <Select
+                  id="processId"
+                  value={formState.processId}
+                  onChange={(e) => setFormState({ ...formState, processId: e.target.value })}
+                  className="mt-1.5"
+                >
+                  <option value="">Select process...</option>
+                  {filteredProcesses.map((process) => (
+                    <option key={process.id} value={process.id}>{process.name}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
             <div>
