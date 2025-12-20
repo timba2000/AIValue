@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { processes, useCases, painPointUseCases, painPoints } from "../db/schema.js";
+import { processes, useCases, painPointUseCases, painPoints, companies, businessUnits } from "../db/schema.js";
 import { parseOptionalNumber } from "../utils/parsing.js";
 
 const router = Router();
@@ -23,11 +23,17 @@ router.get("/", async (_req, res) => {
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
+        companyId: useCases.companyId,
+        businessUnitId: useCases.businessUnitId,
         createdAt: useCases.createdAt,
-        processName: processes.name
+        processName: processes.name,
+        companyName: companies.name,
+        businessUnitName: businessUnits.name
       })
       .from(useCases)
       .leftJoin(processes, eq(useCases.processId, processes.id))
+      .leftJoin(companies, eq(useCases.companyId, companies.id))
+      .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .orderBy(desc(useCases.createdAt));
 
     res.json(results);
@@ -50,7 +56,9 @@ router.post("/", async (req, res) => {
     estimatedDeliveryTime,
     costRange,
     confidenceLevel,
-    processId
+    processId,
+    companyId,
+    businessUnitId
   } = req.body ?? {};
 
   const name = (rawName ?? "").trim();
@@ -78,7 +86,9 @@ router.post("/", async (req, res) => {
         estimatedDeliveryTime: estimatedDeliveryTime || null,
         costRange: costRange || null,
         confidenceLevel: confidenceLevel || null,
-        processId: processId || null
+        processId: processId || null,
+        companyId: companyId || null,
+        businessUnitId: businessUnitId || null
       })
       .returning();
 
@@ -97,11 +107,17 @@ router.post("/", async (req, res) => {
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
+        companyId: useCases.companyId,
+        businessUnitId: useCases.businessUnitId,
         createdAt: useCases.createdAt,
-        processName: processes.name
+        processName: processes.name,
+        companyName: companies.name,
+        businessUnitName: businessUnits.name
       })
       .from(useCases)
       .leftJoin(processes, eq(useCases.processId, processes.id))
+      .leftJoin(companies, eq(useCases.companyId, companies.id))
+      .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .where(eq(useCases.id, created.id));
 
     res.status(201).json(withProcess);
@@ -125,7 +141,9 @@ router.put("/:id", async (req, res) => {
     estimatedDeliveryTime,
     costRange,
     confidenceLevel,
-    processId
+    processId,
+    companyId,
+    businessUnitId
   } = req.body ?? {};
 
   const name = (rawName ?? "").trim();
@@ -159,7 +177,9 @@ router.put("/:id", async (req, res) => {
         estimatedDeliveryTime: estimatedDeliveryTime || null,
         costRange: costRange || null,
         confidenceLevel: confidenceLevel || null,
-        processId: processId || null
+        processId: processId || null,
+        companyId: companyId || null,
+        businessUnitId: businessUnitId || null
       })
       .where(eq(useCases.id, id));
 
@@ -178,11 +198,17 @@ router.put("/:id", async (req, res) => {
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
         processId: useCases.processId,
+        companyId: useCases.companyId,
+        businessUnitId: useCases.businessUnitId,
         createdAt: useCases.createdAt,
-        processName: processes.name
+        processName: processes.name,
+        companyName: companies.name,
+        businessUnitName: businessUnits.name
       })
       .from(useCases)
       .leftJoin(processes, eq(useCases.processId, processes.id))
+      .leftJoin(companies, eq(useCases.companyId, companies.id))
+      .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .where(eq(useCases.id, id));
 
     res.json(updated);
