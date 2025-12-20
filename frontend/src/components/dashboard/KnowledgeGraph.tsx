@@ -63,6 +63,9 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [showProcesses, setShowProcesses] = useState(true);
+  const [showPainPoints, setShowPainPoints] = useState(true);
+  const [showSolutions, setShowSolutions] = useState(true);
   const { resolvedTheme } = useThemeStore();
   const isDark = resolvedTheme === "dark";
   const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId } = useFilterStore();
@@ -125,7 +128,7 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
 
     const filteredCompanies = selectedCompanyId
       ? companies.filter((c) => c.id === selectedCompanyId)
-      : companies.slice(0, 5);
+      : companies;
 
     const relevantBuIds = new Set<string>();
     const relevantProcessIds = new Set<string>();
@@ -151,7 +154,7 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
       ? businessUnits.filter((bu) => bu.id === selectedBusinessUnitId)
       : businessUnits.filter((bu) =>
           filteredCompanies.some((c) => c.id === bu.companyId)
-        ).slice(0, 20);
+        );
 
     filteredBUs.forEach((bu, i) => {
       const nodeId = `bu-${bu.id}`;
@@ -180,112 +183,156 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
       }
     });
 
+    const processLimit = selectedProcessId || selectedBusinessUnitId ? undefined : 100;
     const filteredProcesses = selectedProcessId
       ? processes.filter((p) => p.id === selectedProcessId)
-      : processes.filter((p) => relevantBuIds.has(p.businessUnitId)).slice(0, 30);
+      : processes.filter((p) => relevantBuIds.has(p.businessUnitId)).slice(0, processLimit);
 
-    filteredProcesses.forEach((process, i) => {
-      const nodeId = `process-${process.id}`;
-      if (!nodeIds.has(nodeId)) {
-        nodeIds.add(nodeId);
-        relevantProcessIds.add(process.id);
-        nodes.push({
-          id: nodeId,
-          label: process.name,
-          type: "process",
-          x: 100 + (i % 6) * 120,
-          y: 350 + Math.floor(i / 6) * 80,
-          vx: 0,
-          vy: 0,
-          radius: 20,
-        });
-
-        const buNodeId = `bu-${process.businessUnitId}`;
-        if (nodeIds.has(buNodeId)) {
-          edges.push({
-            source: buNodeId,
-            target: nodeId,
-            type: "hasProcess",
-          });
-        }
-      }
+    filteredProcesses.forEach((process) => {
+      relevantProcessIds.add(process.id);
     });
 
-    const filteredPainPoints = painPoints
-      .filter((pp) => {
-        if (selectedProcessId) {
-          return pp.processIds?.includes(selectedProcessId);
-        }
-        if (selectedBusinessUnitId) {
-          return pp.businessUnitId === selectedBusinessUnitId || 
-                 pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
-        }
-        return pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
-      })
-      .slice(0, 40);
+    if (showProcesses) {
+      filteredProcesses.forEach((process, i) => {
+        const nodeId = `process-${process.id}`;
+        if (!nodeIds.has(nodeId)) {
+          nodeIds.add(nodeId);
+          nodes.push({
+            id: nodeId,
+            label: process.name,
+            type: "process",
+            x: 100 + (i % 6) * 120,
+            y: 350 + Math.floor(i / 6) * 80,
+            vx: 0,
+            vy: 0,
+            radius: 20,
+          });
 
-    filteredPainPoints.forEach((pp, i) => {
-      const nodeId = `pp-${pp.id}`;
-      if (!nodeIds.has(nodeId)) {
-        nodeIds.add(nodeId);
-        nodes.push({
-          id: nodeId,
-          label: pp.statement.substring(0, 50) + (pp.statement.length > 50 ? "..." : ""),
-          type: "painPoint",
-          x: 80 + (i % 8) * 100,
-          y: 500 + Math.floor(i / 8) * 70,
-          vx: 0,
-          vy: 0,
-          radius: 16,
+          const buNodeId = `bu-${process.businessUnitId}`;
+          if (nodeIds.has(buNodeId)) {
+            edges.push({
+              source: buNodeId,
+              target: nodeId,
+              type: "hasProcess",
+            });
+          }
+        }
+      });
+    }
+
+    if (showPainPoints) {
+      const filteredPainPoints = painPoints
+        .filter((pp) => {
+          if (selectedProcessId) {
+            return pp.processIds?.includes(selectedProcessId);
+          }
+          if (selectedBusinessUnitId) {
+            return pp.businessUnitId === selectedBusinessUnitId || 
+                   pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
+          }
+          return pp.businessUnitId && relevantBuIds.has(pp.businessUnitId) ||
+                 pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
         });
 
-        pp.processIds?.forEach((processId: string) => {
-          const processNodeId = `process-${processId}`;
-          if (nodeIds.has(processNodeId)) {
+      filteredPainPoints.forEach((pp, i) => {
+        const nodeId = `pp-${pp.id}`;
+        if (!nodeIds.has(nodeId)) {
+          nodeIds.add(nodeId);
+          nodes.push({
+            id: nodeId,
+            label: pp.statement.substring(0, 50) + (pp.statement.length > 50 ? "..." : ""),
+            type: "painPoint",
+            x: 80 + (i % 8) * 100,
+            y: 500 + Math.floor(i / 8) * 70,
+            vx: 0,
+            vy: 0,
+            radius: 16,
+          });
+
+          if (showProcesses) {
+            pp.processIds?.forEach((processId: string) => {
+              const processNodeId = `process-${processId}`;
+              if (nodeIds.has(processNodeId)) {
+                edges.push({
+                  source: processNodeId,
+                  target: nodeId,
+                  type: "hasPainPoint",
+                });
+              }
+            });
+          }
+
+          const hasProcessEdge = showProcesses && pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
+          
+          if (!hasProcessEdge) {
+            if (pp.businessUnitId) {
+              const buNodeId = `bu-${pp.businessUnitId}`;
+              if (nodeIds.has(buNodeId)) {
+                edges.push({
+                  source: buNodeId,
+                  target: nodeId,
+                  type: "hasPainPoint",
+                });
+              }
+            } else if (pp.processIds?.length > 0) {
+              const firstProcessId = pp.processIds.find((pid: string) => relevantProcessIds.has(pid));
+              if (firstProcessId) {
+                const process = processes.find((p) => p.id === firstProcessId);
+                if (process) {
+                  const buNodeId = `bu-${process.businessUnitId}`;
+                  if (nodeIds.has(buNodeId)) {
+                    edges.push({
+                      source: buNodeId,
+                      target: nodeId,
+                      type: "hasPainPoint",
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    if (showSolutions) {
+      const linkedUseCaseIds = new Set(links.map((l) => l.useCaseId));
+      const filteredUseCases = useCases.filter((uc) => linkedUseCaseIds.has(uc.id));
+
+      filteredUseCases.forEach((uc, i) => {
+        const nodeId = `uc-${uc.id}`;
+        if (!nodeIds.has(nodeId)) {
+          nodeIds.add(nodeId);
+          nodes.push({
+            id: nodeId,
+            label: uc.name,
+            type: "useCase",
+            x: 100 + (i % 6) * 130,
+            y: 650 + Math.floor(i / 6) * 80,
+            vx: 0,
+            vy: 0,
+            radius: 18,
+          });
+        }
+      });
+
+      if (showPainPoints) {
+        links.forEach((link) => {
+          const ppNodeId = `pp-${link.painPointId}`;
+          const ucNodeId = `uc-${link.useCaseId}`;
+          if (nodeIds.has(ppNodeId) && nodeIds.has(ucNodeId)) {
             edges.push({
-              source: processNodeId,
-              target: nodeId,
-              type: "hasPainPoint",
+              source: ppNodeId,
+              target: ucNodeId,
+              type: "solvedBy",
             });
           }
         });
       }
-    });
-
-    const linkedUseCaseIds = new Set(links.map((l) => l.useCaseId));
-    const filteredUseCases = useCases.filter((uc) => linkedUseCaseIds.has(uc.id)).slice(0, 30);
-
-    filteredUseCases.forEach((uc, i) => {
-      const nodeId = `uc-${uc.id}`;
-      if (!nodeIds.has(nodeId)) {
-        nodeIds.add(nodeId);
-        nodes.push({
-          id: nodeId,
-          label: uc.name,
-          type: "useCase",
-          x: 100 + (i % 6) * 130,
-          y: 650 + Math.floor(i / 6) * 80,
-          vx: 0,
-          vy: 0,
-          radius: 18,
-        });
-      }
-    });
-
-    links.forEach((link) => {
-      const ppNodeId = `pp-${link.painPointId}`;
-      const ucNodeId = `uc-${link.useCaseId}`;
-      if (nodeIds.has(ppNodeId) && nodeIds.has(ucNodeId)) {
-        edges.push({
-          source: ppNodeId,
-          target: ucNodeId,
-          type: "solvedBy",
-        });
-      }
-    });
+    }
 
     return { nodes, edges };
-  }, [companies, businessUnits, processes, painPoints, useCases, links, selectedCompanyId, selectedBusinessUnitId, selectedProcessId]);
+  }, [companies, businessUnits, processes, painPoints, useCases, links, selectedCompanyId, selectedBusinessUnitId, selectedProcessId, showProcesses, showPainPoints, showSolutions]);
 
   useEffect(() => {
     nodesRef.current = graphData.nodes.map((n) => ({ ...n }));
@@ -552,18 +599,40 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        {Object.entries(NODE_LABELS).map(([type, label]) => (
-          <div key={type} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: NODE_COLORS[type as keyof typeof NODE_COLORS][isDark ? "dark" : "light"],
-              }}
-            />
-            <span className="text-muted-foreground">{label}</span>
-          </div>
-        ))}
+      <div className="flex flex-wrap gap-4 mb-4">
+        {Object.entries(NODE_LABELS).map(([type, label]) => {
+          const isToggleable = type === "process" || type === "painPoint" || type === "useCase";
+          const isActive = type === "process" ? showProcesses : 
+                          type === "painPoint" ? showPainPoints : 
+                          type === "useCase" ? showSolutions : true;
+          const toggleFn = type === "process" ? () => setShowProcesses(!showProcesses) :
+                          type === "painPoint" ? () => setShowPainPoints(!showPainPoints) :
+                          type === "useCase" ? () => setShowSolutions(!showSolutions) : undefined;
+          
+          return (
+            <button
+              key={type}
+              onClick={isToggleable ? toggleFn : undefined}
+              className={`flex items-center gap-2 text-sm px-2 py-1 rounded-lg transition-all ${
+                isToggleable ? "hover:bg-accent cursor-pointer" : "cursor-default"
+              } ${!isActive ? "opacity-40" : ""}`}
+              disabled={!isToggleable}
+            >
+              <div
+                className={`w-3 h-3 rounded-full transition-opacity ${!isActive ? "opacity-40" : ""}`}
+                style={{
+                  backgroundColor: NODE_COLORS[type as keyof typeof NODE_COLORS][isDark ? "dark" : "light"],
+                }}
+              />
+              <span className="text-muted-foreground">{label}</span>
+              {isToggleable && (
+                <span className={`text-xs px-1.5 py-0.5 rounded ${isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {isActive ? "ON" : "OFF"}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div
