@@ -33,7 +33,6 @@ export async function generateChatResponse(
   const response = await openai.chat.completions.create({
     model,
     messages: allMessages,
-    temperature: config?.useThinkingModel ? 1 : 0.7,
     max_completion_tokens: config?.useThinkingModel ? 16384 : 4096,
   });
 
