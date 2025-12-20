@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2, Search, Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, Brain } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 import { AIChartRenderer, parseChartSpecs } from "@/components/AIChartRenderer";
+import { FileAttachment, FilePreviewInMessage, UploadedFile } from "@/components/FileAttachment";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -18,6 +19,7 @@ function cn(...classes: (string | boolean | undefined)[]) {
 interface Message {
   role: "user" | "assistant";
   content: string;
+  attachments?: UploadedFile[];
 }
 
 interface Conversation {
@@ -42,6 +44,7 @@ export default function AIPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [useThinkingModel, setUseThinkingModel] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -146,9 +149,15 @@ export default function AIPage() {
     e?.preventDefault();
     if (!input.trim() || isThinking || !aiEnabled) return;
 
-    const userMessage: Message = { role: "user", content: input.trim() };
+    const currentAttachments = [...attachedFiles];
+    const userMessage: Message = { 
+      role: "user", 
+      content: input.trim(),
+      attachments: currentAttachments.length > 0 ? currentAttachments : undefined
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setAttachedFiles([]);
     setError(null);
     setIsThinking(true);
 
@@ -167,6 +176,15 @@ export default function AIPage() {
     }
 
     try {
+      const attachmentsForAPI = currentAttachments.map(f => ({
+        id: f.id,
+        originalName: f.originalName,
+        mimeType: f.mimeType,
+        isImage: f.isImage,
+        extractedText: f.extractedText,
+        base64Data: f.base64Preview,
+      }));
+
       const response = await axios.post(`${API_BASE}/api/ai/chat`, {
         messages: [...messages, userMessage].map((m) => ({
           role: m.role,
@@ -176,6 +194,7 @@ export default function AIPage() {
           persona: persona || undefined,
           rules: rules || undefined,
           useThinkingModel,
+          attachments: attachmentsForAPI.length > 0 ? attachmentsForAPI : undefined,
         },
       }, { withCredentials: true });
 
@@ -440,7 +459,12 @@ export default function AIPage() {
                       )}
                     >
                       {message.role === "user" ? (
-                        <p className="text-sm whitespace-pre-wrap">{text}</p>
+                        <>
+                          <p className="text-sm whitespace-pre-wrap">{text}</p>
+                          {message.attachments && message.attachments.length > 0 && (
+                            <FilePreviewInMessage files={message.attachments} />
+                          )}
+                        </>
                       ) : (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-table:border-collapse prose-th:border prose-th:border-border prose-th:bg-accent prose-th:px-3 prose-th:py-2 prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-a:text-primary prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
                           <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{text}</Markdown>
@@ -481,6 +505,12 @@ export default function AIPage() {
 
         <div className="p-4 border-t border-border">
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <FileAttachment
+              attachedFiles={attachedFiles}
+              onFilesAttached={(files) => setAttachedFiles(prev => [...prev, ...files])}
+              onRemoveFile={(id) => setAttachedFiles(prev => prev.filter(f => f.id !== id))}
+              disabled={isThinking}
+            />
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <textarea
@@ -488,7 +518,7 @@ export default function AIPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask a question about your data..."
+                  placeholder="Ask a question about your data... (attach images, PDFs, Excel, Word files)"
                   rows={2}
                   className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none pr-24"
                   disabled={isThinking}
