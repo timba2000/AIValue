@@ -126,6 +126,10 @@ export const useCases = pgTable("use_cases", {
   confidenceLevel: text("confidence_level"),
   processId: uuid("process_id")
     .references(() => processes.id, { onDelete: "cascade" }),
+  companyId: uuid("company_id")
+    .references(() => companies.id, { onDelete: "set null" }),
+  businessUnitId: uuid("business_unit_id")
+    .references(() => businessUnits.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
