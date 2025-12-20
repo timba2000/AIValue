@@ -63,7 +63,7 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [showProcesses, setShowProcesses] = useState(true);
+  const [showProcesses, setShowProcesses] = useState(false);
   const [showPainPoints, setShowPainPoints] = useState(true);
   const [showSolutions, setShowSolutions] = useState(true);
   const { resolvedTheme } = useThemeStore();
