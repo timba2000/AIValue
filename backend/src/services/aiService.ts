@@ -34,7 +34,7 @@ export async function generateChatResponse(
     model,
     messages: allMessages,
     temperature: config?.useThinkingModel ? 1 : 0.7,
-    max_tokens: config?.useThinkingModel ? 16384 : 4096,
+    max_completion_tokens: config?.useThinkingModel ? 16384 : 4096,
   });
 
   return response.choices[0]?.message?.content || "";
