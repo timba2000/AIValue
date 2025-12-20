@@ -7,6 +7,9 @@ import { getUser } from "../simpleAuth.js";
 
 const router = Router();
 
+const MAX_CONTEXT_CHARS = 30000;
+const MAX_HISTORY_MESSAGES = 10;
+
 async function getDataSummary(): Promise<string> {
   try {
     const allCompanies = await db.select().from(companies);
@@ -21,54 +24,56 @@ async function getDataSummary(): Promise<string> {
     summary.push("=== DATABASE CONTEXT ===\n");
     
     summary.push(`COMPANIES (${allCompanies.length} total):`);
-    for (const company of allCompanies) {
+    for (const company of allCompanies.slice(0, 20)) {
       const companyBUs = allBusinessUnits.filter(bu => bu.companyId === company.id);
       const companyProcesses = allProcesses.filter(p => p.businessId === company.id);
       const companyPainPoints = allPainPoints.filter(pp => pp.companyId === company.id);
       summary.push(`- ${company.name} (Industry: ${company.industry || 'N/A'})`);
       summary.push(`  Business Units: ${companyBUs.length}, Processes: ${companyProcesses.length}, Pain Points: ${companyPainPoints.length}`);
     }
+    if (allCompanies.length > 20) summary.push(`  ... and ${allCompanies.length - 20} more companies`);
     
     summary.push(`\nBUSINESS UNITS (${allBusinessUnits.length} total):`);
-    for (const bu of allBusinessUnits) {
+    for (const bu of allBusinessUnits.slice(0, 30)) {
       const company = allCompanies.find(c => c.id === bu.companyId);
       summary.push(`- ${bu.name} (Company: ${company?.name || 'Unknown'}, FTE: ${bu.fte || 0})`);
     }
+    if (allBusinessUnits.length > 30) summary.push(`  ... and ${allBusinessUnits.length - 30} more business units`);
     
     summary.push(`\nPROCESSES (${allProcesses.length} total):`);
-    for (const proc of allProcesses) {
+    for (const proc of allProcesses.slice(0, 30)) {
       const company = allCompanies.find(c => c.id === proc.businessId);
       const bu = allBusinessUnits.find(b => b.id === proc.businessUnitId);
       summary.push(`- ${proc.name}`);
       summary.push(`  Company: ${company?.name || 'Unknown'}, Business Unit: ${bu?.name || 'N/A'}`);
-      if (proc.description) summary.push(`  Description: ${proc.description}`);
     }
+    if (allProcesses.length > 30) summary.push(`  ... and ${allProcesses.length - 30} more processes`);
     
     summary.push(`\nPAIN POINTS (${allPainPoints.length} total):`);
-    for (const pp of allPainPoints) {
+    for (const pp of allPainPoints.slice(0, 40)) {
       const company = allCompanies.find(c => c.id === pp.companyId);
       const bu = allBusinessUnits.find(b => b.id === pp.businessUnitId);
       const linkedSolutions = allLinks.filter(l => l.painPointId === pp.id);
-      summary.push(`- "${pp.statement}"`);
-      summary.push(`  Company: ${company?.name || 'Unknown'}, Business Unit: ${bu?.name || 'N/A'}`);
-      summary.push(`  Magnitude: ${pp.magnitude || 'N/A'}, Frequency: ${pp.frequency || 'N/A'}, Hours/Month: ${pp.totalHoursPerMonth || 'N/A'}`);
-      summary.push(`  Impact Type: ${pp.impactType?.join(', ') || 'N/A'}, Risk Level: ${pp.riskLevel || 'N/A'}`);
-      summary.push(`  Linked Solutions: ${linkedSolutions.length}`);
+      const statement = pp.statement?.substring(0, 100) || 'N/A';
+      summary.push(`- "${statement}${pp.statement && pp.statement.length > 100 ? '...' : ''}"`);
+      summary.push(`  Company: ${company?.name || 'Unknown'}, BU: ${bu?.name || 'N/A'}, Linked: ${linkedSolutions.length}`);
     }
+    if (allPainPoints.length > 40) summary.push(`  ... and ${allPainPoints.length - 40} more pain points`);
     
     summary.push(`\nSOLUTIONS/USE CASES (${allUseCases.length} total):`);
-    for (const uc of allUseCases) {
-      const linkedPainPoints = allLinks.filter(l => l.useCaseId === uc.id);
-      summary.push(`- ${uc.name} (Provider: ${uc.solutionProvider || 'N/A'})`);
-      summary.push(`  Problem: ${uc.problemToSolve}`);
-      summary.push(`  Solution: ${uc.solutionOverview}`);
-      summary.push(`  Complexity: ${uc.complexity}, Cost: ${uc.costRange || 'N/A'}, Delivery: ${uc.estimatedDeliveryTime || 'N/A'}`);
-      summary.push(`  Linked Pain Points: ${linkedPainPoints.length}`);
+    for (const uc of allUseCases.slice(0, 30)) {
+      summary.push(`- ${uc.name} (Provider: ${uc.solutionProvider || 'N/A'}, Complexity: ${uc.complexity})`);
     }
+    if (allUseCases.length > 30) summary.push(`  ... and ${allUseCases.length - 30} more solutions`);
     
     summary.push("\n=== END DATABASE CONTEXT ===");
     
-    return summary.join('\n');
+    let result = summary.join('\n');
+    if (result.length > MAX_CONTEXT_CHARS) {
+      result = result.substring(0, MAX_CONTEXT_CHARS) + "\n... [context truncated for length]";
+    }
+    
+    return result;
   } catch (error) {
     console.error("Error fetching data summary:", error);
     return "Unable to fetch database summary.";
@@ -86,6 +91,10 @@ router.post("/chat", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Messages array is required" });
     }
 
+    const limitedMessages = messages.length > MAX_HISTORY_MESSAGES
+      ? messages.slice(-MAX_HISTORY_MESSAGES)
+      : messages;
+
     const dataSummary = await getDataSummary();
     
     const enrichedConfig: AIConfig = {
@@ -93,16 +102,33 @@ router.post("/chat", async (req: Request, res: Response) => {
       dataContext: dataSummary,
     };
 
-    const response = await generateChatResponse(messages, enrichedConfig);
+    const response = await generateChatResponse(limitedMessages, enrichedConfig);
     
     res.json({ 
       success: true,
       message: response 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI chat error:", error);
-    res.status(500).json({ 
-      error: "Failed to generate AI response",
+    
+    let errorMessage = "Failed to generate AI response";
+    let statusCode = 500;
+    
+    if (error?.status === 429) {
+      errorMessage = "Too many requests. Please wait a moment and try again.";
+      statusCode = 429;
+    } else if (error?.code === "context_length_exceeded" || error?.message?.includes("context") || error?.message?.includes("token")) {
+      errorMessage = "The conversation is too long. Please start a new conversation.";
+      statusCode = 400;
+    } else if (error?.status === 401 || error?.status === 403) {
+      errorMessage = "AI service authentication error. Please contact support.";
+      statusCode = 503;
+    } else if (error?.message) {
+      errorMessage = `AI error: ${error.message.substring(0, 100)}`;
+    }
+    
+    res.status(statusCode).json({ 
+      error: errorMessage,
       details: error instanceof Error ? error.message : "Unknown error"
     });
   }
