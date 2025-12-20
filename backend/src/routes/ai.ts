@@ -133,14 +133,19 @@ router.post("/chat", async (req: Request, res: Response) => {
     };
 
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader('Content-Encoding', 'none');
+    res.flushHeaders();
 
     const stream = generateChatResponseStream(limitedMessages, enrichedConfig);
     
     for await (const chunk of stream) {
       res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      if (typeof (res as any).flush === 'function') {
+        (res as any).flush();
+      }
     }
     
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
