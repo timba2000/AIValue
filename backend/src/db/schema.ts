@@ -198,7 +198,23 @@ export const aiMessages = pgTable("ai_messages", {
   conversationId: uuid("conversation_id").notNull().references(() => aiConversations.id, { onDelete: "cascade" }),
   role: varchar("role", { length: 20 }).notNull(),
   content: text("content").notNull(),
+  attachments: jsonb("attachments"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const aiFileUploads = pgTable("ai_file_uploads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  conversationId: uuid("conversation_id").references(() => aiConversations.id, { onDelete: "cascade" }),
+  messageId: uuid("message_id").references(() => aiMessages.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  originalName: text("original_name").notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  storagePath: text("storage_path").notNull(),
+  extractedText: text("extracted_text"),
+  processingStatus: varchar("processing_status", { length: 20 }).default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true })
 });
 
 export type AIConversation = typeof aiConversations.$inferSelect;
@@ -206,3 +222,6 @@ export type NewAIConversation = typeof aiConversations.$inferInsert;
 
 export type AIMessage = typeof aiMessages.$inferSelect;
 export type NewAIMessage = typeof aiMessages.$inferInsert;
+
+export type AIFileUpload = typeof aiFileUploads.$inferSelect;
+export type NewAIFileUpload = typeof aiFileUploads.$inferInsert;
