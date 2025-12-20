@@ -190,44 +190,86 @@ export default function AIPage() {
         base64Data: f.base64Preview,
       }));
 
-      const response = await axios.post(`${API_BASE}/api/ai/chat`, {
-        messages: [...messages, userMessage].map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        config: {
-          persona: persona || undefined,
-          rules: rules || undefined,
-          useThinkingModel,
-          attachments: attachmentsForAPI.length > 0 ? attachmentsForAPI : undefined,
-        },
-      }, { withCredentials: true, timeout: 60000 });
+      const response = await fetch(`${API_BASE}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          config: {
+            persona: persona || undefined,
+            rules: rules || undefined,
+            useThinkingModel,
+            attachments: attachmentsForAPI.length > 0 ? attachmentsForAPI : undefined,
+          },
+        }),
+      });
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: response.data.message,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let fullContent = "";
+      let buffer = "";
+      
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || "";
+
+        for (const event of events) {
+          const lines = event.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                if (data.content) {
+                  fullContent += data.content;
+                  setMessages((prev) => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { role: "assistant", content: fullContent };
+                    return updated;
+                  });
+                }
+              } catch (parseErr) {
+                if (parseErr instanceof SyntaxError) continue;
+                throw parseErr;
+              }
+            }
+          }
+        }
+      }
+
+      const assistantMessage: Message = { role: "assistant", content: fullContent };
 
       if (conversationId) {
         await saveMessageToConversation(conversationId, assistantMessage);
         
         if (messages.length === 0) {
-          const aiTitle = response.data.message.slice(0, 50) + (response.data.message.length > 50 ? "..." : "");
+          const aiTitle = fullContent.slice(0, 50) + (fullContent.length > 50 ? "..." : "");
           await updateConversationTitle(conversationId, aiTitle);
         }
       }
     } catch (err: any) {
       console.error("AI chat error:", err);
-      let errorMsg = "Failed to get AI response";
-      if (err?.response?.data?.error) {
-        errorMsg = err.response.data.error;
-      } else if (err?.code === "ECONNABORTED") {
-        errorMsg = "Request timed out. The AI is taking too long to respond.";
-      } else if (err?.message) {
-        errorMsg = err.message;
-      }
-      setMessages((prev) => prev.slice(0, -1));
+      const errorMsg = err?.message || "Failed to get AI response";
+      setMessages((prev) => prev.filter(m => m.content !== "").slice(0, -1));
       setError(errorMsg);
     } finally {
       setIsThinking(false);
@@ -249,22 +291,63 @@ export default function AIPage() {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/ai/chat`, {
-        messages: [{
-          role: "user",
-          content: `Please improve this prompt to be clearer and more specific. Only return the improved prompt, nothing else:\n\n"${input}"`
-        }],
-        config: {
-          persona: "You are a prompt engineering expert. Your job is to take user prompts and make them clearer, more specific, and more effective.",
-          rules: "Only return the improved prompt text. Do not include explanations, quotes, or any other text.",
-        },
-      }, { withCredentials: true, timeout: 60000 });
+      const response = await fetch(`${API_BASE}/api/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          messages: [{
+            role: "user",
+            content: `Please improve this prompt to be clearer and more specific. Only return the improved prompt, nothing else:\n\n"${input}"`
+          }],
+          config: {
+            persona: "You are a prompt engineering expert. Your job is to take user prompts and make them clearer, more specific, and more effective.",
+            rules: "Only return the improved prompt text. Do not include explanations, quotes, or any other text.",
+          },
+        }),
+      });
 
-      setInput(response.data.message);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let improvedPrompt = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || "";
+
+        for (const event of events) {
+          const lines = event.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) throw new Error(data.error);
+                if (data.content) improvedPrompt += data.content;
+              } catch (parseErr) {
+                if (parseErr instanceof SyntaxError) continue;
+                throw parseErr;
+              }
+            }
+          }
+        }
+      }
+
+      setInput(improvedPrompt);
     } catch (err: any) {
       console.error("Improve prompt error:", err);
-      const errorMsg = err?.response?.data?.error || "Failed to improve prompt";
-      setError(errorMsg);
+      setError(err?.message || "Failed to improve prompt");
     } finally {
       setIsThinking(false);
     }

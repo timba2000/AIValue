@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { generateChatResponse, ChatMessage, AIConfig } from "../services/aiService.js";
+import { generateChatResponse, generateChatResponseStream, ChatMessage, AIConfig } from "../services/aiService.js";
 import { db } from "../db/client.js";
 import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases, aiConversations, aiMessages } from "../db/schema.js";
 import { eq, desc, ilike, or, and } from "drizzle-orm";
@@ -121,7 +121,7 @@ router.post("/chat", async (req: Request, res: Response) => {
     const messagesText = limitedMessages.map(m => m.content).join(' ');
     const systemPromptEstimate = 500;
     const totalTokenEstimate = estimateTokens(dataSummary) + estimateTokens(messagesText) + systemPromptEstimate;
-    console.log(`[AI] Request: ${limitedMessages.length} messages, ~${totalTokenEstimate} tokens total`);
+    console.log(`[AI] Streaming request: ${limitedMessages.length} messages, ~${totalTokenEstimate} tokens total`);
     
     if (totalTokenEstimate > 12000) {
       console.warn(`[AI] Warning: Token estimate ${totalTokenEstimate} approaching limit`);
@@ -132,35 +132,40 @@ router.post("/chat", async (req: Request, res: Response) => {
       dataContext: dataSummary,
     };
 
-    const response = await generateChatResponse(limitedMessages, enrichedConfig);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const stream = generateChatResponseStream(limitedMessages, enrichedConfig);
     
-    res.json({ 
-      success: true,
-      message: response 
-    });
+    for await (const chunk of stream) {
+      res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+    }
+    
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
   } catch (error: any) {
     console.error("AI chat error:", error);
     
     let errorMessage = "Failed to generate AI response";
-    let statusCode = 500;
     
     if (error?.status === 429) {
       errorMessage = "Too many requests. Please wait a moment and try again.";
-      statusCode = 429;
     } else if (error?.code === "context_length_exceeded" || error?.message?.includes("context") || error?.message?.includes("token")) {
       errorMessage = "The conversation is too long. Please start a new conversation.";
-      statusCode = 400;
     } else if (error?.status === 401 || error?.status === 403) {
       errorMessage = "AI service authentication error. Please contact support.";
-      statusCode = 503;
     } else if (error?.message) {
       errorMessage = `AI error: ${error.message.substring(0, 100)}`;
     }
     
-    res.status(statusCode).json({ 
-      error: errorMessage,
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
+    if (!res.headersSent) {
+      res.status(500).json({ error: errorMessage });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+      res.end();
+    }
   }
 });
 

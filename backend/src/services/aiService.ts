@@ -84,6 +84,66 @@ export async function generateChatResponse(
   return response.choices[0]?.message?.content || "";
 }
 
+export async function* generateChatResponseStream(
+  messages: ChatMessage[],
+  config?: AIConfig
+): AsyncGenerator<string, void, unknown> {
+  const systemPrompt = buildSystemPrompt(config);
+  
+  let processedMessages: Array<{ role: "system" | "user" | "assistant"; content: OpenAIMessageContent }> = [];
+  
+  if (systemPrompt) {
+    processedMessages.push({ role: "system", content: systemPrompt });
+  }
+  
+  for (const msg of messages) {
+    if (msg.role === "user" && config?.attachments && config.attachments.length > 0) {
+      const contentParts: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: string } }> = [];
+      
+      let textContent = msg.content;
+      const documentAttachments = config.attachments.filter(a => !a.isImage && a.extractedText);
+      if (documentAttachments.length > 0) {
+        textContent += "\n\n=== ATTACHED DOCUMENTS ===\n";
+        for (const doc of documentAttachments) {
+          textContent += `\n--- ${doc.originalName} ---\n${doc.extractedText}\n`;
+        }
+        textContent += "=== END ATTACHED DOCUMENTS ===";
+      }
+      
+      contentParts.push({ type: "text", text: textContent });
+      
+      const imageAttachments = config.attachments.filter(a => a.isImage && a.base64Data);
+      for (const img of imageAttachments) {
+        const dataUrl = `data:${img.mimeType};base64,${img.base64Data}`;
+        contentParts.push({
+          type: "image_url",
+          image_url: { url: dataUrl, detail: "auto" }
+        });
+      }
+      
+      processedMessages.push({ role: msg.role, content: contentParts });
+    } else {
+      processedMessages.push({ role: msg.role, content: msg.content });
+    }
+  }
+
+  const model = config?.useThinkingModel ? "gpt-5.1-thinking" : "gpt-5-mini";
+  
+  const stream = await openai.chat.completions.create({
+    model,
+    messages: processedMessages as any,
+    max_completion_tokens: config?.useThinkingModel ? 16384 : 4096,
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      yield content;
+    }
+  }
+}
+
 function buildSystemPrompt(config?: AIConfig): string {
   const parts: string[] = [];
   
