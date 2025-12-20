@@ -57,6 +57,8 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
   const animationRef = useRef<number>();
   const nodesRef = useRef<GraphNode[]>([]);
   const edgesRef = useRef<GraphEdge[]>([]);
+  const simulationActiveRef = useRef(true);
+  const velocityThreshold = 0.1;
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -337,12 +339,13 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
   useEffect(() => {
     nodesRef.current = graphData.nodes.map((n) => ({ ...n }));
     edgesRef.current = graphData.edges;
+    simulationActiveRef.current = true;
   }, [graphData]);
 
-  const simulate = useCallback(() => {
+  const simulate = useCallback((): boolean => {
     const nodes = nodesRef.current;
     const edges = edgesRef.current;
-    if (nodes.length === 0) return;
+    if (nodes.length === 0) return false;
 
     const centerX = 400;
     const centerY = 350;
@@ -389,13 +392,18 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
       node.vy = (node.vy + fy) * damping;
     });
 
+    let maxVelocity = 0;
     nodes.forEach((node) => {
       node.x += node.vx;
       node.y += node.vy;
       node.x = Math.max(50, Math.min(750, node.x));
       node.y = Math.max(50, Math.min(650, node.y));
+      const velocity = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+      if (velocity > maxVelocity) maxVelocity = velocity;
     });
-  }, []);
+
+    return maxVelocity > velocityThreshold;
+  }, [velocityThreshold]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -459,7 +467,13 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
     let running = true;
     const animate = () => {
       if (!running) return;
-      simulate();
+      
+      if (simulationActiveRef.current) {
+        const stillMoving = simulate();
+        if (!stillMoving) {
+          simulationActiveRef.current = false;
+        }
+      }
       draw();
       animationRef.current = requestAnimationFrame(animate);
     };
