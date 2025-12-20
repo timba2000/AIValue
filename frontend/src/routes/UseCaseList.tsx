@@ -113,12 +113,43 @@ export default function UseCaseListPage() {
     return null;
   }, [selectedCompanyId, selectedBusinessUnitId, contextProcessId, processes, businessUnits]);
 
+  const validBusinessUnitIds = useMemo(() => {
+    if (selectedBusinessUnitId) {
+      return new Set([selectedBusinessUnitId]);
+    } else if (selectedCompanyId) {
+      return new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+    }
+    return null;
+  }, [selectedCompanyId, selectedBusinessUnitId, businessUnits]);
+
   const contextFilteredUseCases = useMemo(() => {
-    if (!validProcessIds) return useCases;
-    return useCases.filter(uc => 
-      uc.processId && validProcessIds.has(uc.processId)
-    );
-  }, [useCases, validProcessIds]);
+    if (!selectedCompanyId && !selectedBusinessUnitId && !contextProcessId) {
+      return useCases;
+    }
+    
+    return useCases.filter(uc => {
+      if (contextProcessId) {
+        return uc.processId === contextProcessId;
+      }
+      
+      if (selectedBusinessUnitId) {
+        return (
+          uc.businessUnitId === selectedBusinessUnitId ||
+          (uc.processId && validProcessIds?.has(uc.processId))
+        );
+      }
+      
+      if (selectedCompanyId) {
+        return (
+          uc.companyId === selectedCompanyId ||
+          (uc.businessUnitId && validBusinessUnitIds?.has(uc.businessUnitId)) ||
+          (uc.processId && validProcessIds?.has(uc.processId))
+        );
+      }
+      
+      return true;
+    });
+  }, [useCases, selectedCompanyId, selectedBusinessUnitId, contextProcessId, validProcessIds, validBusinessUnitIds]);
 
   const deleteMutation = useMutation<void, unknown, string, { previous?: UseCase[] }>({
     mutationFn: deleteUseCase,
