@@ -2,9 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
+import { createRequire } from 'module';
 
-// @ts-ignore - pdf-parse has ESM/CJS interop issues
-import pdf from 'pdf-parse';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
@@ -94,7 +95,7 @@ export async function processFile(filePath: string, mimeType: string): Promise<F
 async function processPdf(filePath: string): Promise<FileProcessingResult> {
   try {
     const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdf(dataBuffer);
+    const data = await pdfParse(dataBuffer);
     
     const extractedText = data.text.substring(0, 50000);
     

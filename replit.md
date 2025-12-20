@@ -18,7 +18,7 @@ Preferred communication style: Simple, everyday language.
 **Design Decisions:** Component-based architecture, type-safe API layer, responsive mobile-first design, consolidated Dashboard, modal-based forms, global filter context, comprehensive light/dark mode theming with modern contemporary design principles (gradients, glassmorphism, smooth transitions).
 **Linking System:** Pain points link to use cases with percentage solved validation and impact calculations.
 **Admin Features:** Secure admin section with Replit Auth, user management, bulk Excel uploads/exports for pain points, processes, and taxonomy, manual taxonomy management, and auto-detection/addition of missing entities during uploads.
-**AI Assistant Features:** Conversational AI with persistent chat history, searchable conversation sidebar, ability to continue previous conversations. AI uses persona and rules configured in /admin/ai settings. AI responses render with full markdown support including tables, syntax-highlighted code blocks, lists, headers, and links via react-markdown with remark-gfm and rehype-highlight. Uses GPT-5-mini by default with optional "Thinking Mode" toggle that switches to GPT-5.1-thinking for complex reasoning tasks.
+**AI Assistant Features:** Conversational AI with persistent chat history, searchable conversation sidebar, ability to continue previous conversations. AI uses persona and rules configured in /admin/ai settings. AI responses render with full markdown support including tables, syntax-highlighted code blocks, lists, headers, and links via react-markdown with remark-gfm and rehype-highlight. Uses GPT-5-mini by default with optional "Thinking Mode" toggle that switches to GPT-5.1-thinking for complex reasoning tasks. Supports file attachments including images (analyzed via GPT-5 vision), PDFs, Excel, Word documents, and CSV files with automatic text extraction.
 
 ### Backend Architecture
 
@@ -39,7 +39,7 @@ Preferred communication style: Simple, everyday language.
 
 **NPM Packages:**
 - **Frontend:** `@tanstack/react-query`, `axios`, `zustand`, `lucide-react`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@radix-ui/react-label`.
-- **Backend:** `drizzle-orm`, `drizzle-kit`, `pg`, `pgvector`, `express`, `cors`, `dotenv`, `tsx`.
+- **Backend:** `drizzle-orm`, `drizzle-kit`, `pg`, `pgvector`, `express`, `cors`, `dotenv`, `tsx`, `multer`, `pdf-parse`, `mammoth`, `xlsx`, `exceljs`.
 
 **Environment Configuration:**
 - `DATABASE_URL`, `CLIENT_ORIGIN`, `PORT`, `VITE_API_URL`, `LLM_CLASSIFIER_MODEL`, `SESSION_SECRET`, `ADMIN_USER_IDS`.

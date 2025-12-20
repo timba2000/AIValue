@@ -76,7 +76,8 @@ export default function AIPage() {
       });
       const loadedMessages = response.data.messages.map((m: any) => ({
         role: m.role,
-        content: m.content
+        content: m.content,
+        attachments: m.attachments || undefined
       }));
       setMessages(loadedMessages);
       setCurrentConversationId(id);
@@ -91,7 +92,11 @@ export default function AIPage() {
     try {
       await axios.post(
         `${API_BASE}/api/ai/conversations/${conversationId}/messages`,
-        { role: message.role, content: message.content },
+        { 
+          role: message.role, 
+          content: message.content,
+          attachments: message.attachments || null
+        },
         { withCredentials: true }
       );
     } catch (err) {

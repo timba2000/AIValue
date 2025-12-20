@@ -313,7 +313,7 @@ router.post("/conversations/:id/messages", async (req: Request, res: Response) =
     }
 
     const { id } = req.params;
-    const { role, content } = req.body;
+    const { role, content, attachments } = req.body;
 
     const [existing] = await db.select()
       .from(aiConversations)
@@ -329,7 +329,8 @@ router.post("/conversations/:id/messages", async (req: Request, res: Response) =
     const [message] = await db.insert(aiMessages).values({
       conversationId: id,
       role,
-      content
+      content,
+      attachments: attachments || null
     }).returning();
 
     await db.update(aiConversations)
