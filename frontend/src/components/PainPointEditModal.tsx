@@ -7,6 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { useAllBusinessUnits, useAllProcesses, useCompanies } from "../hooks/useApiData";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
+import { X, Plus, Link2 } from "lucide-react";
+
+interface UseCase {
+  id: string;
+  name: string;
+}
+
+interface PainPointLink {
+  id: string;
+  painPointId: string;
+  useCaseId: string;
+  percentageSolved: number | null;
+  useCaseName: string;
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -114,6 +128,72 @@ export function PainPointEditModal({
     enabled: !!painPointId && open
   });
 
+  const { data: useCases = [] } = useQuery<UseCase[]>({
+    queryKey: ["useCases"],
+    queryFn: async () => {
+      const response = await axios.get<UseCase[]>(`${API_BASE}/api/use-cases`);
+      return response.data;
+    },
+    enabled: open
+  });
+
+  const { data: painPointLinks = [], refetch: refetchLinks } = useQuery<PainPointLink[]>({
+    queryKey: ["painPointLinks", painPointId],
+    queryFn: async () => {
+      const response = await axios.get<PainPointLink[]>(`${API_BASE}/api/pain-points/${painPointId}/links`);
+      return response.data;
+    },
+    enabled: !!painPointId && open
+  });
+
+  const [newLinkUseCaseId, setNewLinkUseCaseId] = useState("");
+  const [newLinkPercentage, setNewLinkPercentage] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const availableUseCases = useMemo(() => {
+    const linkedIds = new Set(painPointLinks.map(l => l.useCaseId));
+    return useCases.filter(uc => !linkedIds.has(uc.id));
+  }, [useCases, painPointLinks]);
+
+  const handleAddLink = async () => {
+    if (!newLinkUseCaseId || !painPointId) return;
+    
+    const percentage = newLinkPercentage ? Number(newLinkPercentage) : null;
+    if (percentage !== null && (percentage < 0 || percentage > 100)) {
+      setLinkError("Percentage must be between 0 and 100");
+      return;
+    }
+
+    setIsLinking(true);
+    setLinkError(null);
+    try {
+      await axios.post(`${API_BASE}/api/pain-points/${painPointId}/links`, {
+        useCaseId: newLinkUseCaseId,
+        percentageSolved: percentage
+      });
+      setNewLinkUseCaseId("");
+      setNewLinkPercentage("");
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
+    } catch {
+      setLinkError("Failed to link solution");
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleRemoveLink = async (linkId: string) => {
+    if (!painPointId) return;
+    try {
+      await axios.delete(`${API_BASE}/api/pain-points/${painPointId}/links/${linkId}`);
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
+    } catch {
+      setLinkError("Failed to unlink solution");
+    }
+  };
+
   useEffect(() => {
     if (painPoint && open) {
       setFormState({
@@ -144,6 +224,9 @@ export function PainPointEditModal({
     if (!open) {
       setFormState(emptyForm);
       setError(null);
+      setNewLinkUseCaseId("");
+      setNewLinkPercentage("");
+      setLinkError(null);
     }
   }, [open]);
   
@@ -561,6 +644,94 @@ export function PainPointEditModal({
                 </p>
               )}
             </div>
+
+            {painPointId && (
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Link2 className="h-4 w-4 text-primary" />
+                  <Label>Linked Solutions</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">Connect solutions that address this pain point</p>
+
+                {linkError && (
+                  <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm mb-3">
+                    {linkError}
+                  </div>
+                )}
+
+                {painPointLinks.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {painPointLinks.map((link) => (
+                      <div key={link.id} className="flex items-center justify-between p-2 bg-accent/30 rounded-lg">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{link.useCaseName}</span>
+                          {link.percentageSolved !== null && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({link.percentageSolved}% solved)
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLink(link.id)}
+                          className="p-1 hover:bg-destructive/20 rounded text-destructive transition-colors"
+                          title="Unlink solution"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {availableUseCases.length > 0 ? (
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label htmlFor="newLinkUseCase" className="text-xs">Solution</Label>
+                      <Select
+                        id="newLinkUseCase"
+                        value={newLinkUseCaseId}
+                        onChange={(e) => setNewLinkUseCaseId(e.target.value)}
+                        className="mt-1"
+                      >
+                        <option value="">Select solution...</option>
+                        {availableUseCases.map((uc) => (
+                          <option key={uc.id} value={uc.id}>{uc.name}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="w-24">
+                      <Label htmlFor="newLinkPercentage" className="text-xs">% Solved</Label>
+                      <input
+                        id="newLinkPercentage"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newLinkPercentage}
+                        onChange={(e) => setNewLinkPercentage(e.target.value)}
+                        placeholder="0-100"
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleAddLink}
+                      disabled={!newLinkUseCaseId || isLinking}
+                      className="shrink-0"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {isLinking ? "..." : "Link"}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {useCases.length === 0 
+                      ? "No solutions available. Create solutions first."
+                      : "All available solutions are already linked."}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
