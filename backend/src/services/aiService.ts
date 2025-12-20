@@ -15,6 +15,7 @@ export interface AIConfig {
   persona?: string;
   rules?: string;
   dataContext?: string;
+  useThinkingModel?: boolean;
 }
 
 export async function generateChatResponse(
@@ -27,11 +28,13 @@ export async function generateChatResponse(
     ? [{ role: "system", content: systemPrompt }, ...messages]
     : messages;
 
+  const model = config?.useThinkingModel ? "gpt-5.1-thinking" : "gpt-5-mini";
+  
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model,
     messages: allMessages,
-    temperature: 0.7,
-    max_tokens: 1024,
+    temperature: config?.useThinkingModel ? 1 : 0.7,
+    max_tokens: config?.useThinkingModel ? 16384 : 4096,
   });
 
   return response.choices[0]?.message?.content || "";

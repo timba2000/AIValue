@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2, Search, Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2, Search, Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, Brain } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 import { AIChartRenderer, parseChartSpecs } from "@/components/AIChartRenderer";
 import Markdown from "react-markdown";
@@ -41,6 +41,7 @@ export default function AIPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loadingConversations, setLoadingConversations] = useState(true);
+  const [useThinkingModel, setUseThinkingModel] = useState(false);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -174,6 +175,7 @@ export default function AIPage() {
         config: {
           persona: persona || undefined,
           rules: rules || undefined,
+          useThinkingModel,
         },
       }, { withCredentials: true });
 
@@ -515,9 +517,25 @@ export default function AIPage() {
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">
-                Press Enter to send, Shift+Enter for new line
-              </p>
+              <div className="flex items-center gap-4">
+                <p className="text-xs text-muted-foreground">
+                  Press Enter to send, Shift+Enter for new line
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setUseThinkingModel(!useThinkingModel)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors",
+                    useThinkingModel 
+                      ? "bg-violet-500/20 text-violet-500 border border-violet-500/30" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  title={useThinkingModel ? "Using GPT-5.1 Thinking Model" : "Using GPT-5 Mini"}
+                >
+                  <Brain className="h-3.5 w-3.5" />
+                  <span>{useThinkingModel ? "Thinking Mode" : "Normal Mode"}</span>
+                </button>
+              </div>
               <Button
                 type="button"
                 variant="ghost"

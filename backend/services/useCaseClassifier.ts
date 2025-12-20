@@ -31,7 +31,7 @@ function buildInstructions(): string {
 
 export function getUseCaseClassifier(): LLMClassifier {
   if (!classifier) {
-    const model = process.env.LLM_CLASSIFIER_MODEL?.trim() || "gpt-4o-mini";
+    const model = process.env.LLM_CLASSIFIER_MODEL?.trim() || "gpt-5-mini";
 
     classifier = new LLMClassifier({
       model,
