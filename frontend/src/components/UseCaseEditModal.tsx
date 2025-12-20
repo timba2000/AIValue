@@ -64,14 +64,22 @@ export function UseCaseEditModal({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: useCase, isLoading: loadingUseCase } = useQuery<UseCase>({
+  const { data: useCase, isLoading: loadingUseCase, refetch } = useQuery<UseCase>({
     queryKey: ["useCase", useCaseId],
     queryFn: async () => {
       const response = await axios.get<UseCase>(`${API_BASE}/api/use-cases/${useCaseId}`);
       return response.data;
     },
-    enabled: !!useCaseId && open
+    enabled: !!useCaseId && open,
+    staleTime: 0
   });
+
+  useEffect(() => {
+    if (useCaseId && open) {
+      setFormState(emptyForm);
+      refetch();
+    }
+  }, [useCaseId, open, refetch]);
 
   useEffect(() => {
     if (useCase && open) {
