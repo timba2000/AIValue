@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useFilterStore } from "../stores/filterStore";
+import { useFilterStore, PainPointFilterType } from "../stores/filterStore";
 import { useCompanies, useBusinessUnitsFlat, useProcessesByBusinessUnit, useAllProcesses, useAllBusinessUnits } from "../hooks/useApiData";
 
 export function FilterByContext() {
@@ -7,9 +7,11 @@ export function FilterByContext() {
     selectedCompanyId,
     selectedBusinessUnitId,
     selectedProcessId,
+    painPointFilter,
     setSelectedCompanyId,
     setSelectedBusinessUnitId,
     setSelectedProcessId,
+    setPainPointFilter,
   } = useFilterStore();
 
   const { data: companies = [] } = useCompanies();
@@ -34,7 +36,7 @@ export function FilterByContext() {
   return (
     <div className="bg-card rounded-2xl border border-border p-6 slide-up">
       <h2 className="text-lg font-semibold text-foreground mb-4">Filter by Context</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Business
@@ -88,6 +90,21 @@ export function FilterByContext() {
                 {process.name}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
+            Pain Points
+          </label>
+          <select
+            value={painPointFilter}
+            onChange={(e) => setPainPointFilter(e.target.value as PainPointFilterType)}
+            className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+          >
+            <option value="all">All Pain Points</option>
+            <option value="linked">Linked to Solutions</option>
+            <option value="unlinked">Unlinked</option>
           </select>
         </div>
       </div>

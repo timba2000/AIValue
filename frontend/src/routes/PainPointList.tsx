@@ -87,6 +87,7 @@ export default function PainPointList() {
     selectedCompanyId,
     selectedBusinessUnitId,
     selectedProcessId,
+    painPointFilter,
   } = useFilterStore();
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +109,6 @@ export default function PainPointList() {
   const [filterImpactMax, setFilterImpactMax] = useState<string>("");
   const [filterHoursMin, setFilterHoursMin] = useState<string>("");
   const [filterHoursMax, setFilterHoursMax] = useState<string>("");
-  const [filterLinked, setFilterLinked] = useState<string>("");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -280,14 +280,14 @@ export default function PainPointList() {
       }
     }
 
-    if (filterLinked === "linked") {
+    if (painPointFilter === "linked") {
       filtered = filtered.filter(pp => linkStats[pp.id] && linkStats[pp.id] > 0);
-    } else if (filterLinked === "unlinked") {
+    } else if (painPointFilter === "unlinked") {
       filtered = filtered.filter(pp => !linkStats[pp.id] || linkStats[pp.id] === 0);
     }
     
     return filtered;
-  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes, filterBusinessUnit, filterCategory, filterEffortMin, filterEffortMax, filterImpactMin, filterImpactMax, filterHoursMin, filterHoursMax, filterLinked, linkStats]);
+  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes, filterBusinessUnit, filterCategory, filterEffortMin, filterEffortMax, filterImpactMin, filterImpactMax, filterHoursMin, filterHoursMax, painPointFilter, linkStats]);
 
   const metricsData = useMemo(() => {
     const linkedCount = filteredPainPoints.filter(pp => 
@@ -670,17 +670,7 @@ export default function PainPointList() {
                       />
                     </div>
                   </td>
-                  <td className="py-2 px-4">
-                    <select
-                      value={filterLinked}
-                      onChange={(e) => setFilterLinked(e.target.value)}
-                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                    >
-                      <option value="">All</option>
-                      <option value="linked">Linked</option>
-                      <option value="unlinked">Unlinked</option>
-                    </select>
-                  </td>
+                  <td className="py-2 px-4"></td>
                   <td className="py-2 px-4"></td>
                 </tr>
               </thead>
