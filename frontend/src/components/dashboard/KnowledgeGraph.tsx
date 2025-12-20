@@ -30,6 +30,11 @@ interface TooltipData {
   y: number;
 }
 
+interface KnowledgeGraphProps {
+  onPainPointClick?: (painPointId: string) => void;
+  onUseCaseClick?: (useCaseId: string) => void;
+}
+
 const NODE_COLORS = {
   company: { light: "#8b5cf6", dark: "#a78bfa" },
   businessUnit: { light: "#3b82f6", dark: "#60a5fa" },
@@ -46,7 +51,7 @@ const NODE_LABELS = {
   useCase: "Solution",
 };
 
-export function KnowledgeGraph() {
+export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGraphProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
@@ -371,8 +376,8 @@ export function KnowledgeGraph() {
         ctx.beginPath();
         ctx.moveTo(source.x, source.y);
         ctx.lineTo(target.x, target.y);
-        ctx.strokeStyle = isDark ? "rgba(148, 163, 184, 0.3)" : "rgba(100, 116, 139, 0.3)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isDark ? "rgba(148, 163, 184, 0.6)" : "rgba(100, 116, 139, 0.3)";
+        ctx.lineWidth = isDark ? 1.5 : 1;
         ctx.stroke();
       }
     });
@@ -486,11 +491,20 @@ export function KnowledgeGraph() {
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < node.radius) {
         setSelectedNode(node);
+        
+        // Handle edit callbacks for pain points and solutions
+        if (node.type === "painPoint" && onPainPointClick) {
+          const painPointId = node.id.replace("pp-", "");
+          onPainPointClick(painPointId);
+        } else if (node.type === "useCase" && onUseCaseClick) {
+          const useCaseId = node.id.replace("uc-", "");
+          onUseCaseClick(useCaseId);
+        }
         return;
       }
     }
     setSelectedNode(null);
-  }, [zoom, pan]);
+  }, [zoom, pan, onPainPointClick, onUseCaseClick]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();

@@ -9,6 +9,7 @@ import { PrioritizationMatrix } from "@/components/dashboard/PrioritizationMatri
 import { KnowledgeGraph } from "@/components/dashboard/KnowledgeGraph";
 import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { PainPointEditModal } from "@/components/PainPointEditModal";
+import { UseCaseEditModal } from "@/components/UseCaseEditModal";
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
 import { getDescendantIds } from "../utils/hierarchy";
@@ -67,6 +68,8 @@ export default function OpportunitiesDashboard() {
   const [editingLink, setEditingLink] = useState<PainPointLink | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingPainPointId, setEditingPainPointId] = useState<string | null>(null);
+  const [useCaseEditModalOpen, setUseCaseEditModalOpen] = useState(false);
+  const [editingUseCaseId, setEditingUseCaseId] = useState<string | null>(null);
   const [activeVisualization, setActiveVisualization] = useState<"matrix" | "graph">("matrix");
 
   const { data: selectedPainPointLinks = [] } = useQuery<PainPointLink[]>({
@@ -502,7 +505,16 @@ export default function OpportunitiesDashboard() {
           }}
         />
       ) : (
-        <KnowledgeGraph />
+        <KnowledgeGraph 
+          onPainPointClick={(painPointId) => {
+            setEditingPainPointId(painPointId);
+            setEditModalOpen(true);
+          }}
+          onUseCaseClick={(useCaseId) => {
+            setEditingUseCaseId(useCaseId);
+            setUseCaseEditModalOpen(true);
+          }}
+        />
       )}
       
       <PainPointsOverviewTable 
@@ -524,6 +536,15 @@ export default function OpportunitiesDashboard() {
         painPointId={editingPainPointId}
         onSaveSuccess={() => {
           allPainPoints.refetch();
+        }}
+      />
+
+      <UseCaseEditModal
+        open={useCaseEditModalOpen}
+        onOpenChange={setUseCaseEditModalOpen}
+        useCaseId={editingUseCaseId}
+        onSaveSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["useCases"] });
         }}
       />
 
