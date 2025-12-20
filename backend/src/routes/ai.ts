@@ -9,8 +9,25 @@ const router = Router();
 
 const MAX_CONTEXT_CHARS = 30000;
 const MAX_HISTORY_MESSAGES = 10;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+let cachedDataSummary: string | null = null;
+let cacheTimestamp: number = 0;
+
+export function invalidateDataSummaryCache() {
+  cachedDataSummary = null;
+  cacheTimestamp = 0;
+  console.log("[AI] Data summary cache invalidated");
+}
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
 
 async function getDataSummary(): Promise<string> {
+  if (cachedDataSummary && (Date.now() - cacheTimestamp) < CACHE_TTL_MS) {
+    return cachedDataSummary;
+  }
   try {
     const allCompanies = await db.select().from(companies);
     const allBusinessUnits = await db.select().from(businessUnits);
@@ -73,6 +90,10 @@ async function getDataSummary(): Promise<string> {
       result = result.substring(0, MAX_CONTEXT_CHARS) + "\n... [context truncated for length]";
     }
     
+    cachedDataSummary = result;
+    cacheTimestamp = Date.now();
+    console.log(`[AI] Data summary cached: ${result.length} chars, ~${estimateTokens(result)} tokens`);
+    
     return result;
   } catch (error) {
     console.error("Error fetching data summary:", error);
@@ -96,6 +117,15 @@ router.post("/chat", async (req: Request, res: Response) => {
       : messages;
 
     const dataSummary = await getDataSummary();
+    
+    const messagesText = limitedMessages.map(m => m.content).join(' ');
+    const systemPromptEstimate = 500;
+    const totalTokenEstimate = estimateTokens(dataSummary) + estimateTokens(messagesText) + systemPromptEstimate;
+    console.log(`[AI] Request: ${limitedMessages.length} messages, ~${totalTokenEstimate} tokens total`);
+    
+    if (totalTokenEstimate > 12000) {
+      console.warn(`[AI] Warning: Token estimate ${totalTokenEstimate} approaching limit`);
+    }
     
     const enrichedConfig: AIConfig = {
       ...config,

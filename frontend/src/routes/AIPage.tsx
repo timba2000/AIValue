@@ -201,7 +201,7 @@ export default function AIPage() {
           useThinkingModel,
           attachments: attachmentsForAPI.length > 0 ? attachmentsForAPI : undefined,
         },
-      }, { withCredentials: true });
+      }, { withCredentials: true, timeout: 60000 });
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -217,9 +217,18 @@ export default function AIPage() {
           await updateConversationTitle(conversationId, aiTitle);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI chat error:", err);
-      setError(err instanceof Error ? err.message : "Failed to get AI response");
+      let errorMsg = "Failed to get AI response";
+      if (err?.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      } else if (err?.code === "ECONNABORTED") {
+        errorMsg = "Request timed out. The AI is taking too long to respond.";
+      } else if (err?.message) {
+        errorMsg = err.message;
+      }
+      setMessages((prev) => prev.slice(0, -1));
+      setError(errorMsg);
     } finally {
       setIsThinking(false);
     }
@@ -249,12 +258,13 @@ export default function AIPage() {
           persona: "You are a prompt engineering expert. Your job is to take user prompts and make them clearer, more specific, and more effective.",
           rules: "Only return the improved prompt text. Do not include explanations, quotes, or any other text.",
         },
-      }, { withCredentials: true });
+      }, { withCredentials: true, timeout: 60000 });
 
       setInput(response.data.message);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Improve prompt error:", err);
-      setError("Failed to improve prompt");
+      const errorMsg = err?.response?.data?.error || "Failed to improve prompt";
+      setError(errorMsg);
     } finally {
       setIsThinking(false);
     }
