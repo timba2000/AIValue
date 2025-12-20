@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2, Search, Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 import { AIChartRenderer, parseChartSpecs } from "@/components/AIChartRenderer";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -433,7 +437,13 @@ export default function AIPage() {
                           : "bg-muted text-foreground"
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{text}</p>
+                      {message.role === "user" ? (
+                        <p className="text-sm whitespace-pre-wrap">{text}</p>
+                      ) : (
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-table:border-collapse prose-th:border prose-th:border-border prose-th:bg-accent prose-th:px-3 prose-th:py-2 prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-a:text-primary prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
+                          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{text}</Markdown>
+                        </div>
+                      )}
                     </div>
                   )}
                   {charts.map((chart, chartIndex) => (
