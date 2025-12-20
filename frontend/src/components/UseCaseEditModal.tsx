@@ -61,6 +61,7 @@ interface BusinessUnit {
   id: string;
   name: string;
   companyId: string;
+  parentId: string | null;
 }
 
 interface Process {
@@ -124,9 +125,10 @@ export function UseCaseEditModal({
     enabled: open
   });
 
-  const filteredBusinessUnits = formState.companyId
-    ? businessUnits.filter(bu => bu.companyId === formState.companyId)
-    : businessUnits;
+  const filteredBusinessUnits = (formState.companyId
+    ? businessUnits.filter(bu => bu.companyId === formState.companyId && !bu.parentId)
+    : businessUnits.filter(bu => !bu.parentId)
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredProcesses = formState.businessUnitId
     ? processes.filter(p => p.businessUnitId === formState.businessUnitId)
