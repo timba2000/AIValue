@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { createUseCase, updateUseCase } from "@/api/useCases";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { UseCase, UseCasePayload, DataRequirement, RiskLevel } from "@/types/useCase";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
+interface Company {
+  id: string;
+  name: string;
+}
+
+interface BusinessUnit {
+  id: string;
+  name: string;
+  companyId: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  businessUnitId: string | null;
+}
 
 interface UseCaseFormProps {
   selectedUseCase: UseCase | null;
@@ -28,13 +48,47 @@ const DEFAULT_STATE: UseCasePayload = {
   estimatedDeliveryTime: "Quick Win",
   costRange: "Medium",
   confidenceLevel: "Medium",
-  processId: null
+  processId: null,
+  companyId: null,
+  businessUnitId: null
 };
 
 export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<UseCasePayload>(DEFAULT_STATE);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const response = await axios.get<Company[]>(`${API_BASE}/api/companies`);
+      return response.data;
+    }
+  });
+
+  const { data: businessUnits = [] } = useQuery<BusinessUnit[]>({
+    queryKey: ["businessUnits"],
+    queryFn: async () => {
+      const response = await axios.get<BusinessUnit[]>(`${API_BASE}/api/business-units`);
+      return response.data;
+    }
+  });
+
+  const { data: processes = [] } = useQuery<Process[]>({
+    queryKey: ["processes"],
+    queryFn: async () => {
+      const response = await axios.get<Process[]>(`${API_BASE}/api/processes`);
+      return response.data;
+    }
+  });
+
+  const filteredBusinessUnits = formState.companyId
+    ? businessUnits.filter(bu => bu.companyId === formState.companyId)
+    : businessUnits;
+
+  const filteredProcesses = formState.businessUnitId
+    ? processes.filter(p => p.businessUnitId === formState.businessUnitId)
+    : processes;
 
   useEffect(() => {
     if (selectedUseCase) {
@@ -50,7 +104,9 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
         estimatedDeliveryTime: selectedUseCase.estimatedDeliveryTime ?? "Quick Win",
         costRange: selectedUseCase.costRange ?? "Medium",
         confidenceLevel: selectedUseCase.confidenceLevel ?? "Medium",
-        processId: selectedUseCase.processId
+        processId: selectedUseCase.processId,
+        companyId: selectedUseCase.companyId,
+        businessUnitId: selectedUseCase.businessUnitId
       });
     } else {
       setFormState(DEFAULT_STATE);
@@ -170,6 +226,64 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
               onChange={(event) => handleChange("solutionProvider", event.target.value || null)}
               placeholder="e.g. OpenAI, Microsoft, Custom"
             />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="companyId">Company</Label>
+              <select
+                id="companyId"
+                value={formState.companyId ?? ""}
+                onChange={(event) => {
+                  setFormState({
+                    ...formState,
+                    companyId: event.target.value || null,
+                    businessUnitId: null,
+                    processId: null
+                  });
+                }}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select company...</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>{company.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="businessUnitId">Business Unit</Label>
+              <select
+                id="businessUnitId"
+                value={formState.businessUnitId ?? ""}
+                onChange={(event) => {
+                  setFormState({
+                    ...formState,
+                    businessUnitId: event.target.value || null,
+                    processId: null
+                  });
+                }}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select business unit...</option>
+                {filteredBusinessUnits.map((bu) => (
+                  <option key={bu.id} value={bu.id}>{bu.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="processId">Process</Label>
+              <select
+                id="processId"
+                value={formState.processId ?? ""}
+                onChange={(event) => handleChange("processId", event.target.value || null)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select process...</option>
+                {filteredProcesses.map((process) => (
+                  <option key={process.id} value={process.id}>{process.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
