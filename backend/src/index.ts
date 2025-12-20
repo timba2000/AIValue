@@ -15,6 +15,7 @@ import adminTaxonomyRouter from "./routes/adminTaxonomy.js";
 import adminProcessUploadRouter from "./routes/adminProcessUpload.js";
 import adminBusinessRouter from "./routes/adminBusiness.js";
 import aiRouter from "./routes/ai.js";
+import aiUploadsRouter from "./routes/aiUploads.js";
 import { setupAuth, isAuthenticated, isAdmin, getUser } from "./simpleAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +59,7 @@ async function startServer() {
   app.use("/api/admin/processes", isAuthenticated, isAdmin, adminProcessUploadRouter);
   app.use("/api/admin/business", isAuthenticated, isAdmin, adminBusinessRouter);
   app.use("/api/ai", isAuthenticated, aiRouter);
+  app.use("/api/ai/uploads", isAuthenticated, aiUploadsRouter);
 
   app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
     try {

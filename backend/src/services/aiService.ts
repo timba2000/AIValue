@@ -11,12 +11,24 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface FileAttachment {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  isImage: boolean;
+  extractedText?: string;
+  base64Data?: string;
+}
+
 export interface AIConfig {
   persona?: string;
   rules?: string;
   dataContext?: string;
   useThinkingModel?: boolean;
+  attachments?: FileAttachment[];
 }
+
+type OpenAIMessageContent = string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: string } }>;
 
 export async function generateChatResponse(
   messages: ChatMessage[],
@@ -24,15 +36,48 @@ export async function generateChatResponse(
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(config);
   
-  const allMessages: ChatMessage[] = systemPrompt
-    ? [{ role: "system", content: systemPrompt }, ...messages]
-    : messages;
+  let processedMessages: Array<{ role: "system" | "user" | "assistant"; content: OpenAIMessageContent }> = [];
+  
+  if (systemPrompt) {
+    processedMessages.push({ role: "system", content: systemPrompt });
+  }
+  
+  for (const msg of messages) {
+    if (msg.role === "user" && config?.attachments && config.attachments.length > 0) {
+      const contentParts: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: string } }> = [];
+      
+      let textContent = msg.content;
+      const documentAttachments = config.attachments.filter(a => !a.isImage && a.extractedText);
+      if (documentAttachments.length > 0) {
+        textContent += "\n\n=== ATTACHED DOCUMENTS ===\n";
+        for (const doc of documentAttachments) {
+          textContent += `\n--- ${doc.originalName} ---\n${doc.extractedText}\n`;
+        }
+        textContent += "=== END ATTACHED DOCUMENTS ===";
+      }
+      
+      contentParts.push({ type: "text", text: textContent });
+      
+      const imageAttachments = config.attachments.filter(a => a.isImage && a.base64Data);
+      for (const img of imageAttachments) {
+        const dataUrl = `data:${img.mimeType};base64,${img.base64Data}`;
+        contentParts.push({
+          type: "image_url",
+          image_url: { url: dataUrl, detail: "auto" }
+        });
+      }
+      
+      processedMessages.push({ role: msg.role, content: contentParts });
+    } else {
+      processedMessages.push({ role: msg.role, content: msg.content });
+    }
+  }
 
   const model = config?.useThinkingModel ? "gpt-5.1-thinking" : "gpt-5-mini";
   
   const response = await openai.chat.completions.create({
     model,
-    messages: allMessages,
+    messages: processedMessages as any,
     max_completion_tokens: config?.useThinkingModel ? 16384 : 4096,
   });
 
