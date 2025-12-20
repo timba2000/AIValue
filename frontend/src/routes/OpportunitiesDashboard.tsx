@@ -59,6 +59,7 @@ export default function OpportunitiesDashboard() {
     selectedCompanyId,
     selectedBusinessUnitId,
     selectedProcessId,
+    painPointFilter,
   } = useFilterStore();
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPoint, setSelectedPainPoint] = useState<PainPoint | null>(null);
@@ -418,15 +419,23 @@ export default function OpportunitiesDashboard() {
     totalProcessLinks
   };
 
-  const matrixData = (allPainPoints.data || []).map(pp => ({
-    id: pp.id,
-    statement: pp.statement,
-    magnitude: Number(pp.magnitude || 0),
-    effortSolving: Number(pp.effortSolving || 0),
-    totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
-    hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
-    linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
-  }));
+  const matrixData = (allPainPoints.data || [])
+    .filter(pp => {
+      if (painPointFilter === 'all') return true;
+      const hasLinks = (allPainPointLinks.data?.[pp.id] || 0) > 0;
+      if (painPointFilter === 'linked') return hasLinks;
+      if (painPointFilter === 'unlinked') return !hasLinks;
+      return true;
+    })
+    .map(pp => ({
+      id: pp.id,
+      statement: pp.statement,
+      magnitude: Number(pp.magnitude || 0),
+      effortSolving: Number(pp.effortSolving || 0),
+      totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
+      hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
+      linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
+    }));
 
   const overviewTableData = (allPainPoints.data || []).map(pp => {
     const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
