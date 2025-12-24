@@ -451,13 +451,6 @@ export default function DashboardHome() {
         "flex-1 flex flex-col gap-4 overflow-hidden transition-all duration-300",
         aiPanelExpanded && "hidden md:flex md:w-0 md:opacity-0"
       )}>
-        <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up shrink-0">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Overview of your process intelligence and opportunities
-          </p>
-        </div>
-
         <FilterByContext />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
