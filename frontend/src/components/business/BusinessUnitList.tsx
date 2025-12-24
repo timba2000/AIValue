@@ -26,7 +26,7 @@ const MAX_DEPTH = 3;
 
 function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowProps) {
   const hasChildren = unit.children && unit.children.length > 0;
-  const isExpanded = expanded[unit.id] ?? true;
+  const isExpanded = expanded[unit.id] ?? false;
   const canAddChild = unit.depth < MAX_DEPTH;
   const indentPx = (unit.depth - 1) * 24;
 
