@@ -20,12 +20,22 @@ export interface FileAttachment {
   base64Data?: string;
 }
 
+export interface FilterContext {
+  companyId?: string | null;
+  companyName?: string | null;
+  businessUnitId?: string | null;
+  businessUnitName?: string | null;
+  processId?: string | null;
+  processName?: string | null;
+}
+
 export interface AIConfig {
   persona?: string;
   rules?: string;
   dataContext?: string;
   useThinkingModel?: boolean;
   attachments?: FileAttachment[];
+  filterContext?: FilterContext;
 }
 
 type OpenAIMessageContent = string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: string } }>;
@@ -155,6 +165,31 @@ function buildSystemPrompt(config?: AIConfig): string {
   
   if (config?.rules) {
     parts.push(`\nRules and Guidelines:\n${config.rules}`);
+  }
+  
+  if (config?.filterContext) {
+    const fc = config.filterContext;
+    const contextParts: string[] = [];
+    if (fc.companyName) {
+      contextParts.push(`Company: ${fc.companyName}${fc.companyId ? ` (ID: ${fc.companyId})` : ''}`);
+    } else if (fc.companyId) {
+      contextParts.push(`Company ID: ${fc.companyId}`);
+    }
+    if (fc.businessUnitName) {
+      contextParts.push(`Business Unit: ${fc.businessUnitName}${fc.businessUnitId ? ` (ID: ${fc.businessUnitId})` : ''}`);
+    } else if (fc.businessUnitId) {
+      contextParts.push(`Business Unit ID: ${fc.businessUnitId}`);
+    }
+    if (fc.processName) {
+      contextParts.push(`Process: ${fc.processName}${fc.processId ? ` (ID: ${fc.processId})` : ''}`);
+    } else if (fc.processId) {
+      contextParts.push(`Process ID: ${fc.processId}`);
+    }
+    
+    if (contextParts.length > 0) {
+      parts.push(`\nCURRENT USER FILTER CONTEXT:\nThe user is currently viewing data filtered to: ${contextParts.join(", ")}`);
+      parts.push("When answering questions, prioritize information relevant to this filter context. If the user asks about 'my processes' or 'my pain points', focus on data within this filtered scope.");
+    }
   }
   
   if (config?.dataContext) {
