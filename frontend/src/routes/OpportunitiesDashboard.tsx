@@ -465,15 +465,6 @@ export default function OpportunitiesDashboard() {
 
   return (
     <div className="space-y-6 fade-in">
-      <div className="bg-card rounded-2xl border border-border p-6 slide-up">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Analytics and opportunity management
-        </p>
-      </div>
-
       <FilterByContext />
 
       <MetricsCards {...metricsData} />
