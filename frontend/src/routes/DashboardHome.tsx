@@ -52,7 +52,7 @@ function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: stri
 
 export default function DashboardHome() {
   const { aiEnabled, persona, rules } = useAISettingsStore();
-  const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId, selectedL1Process, selectedL2Process } = useFilterStore();
+  const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId, selectedL1Process, selectedL2Process, painPointFilter } = useFilterStore();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -87,6 +87,14 @@ export default function DashboardHome() {
     queryKey: ["useCases"],
     queryFn: async () => {
       const response = await axios.get(`${API_BASE}/api/use-cases`);
+      return response.data;
+    }
+  });
+
+  const { data: linkStats = {} } = useQuery<Record<string, number>>({
+    queryKey: ["allPainPointLinksStats"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE}/api/pain-point-links/stats`);
       return response.data;
     }
   });
@@ -136,8 +144,16 @@ export default function DashboardHome() {
   const filteredProcessIds = useMemo(() => new Set(filteredProcesses.map(p => p.id)), [filteredProcesses]);
 
   const filteredPainPoints = useMemo(() => {
-    return painPoints.filter((pp: any) => filteredProcessIds.has(pp.processId));
-  }, [painPoints, filteredProcessIds]);
+    let filtered = painPoints.filter((pp: any) => filteredProcessIds.has(pp.processId));
+    
+    if (painPointFilter === "linked") {
+      filtered = filtered.filter((pp: any) => linkStats[pp.id] && linkStats[pp.id] > 0);
+    } else if (painPointFilter === "unlinked") {
+      filtered = filtered.filter((pp: any) => !linkStats[pp.id] || linkStats[pp.id] === 0);
+    }
+    
+    return filtered;
+  }, [painPoints, filteredProcessIds, painPointFilter, linkStats]);
 
   const filteredUseCases = useMemo(() => {
     return useCases.filter((uc: any) => filteredProcessIds.has(uc.processId));
