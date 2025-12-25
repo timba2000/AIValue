@@ -83,6 +83,7 @@ export default function LoginPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="John"
+                    autoComplete="given-name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -93,6 +94,7 @@ export default function LoginPage() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Doe"
+                    autoComplete="family-name"
                   />
                 </div>
               </div>
@@ -107,6 +109,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
             </div>
 
@@ -120,6 +123,7 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 required
                 minLength={6}
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
 
