@@ -71,6 +71,8 @@ export default function ProcessList() {
   const {
     selectedCompanyId,
     selectedBusinessUnitId: selectedUnitId,
+    selectedL1Process,
+    selectedL2Process,
   } = useFilterStore();
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -126,10 +128,35 @@ export default function ProcessList() {
     [businessUnits, selectedUnitId]
   );
 
+  const { selectedProcessId } = useFilterStore();
+  
   const filteredProcesses = useMemo(() => {
-    if (!search.trim()) return processes;
-    return processes.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
-  }, [processes, search]);
+    let filtered = processes;
+    
+    if (selectedProcessId) {
+      return processes.filter((process) => process.id === selectedProcessId);
+    }
+    
+    if (selectedL1Process) {
+      filtered = filtered.filter((process) => {
+        const { l1 } = parseProcessHierarchy(process.name);
+        return l1 === selectedL1Process;
+      });
+    }
+    
+    if (selectedL2Process) {
+      filtered = filtered.filter((process) => {
+        const { l2 } = parseProcessHierarchy(process.name);
+        return l2 === selectedL2Process;
+      });
+    }
+    
+    if (search.trim()) {
+      filtered = filtered.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
+    }
+    
+    return filtered;
+  }, [processes, search, selectedL1Process, selectedL2Process, selectedProcessId]);
 
   const processStats = useMemo(() => {
     const totalProcesses = processes.length;

@@ -81,12 +81,30 @@ const emptyForm: FormState = {
   businessUnitId: ""
 };
 
+function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: string } {
+  let nameParts: string[] = [];
+  if (name.includes(" > ")) {
+    nameParts = name.split(" > ");
+  } else if (name.includes(" - ")) {
+    nameParts = name.split(" - ");
+  } else if (name.includes("/")) {
+    nameParts = name.split("/");
+  }
+  return {
+    l1: nameParts[0]?.trim() || "-",
+    l2: nameParts[1]?.trim() || "-",
+    l3: nameParts[2]?.trim() || "-"
+  };
+}
+
 export default function PainPointList() {
   const queryClient = useQueryClient();
   const {
     selectedCompanyId,
     selectedBusinessUnitId,
     selectedProcessId,
+    selectedL1Process,
+    selectedL2Process,
     painPointFilter,
   } = useFilterStore();
   const [search, setSearch] = useState("");
@@ -186,16 +204,39 @@ export default function PainPointList() {
   const validProcessIds = useMemo(() => {
     if (selectedProcessId) {
       return new Set([selectedProcessId]);
-    } else if (selectedBusinessUnitId) {
+    }
+    
+    let filteredProcesses = processes;
+    
+    if (selectedBusinessUnitId) {
       const descendantIds = getDescendantIds(businessUnitsHierarchy, selectedBusinessUnitId);
       const allUnitIds = new Set([selectedBusinessUnitId, ...descendantIds]);
-      return new Set(processes.filter(p => allUnitIds.has(p.businessUnitId)).map(p => p.id));
+      filteredProcesses = filteredProcesses.filter(p => allUnitIds.has(p.businessUnitId));
     } else if (selectedCompanyId) {
       const companyBuIds = new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
-      return new Set(processes.filter(p => companyBuIds.has(p.businessUnitId)).map(p => p.id));
+      filteredProcesses = filteredProcesses.filter(p => companyBuIds.has(p.businessUnitId));
     }
+    
+    if (selectedL1Process) {
+      filteredProcesses = filteredProcesses.filter(p => {
+        const { l1 } = parseProcessHierarchy(p.name);
+        return l1 === selectedL1Process;
+      });
+    }
+    
+    if (selectedL2Process) {
+      filteredProcesses = filteredProcesses.filter(p => {
+        const { l2 } = parseProcessHierarchy(p.name);
+        return l2 === selectedL2Process;
+      });
+    }
+    
+    if (filteredProcesses.length < processes.length || selectedL1Process || selectedL2Process) {
+      return new Set(filteredProcesses.map(p => p.id));
+    }
+    
     return null;
-  }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, processes, businessUnits, businessUnitsHierarchy]);
+  }, [selectedCompanyId, selectedBusinessUnitId, selectedProcessId, selectedL1Process, selectedL2Process, processes, businessUnits, businessUnitsHierarchy]);
 
   const validBusinessUnitIds = useMemo(() => {
     if (selectedBusinessUnitId) {
