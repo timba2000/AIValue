@@ -9,7 +9,7 @@ const router = Router();
 
 const MAX_CONTEXT_CHARS = 40000;
 const MAX_HISTORY_MESSAGES = 10;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 2 * 60 * 1000;
 
 let cachedUnfilteredContext: string | null = null;
 let unfilteredCacheTimestamp: number = 0;
@@ -33,30 +33,55 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-function calculateOpportunityScore(painPoint: any, linkedSolutions: any[]): number {
+interface OpportunityResult {
+  score: number;
+  isEstimated: boolean;
+  missingFields: string[];
+}
+
+function calculateOpportunityScore(painPoint: any, linkedSolutions: any[]): OpportunityResult {
   let score = 0;
+  const missingFields: string[] = [];
   
-  const hoursPerMonth = parseFloat(painPoint.totalHoursPerMonth) || 0;
-  if (hoursPerMonth > 100) score += 30;
-  else if (hoursPerMonth > 50) score += 20;
-  else if (hoursPerMonth > 20) score += 10;
+  const hoursPerMonth = parseFloat(painPoint.totalHoursPerMonth);
+  if (isNaN(hoursPerMonth)) {
+    missingFields.push('hours/month');
+  } else {
+    if (hoursPerMonth > 100) score += 30;
+    else if (hoursPerMonth > 50) score += 20;
+    else if (hoursPerMonth > 20) score += 10;
+  }
   
-  const magnitude = parseFloat(painPoint.magnitude) || 0;
-  const frequency = parseFloat(painPoint.frequency) || 0;
-  score += (magnitude * frequency) / 10;
+  const magnitude = parseFloat(painPoint.magnitude);
+  const frequency = parseFloat(painPoint.frequency);
+  if (isNaN(magnitude)) missingFields.push('magnitude');
+  if (isNaN(frequency)) missingFields.push('frequency');
+  if (!isNaN(magnitude) && !isNaN(frequency)) {
+    score += (magnitude * frequency) / 10;
+  }
   
   if (painPoint.riskLevel === 'High') score += 15;
   else if (painPoint.riskLevel === 'Medium') score += 8;
+  else if (!painPoint.riskLevel) missingFields.push('risk level');
   
-  const effortSolving = parseFloat(painPoint.effortSolving) || 5;
-  score += (10 - effortSolving) * 2;
+  const effortSolving = parseFloat(painPoint.effortSolving);
+  if (isNaN(effortSolving)) {
+    missingFields.push('effort to solve');
+    score += 10;
+  } else {
+    score += (10 - effortSolving) * 2;
+  }
   
   if (linkedSolutions.length > 0) {
     const avgPercentSolved = linkedSolutions.reduce((sum, l) => sum + (parseFloat(l.percentageSolved) || 0), 0) / linkedSolutions.length;
     score += avgPercentSolved / 5;
   }
   
-  return Math.min(Math.round(score), 100);
+  return {
+    score: Math.min(Math.round(score), 100),
+    isEstimated: missingFields.length > 0,
+    missingFields
+  };
 }
 
 async function getFilteredDataContext(filterContext?: FilterContext): Promise<string> {
@@ -110,8 +135,9 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
         if (process) {
           const [company] = process.businessId ? await db.select().from(companies).where(eq(companies.id, process.businessId)) : [null];
           const [bu] = process.businessUnitId ? await db.select().from(businessUnits).where(eq(businessUnits.id, process.businessUnitId)) : [null];
+          const procShortId = process.id.substring(0, 8);
           
-          summary.push(`CURRENT PROCESS: ${process.name}`);
+          summary.push(`CURRENT PROCESS: [PROC:${procShortId}] ${process.name}`);
           summary.push(`  Company: ${company?.name || 'Unknown'}`);
           summary.push(`  Business Unit: ${bu?.name || 'N/A'}`);
           summary.push(`  Description: ${process.description || 'N/A'}`);
@@ -129,30 +155,37 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
             const useCaseIds = [...new Set(relatedLinks.map(l => l.useCaseId))];
             const relatedUseCases = useCaseIds.length > 0 ? await db.select().from(useCases).where(inArray(useCases.id, useCaseIds)) : [];
             
-            summary.push(`\nPAIN POINTS IN THIS PROCESS (${relatedPainPoints.length} total):`);
-            for (const pp of relatedPainPoints.slice(0, 20)) {
+            const scoredPainPoints = relatedPainPoints.map(pp => {
               const ppLinks = relatedLinks.filter(l => l.painPointId === pp.id);
-              const linkedSolutions = ppLinks.map(l => ({
+              const result = calculateOpportunityScore(pp, ppLinks);
+              return { ...pp, ppLinks, opportunityResult: result };
+            }).sort((a, b) => b.opportunityResult.score - a.opportunityResult.score);
+            
+            summary.push(`\nPAIN POINTS IN THIS PROCESS (${relatedPainPoints.length} total, sorted by opportunity score):`);
+            for (const pp of scoredPainPoints.slice(0, 20)) {
+              const linkedSolutions = pp.ppLinks.map(l => ({
                 ...l,
                 useCase: relatedUseCases.find(uc => uc.id === l.useCaseId)
               }));
-              const opportunityScore = calculateOpportunityScore(pp, ppLinks);
+              const { score, isEstimated, missingFields } = pp.opportunityResult;
               const taxonomy = getTaxonomyPath(pp.taxonomyLevel1Id, pp.taxonomyLevel2Id, pp.taxonomyLevel3Id);
+              const shortId = pp.id.substring(0, 8);
               
-              summary.push(`\n- "${pp.statement}"`);
+              summary.push(`\n- [PP:${shortId}] "${pp.statement}"`);
               summary.push(`  Category: ${taxonomy}`);
               summary.push(`  Impact Type: ${pp.impactType?.join(', ') || 'N/A'}`);
               summary.push(`  Business Impact: ${pp.businessImpact || 'N/A'}`);
               summary.push(`  Hours/Month: ${pp.totalHoursPerMonth || 'N/A'}, FTE Impact: ${pp.fteCount || 'N/A'}`);
               summary.push(`  Root Cause: ${pp.rootCause || 'N/A'}`);
               summary.push(`  Risk Level: ${pp.riskLevel || 'N/A'}`);
-              summary.push(`  OPPORTUNITY SCORE: ${opportunityScore}/100`);
+              summary.push(`  OPPORTUNITY SCORE: ${score}/100${isEstimated ? ` (estimated - missing: ${missingFields.join(', ')})` : ''}`);
               
               if (linkedSolutions.length > 0) {
                 summary.push(`  LINKED SOLUTIONS (${linkedSolutions.length}):`);
                 for (const sol of linkedSolutions.slice(0, 5)) {
                   if (sol.useCase) {
-                    summary.push(`    * ${sol.useCase.name} - ${sol.percentageSolved || 0}% solved`);
+                    const ucShortId = sol.useCase.id.substring(0, 8);
+                    summary.push(`    * [UC:${ucShortId}] ${sol.useCase.name} - ${sol.percentageSolved || 0}% solved`);
                     summary.push(`      Provider: ${sol.useCase.solutionProvider || 'N/A'}, Complexity: ${sol.useCase.complexity}`);
                     if (sol.notes) summary.push(`      Notes: ${sol.notes}`);
                   }
@@ -162,15 +195,16 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
                 summary.push(`  NO LINKED SOLUTIONS - Opportunity for automation`);
               }
             }
-            if (relatedPainPoints.length > 20) summary.push(`\n... and ${relatedPainPoints.length - 20} more pain points`);
+            if (scoredPainPoints.length > 20) summary.push(`\n... and ${scoredPainPoints.length - 20} more pain points`);
           }
         }
       } else if (resolvedBusinessUnitId) {
         const [bu] = await db.select().from(businessUnits).where(eq(businessUnits.id, resolvedBusinessUnitId));
         if (bu) {
           const [company] = await db.select().from(companies).where(eq(companies.id, bu.companyId));
+          const buShortId = bu.id.substring(0, 8);
           
-          summary.push(`CURRENT BUSINESS UNIT: ${bu.name}`);
+          summary.push(`CURRENT BUSINESS UNIT: [BU:${buShortId}] ${bu.name}`);
           summary.push(`  Company: ${company?.name || 'Unknown'}`);
           summary.push(`  Description: ${bu.description || 'N/A'}`);
           summary.push(`  FTE: ${bu.fte || 0}`);
@@ -184,25 +218,31 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
           
           summary.push(`\nPROCESSES (${buProcesses.length}):`);
           for (const proc of buProcesses.slice(0, 15)) {
-            summary.push(`- ${proc.name}: ${proc.description || 'N/A'} (FTE: ${proc.fte || 'N/A'})`);
+            const procShortId = proc.id.substring(0, 8);
+            summary.push(`- [PROC:${procShortId}] ${proc.name}: ${proc.description || 'N/A'} (FTE: ${proc.fte || 'N/A'})`);
           }
           if (buProcesses.length > 15) summary.push(`... and ${buProcesses.length - 15} more`);
           
-          summary.push(`\nPAIN POINTS (${buPainPoints.length}):`);
-          let totalHours = 0;
-          let totalOpportunity = 0;
-          for (const pp of buPainPoints.slice(0, 25)) {
+          const scoredBuPainPoints = buPainPoints.map(pp => {
             const ppLinks = buLinks.filter(l => l.painPointId === pp.id);
-            const opportunityScore = calculateOpportunityScore(pp, ppLinks);
-            totalOpportunity += opportunityScore;
-            totalHours += parseFloat(pp.totalHoursPerMonth as string) || 0;
+            const result = calculateOpportunityScore(pp, ppLinks);
+            return { ...pp, ppLinks, opportunityResult: result };
+          }).sort((a, b) => b.opportunityResult.score - a.opportunityResult.score);
+          
+          let totalHours = buPainPoints.reduce((sum, pp) => sum + (parseFloat(pp.totalHoursPerMonth as string) || 0), 0);
+          let totalOpportunity = scoredBuPainPoints.reduce((sum, pp) => sum + pp.opportunityResult.score, 0);
+          
+          summary.push(`\nPAIN POINTS (${buPainPoints.length} total, sorted by opportunity score):`);
+          for (const pp of scoredBuPainPoints.slice(0, 25)) {
+            const { score, isEstimated, missingFields } = pp.opportunityResult;
             const taxonomy = getTaxonomyPath(pp.taxonomyLevel1Id, pp.taxonomyLevel2Id, pp.taxonomyLevel3Id);
+            const shortId = pp.id.substring(0, 8);
             
-            summary.push(`- "${pp.statement?.substring(0, 80)}${pp.statement && pp.statement.length > 80 ? '...' : ''}"`);
-            summary.push(`  Category: ${taxonomy} | Hours/Month: ${pp.totalHoursPerMonth || 'N/A'} | Opportunity: ${opportunityScore}/100`);
-            summary.push(`  Solutions Linked: ${ppLinks.length}`);
+            summary.push(`- [PP:${shortId}] "${pp.statement?.substring(0, 80)}${pp.statement && pp.statement.length > 80 ? '...' : ''}"`);
+            summary.push(`  Category: ${taxonomy} | Hours/Month: ${pp.totalHoursPerMonth || 'N/A'} | Opportunity: ${score}/100${isEstimated ? ' (est)' : ''}`);
+            summary.push(`  Solutions Linked: ${pp.ppLinks.length}`);
           }
-          if (buPainPoints.length > 25) summary.push(`... and ${buPainPoints.length - 25} more`);
+          if (scoredBuPainPoints.length > 25) summary.push(`... and ${scoredBuPainPoints.length - 25} more`);
           
           summary.push(`\nBUSINESS UNIT METRICS:`);
           summary.push(`  Total Pain Point Hours/Month: ${totalHours.toFixed(1)}`);
@@ -212,7 +252,8 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
       } else if (resolvedCompanyId) {
         const [company] = await db.select().from(companies).where(eq(companies.id, resolvedCompanyId));
         if (company) {
-          summary.push(`CURRENT COMPANY: ${company.name}`);
+          const compShortId = company.id.substring(0, 8);
+          summary.push(`CURRENT COMPANY: [CO:${compShortId}] ${company.name}`);
           summary.push(`  Industry: ${company.industry || 'N/A'}`);
           summary.push(`  ANZSIC: ${company.anzsic || 'N/A'}`);
           
@@ -234,21 +275,25 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
           
           summary.push(`\nBUSINESS UNITS:`);
           for (const bu of companyBUs.slice(0, 15)) {
-            const buPainPoints = companyPainPoints.filter(pp => pp.businessUnitId === bu.id);
-            summary.push(`- ${bu.name} (FTE: ${bu.fte || 0}, Pain Points: ${buPainPoints.length})`);
+            const buPainPointsList = companyPainPoints.filter(pp => pp.businessUnitId === bu.id);
+            const buShortId = bu.id.substring(0, 8);
+            summary.push(`- [BU:${buShortId}] ${bu.name} (FTE: ${bu.fte || 0}, Pain Points: ${buPainPointsList.length})`);
           }
           if (companyBUs.length > 15) summary.push(`... and ${companyBUs.length - 15} more`);
           
           summary.push(`\nTOP PAIN POINTS BY OPPORTUNITY:`);
           const painPointsWithScores = companyPainPoints.map(pp => {
             const ppLinks = companyLinks.filter(l => l.painPointId === pp.id);
-            return { ...pp, score: calculateOpportunityScore(pp, ppLinks), linkedCount: ppLinks.length };
-          }).sort((a, b) => b.score - a.score);
+            const result = calculateOpportunityScore(pp, ppLinks);
+            return { ...pp, opportunityResult: result, linkedCount: ppLinks.length };
+          }).sort((a, b) => b.opportunityResult.score - a.opportunityResult.score);
           
           for (const pp of painPointsWithScores.slice(0, 15)) {
+            const { score, isEstimated } = pp.opportunityResult;
             const taxonomy = getTaxonomyPath(pp.taxonomyLevel1Id, pp.taxonomyLevel2Id, pp.taxonomyLevel3Id);
             const buName = companyBUs.find(bu => bu.id === pp.businessUnitId)?.name || 'N/A';
-            summary.push(`- [Score: ${pp.score}] "${pp.statement?.substring(0, 60)}..."`);
+            const shortId = pp.id.substring(0, 8);
+            summary.push(`- [PP:${shortId}] [Score: ${score}${isEstimated ? ' est' : ''}] "${pp.statement?.substring(0, 60)}..."`);
             summary.push(`  BU: ${buName} | Category: ${taxonomy} | Solutions: ${pp.linkedCount}`);
           }
           if (painPointsWithScores.length > 15) summary.push(`... and ${painPointsWithScores.length - 15} more`);
@@ -295,19 +340,23 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
       for (const company of allCompanies.slice(0, 15)) {
         const companyBUs = allBusinessUnits.filter(bu => bu.companyId === company.id);
         const companyPPs = allPainPoints.filter(pp => pp.companyId === company.id);
-        summary.push(`- ${company.name} (Industry: ${company.industry || 'N/A'})`);
+        const compShortId = company.id.substring(0, 8);
+        summary.push(`- [CO:${compShortId}] ${company.name} (Industry: ${company.industry || 'N/A'})`);
         summary.push(`  BUs: ${companyBUs.length}, Pain Points: ${companyPPs.length}`);
       }
       
       summary.push(`\nTOP PAIN POINTS BY OPPORTUNITY:`);
       const scoredPainPoints = allPainPoints.map(pp => {
         const ppLinks = allLinks.filter(l => l.painPointId === pp.id);
-        return { ...pp, score: calculateOpportunityScore(pp, ppLinks), company: allCompanies.find(c => c.id === pp.companyId)?.name };
-      }).sort((a, b) => b.score - a.score);
+        const result = calculateOpportunityScore(pp, ppLinks);
+        return { ...pp, opportunityResult: result, company: allCompanies.find(c => c.id === pp.companyId)?.name };
+      }).sort((a, b) => b.opportunityResult.score - a.opportunityResult.score);
       
       for (const pp of scoredPainPoints.slice(0, 20)) {
+        const { score, isEstimated } = pp.opportunityResult;
         const taxonomy = getTaxonomyPath(pp.taxonomyLevel1Id, pp.taxonomyLevel2Id, pp.taxonomyLevel3Id);
-        summary.push(`- [Score: ${pp.score}] "${pp.statement?.substring(0, 50)}..."`);
+        const shortId = pp.id.substring(0, 8);
+        summary.push(`- [PP:${shortId}] [Score: ${score}${isEstimated ? ' est' : ''}] "${pp.statement?.substring(0, 50)}..."`);
         summary.push(`  Company: ${pp.company || 'Unknown'} | Category: ${taxonomy}`);
       }
       
@@ -326,7 +375,8 @@ async function getFilteredDataContext(filterContext?: FilterContext): Promise<st
       summary.push(`\nAVAILABLE SOLUTIONS:`);
       for (const uc of allUseCases.slice(0, 15)) {
         const linkedCount = allLinks.filter(l => l.useCaseId === uc.id).length;
-        summary.push(`- ${uc.name} (Provider: ${uc.solutionProvider || 'N/A'}, Complexity: ${uc.complexity})`);
+        const ucShortId = uc.id.substring(0, 8);
+        summary.push(`- [UC:${ucShortId}] ${uc.name} (Provider: ${uc.solutionProvider || 'N/A'}, Complexity: ${uc.complexity})`);
         summary.push(`  Linked to ${linkedCount} pain points`);
       }
     }
