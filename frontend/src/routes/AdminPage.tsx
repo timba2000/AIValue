@@ -160,7 +160,7 @@ export default function AdminPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Panel</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your AIValue application settings
+                Manage your AI_Pipeline application settings
               </p>
             </div>
           </div>

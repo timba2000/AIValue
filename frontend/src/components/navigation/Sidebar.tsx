@@ -42,12 +42,10 @@ export function Sidebar({ isMobileOpen = false, onNavigate }: SidebarProps) {
       <div className="flex h-full flex-col">
         <div className="p-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <span className="text-white font-bold text-lg">A</span>
-            </div>
+            <img src="/logo.png" alt="AI_Pipeline Logo" className="w-10 h-10 rounded-xl object-cover" />
             <div>
               <h1 className="text-xl font-bold gradient-text">
-                AIValue
+                AI_Pipeline
               </h1>
               <p className="text-xs text-muted-foreground">Process Intelligence</p>
             </div>

@@ -500,7 +500,7 @@ export default function DashboardHome() {
         </div>
         
         <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl border border-primary/20 p-6 shrink-0">
-          <h2 className="text-lg font-semibold text-foreground">Welcome to AIValue</h2>
+          <h2 className="text-lg font-semibold text-foreground">Welcome to AI_Pipeline</h2>
           <p className="text-sm text-muted-foreground mt-2">
             Use the filters above to narrow down your view. Ask the AI assistant on the right for insights about your processes and opportunities.
           </p>

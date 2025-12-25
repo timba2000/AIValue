@@ -55,16 +55,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
+            <img src="/logo.png" alt="AI_Pipeline Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg" />
           </div>
 
           <h1 className="text-2xl font-bold text-center text-foreground mb-2">
             {isLogin ? "Welcome Back" : "Create Account"}
           </h1>
           <p className="text-center text-muted-foreground mb-6">
-            {isLogin ? "Sign in to access AIValue" : "Register for a new account"}
+            {isLogin ? "Sign in to access AI_Pipeline" : "Register for a new account"}
           </p>
 
           {error && (
