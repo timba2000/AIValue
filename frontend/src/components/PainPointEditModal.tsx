@@ -150,11 +150,29 @@ export function PainPointEditModal({
   const [newLinkPercentage, setNewLinkPercentage] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [processSearchQuery, setProcessSearchQuery] = useState("");
 
   const availableUseCases = useMemo(() => {
     const linkedIds = new Set(painPointLinks.map(l => l.useCaseId));
     return useCases.filter(uc => !linkedIds.has(uc.id));
   }, [useCases, painPointLinks]);
+
+  const { selectedProcesses, filteredUnselectedProcesses } = useMemo(() => {
+    const selected = processes.filter(p => formState.processIds.includes(p.id));
+    const unselected = processes.filter(p => !formState.processIds.includes(p.id));
+    
+    if (!processSearchQuery.trim()) {
+      return { selectedProcesses: selected, filteredUnselectedProcesses: unselected };
+    }
+    
+    const query = processSearchQuery.toLowerCase();
+    const filteredUnselected = unselected.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      (p.description && p.description.toLowerCase().includes(query))
+    );
+    
+    return { selectedProcesses: selected, filteredUnselectedProcesses: filteredUnselected };
+  }, [processes, processSearchQuery, formState.processIds]);
 
   const handleAddLink = async () => {
     if (!newLinkUseCaseId || !painPointId) return;
@@ -226,6 +244,7 @@ export function PainPointEditModal({
       setError(null);
       setNewLinkUseCaseId("");
       setNewLinkPercentage("");
+      setProcessSearchQuery("");
       setLinkError(null);
     }
   }, [open]);
@@ -610,32 +629,64 @@ export function PainPointEditModal({
             <div>
               <Label>Linked Processes</Label>
               <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select processes affected by this pain point</p>
+              {processes.length > 0 && (
+                <input
+                  type="text"
+                  value={processSearchQuery}
+                  onChange={(e) => setProcessSearchQuery(e.target.value)}
+                  placeholder="Search processes..."
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 mb-2"
+                />
+              )}
               <div className="mt-1.5 max-h-48 overflow-y-auto border border-border rounded-xl p-3 space-y-2">
                 {processes.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No processes available. Create processes first.</p>
                 ) : (
-                  processes.map((process) => (
-                    <label key={process.id} className="flex items-center space-x-2 hover:bg-accent/50 p-1 rounded-lg transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={formState.processIds.includes(process.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormState({ ...formState, processIds: [...formState.processIds, process.id] });
-                          } else {
+                  <>
+                    {selectedProcesses.map((process) => (
+                      <label key={process.id} className="flex items-center space-x-2 bg-primary/10 hover:bg-primary/20 p-1 rounded-lg transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={true}
+                          onChange={() => {
                             setFormState({ ...formState, processIds: formState.processIds.filter(id => id !== process.id) });
-                          }
-                        }}
-                        className="rounded border-border text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm flex-1">
-                        {process.name}
-                        {process.description && (
-                          <span className="text-muted-foreground text-xs ml-1">- {process.description}</span>
-                        )}
-                      </span>
-                    </label>
-                  ))
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary"
+                        />
+                        <span className="text-sm flex-1">
+                          {process.name}
+                          {process.description && (
+                            <span className="text-muted-foreground text-xs ml-1">- {process.description}</span>
+                          )}
+                        </span>
+                      </label>
+                    ))}
+                    {selectedProcesses.length > 0 && filteredUnselectedProcesses.length > 0 && (
+                      <div className="border-t border-border my-2" />
+                    )}
+                    {filteredUnselectedProcesses.length === 0 && processSearchQuery.trim() ? (
+                      <p className="text-sm text-muted-foreground">No other processes match your search.</p>
+                    ) : (
+                      filteredUnselectedProcesses.map((process) => (
+                        <label key={process.id} className="flex items-center space-x-2 hover:bg-accent/50 p-1 rounded-lg transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={() => {
+                              setFormState({ ...formState, processIds: [...formState.processIds, process.id] });
+                            }}
+                            className="rounded border-border text-primary focus:ring-primary"
+                          />
+                          <span className="text-sm flex-1">
+                            {process.name}
+                            {process.description && (
+                              <span className="text-muted-foreground text-xs ml-1">- {process.description}</span>
+                            )}
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </>
                 )}
               </div>
               {formState.processIds.length > 0 && (
