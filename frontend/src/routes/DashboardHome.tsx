@@ -37,9 +37,22 @@ interface Conversation {
   updatedAt: string;
 }
 
+function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: string } {
+  const parts = name.includes(" > ")
+    ? name.split(" > ")
+    : name.includes(" - ")
+      ? name.split(" - ")
+      : name.split("/");
+
+  const l1 = parts[0]?.trim() || "-";
+  const l2 = parts[1]?.trim() || "-";
+  const l3 = parts.slice(2).join(" > ").trim() || "-";
+  return { l1, l2, l3 };
+}
+
 export default function DashboardHome() {
   const { aiEnabled, persona, rules } = useAISettingsStore();
-  const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId } = useFilterStore();
+  const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId, selectedL1Process, selectedL2Process } = useFilterStore();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -77,6 +90,58 @@ export default function DashboardHome() {
       return response.data;
     }
   });
+
+  const filteredCompanies = useMemo(() => {
+    if (selectedCompanyId) {
+      return companies.filter(c => c.id === selectedCompanyId);
+    }
+    return companies;
+  }, [companies, selectedCompanyId]);
+
+  const companyBuIds = useMemo(() => {
+    if (!selectedCompanyId) return null;
+    return new Set(businessUnits.filter(bu => bu.companyId === selectedCompanyId).map(bu => bu.id));
+  }, [businessUnits, selectedCompanyId]);
+
+  const filteredProcesses = useMemo(() => {
+    let filtered = processes;
+    
+    if (selectedProcessId) {
+      return processes.filter(p => p.id === selectedProcessId);
+    }
+    
+    if (selectedBusinessUnitId) {
+      filtered = filtered.filter(p => p.businessUnitId === selectedBusinessUnitId);
+    } else if (companyBuIds) {
+      filtered = filtered.filter(p => companyBuIds.has(p.businessUnitId));
+    }
+    
+    if (selectedL1Process) {
+      filtered = filtered.filter(p => {
+        const { l1 } = parseProcessHierarchy(p.name);
+        return l1 === selectedL1Process;
+      });
+    }
+    
+    if (selectedL2Process) {
+      filtered = filtered.filter(p => {
+        const { l2 } = parseProcessHierarchy(p.name);
+        return l2 === selectedL2Process;
+      });
+    }
+    
+    return filtered;
+  }, [processes, companyBuIds, selectedBusinessUnitId, selectedProcessId, selectedL1Process, selectedL2Process]);
+
+  const filteredProcessIds = useMemo(() => new Set(filteredProcesses.map(p => p.id)), [filteredProcesses]);
+
+  const filteredPainPoints = useMemo(() => {
+    return painPoints.filter((pp: any) => filteredProcessIds.has(pp.processId));
+  }, [painPoints, filteredProcessIds]);
+
+  const filteredUseCases = useMemo(() => {
+    return useCases.filter((uc: any) => filteredProcessIds.has(uc.processId));
+  }, [useCases, filteredProcessIds]);
 
   const selectedCompanyName = useMemo(() => {
     const company = companies.find(c => c.id === selectedCompanyId);
@@ -461,7 +526,7 @@ export default function DashboardHome() {
                 <Building2 className="h-4 w-4 text-blue-500" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground mt-2">{companies.length}</p>
+            <p className="text-2xl font-bold text-foreground mt-2">{filteredCompanies.length}</p>
             <p className="text-xs text-muted-foreground mt-1">Active businesses</p>
           </div>
           
@@ -472,7 +537,7 @@ export default function DashboardHome() {
                 <Layers className="h-4 w-4 text-indigo-500" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground mt-2">{processes.length}</p>
+            <p className="text-2xl font-bold text-foreground mt-2">{filteredProcesses.length}</p>
             <p className="text-xs text-muted-foreground mt-1">Tracked processes</p>
           </div>
           
@@ -483,7 +548,7 @@ export default function DashboardHome() {
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground mt-2">{painPoints.length}</p>
+            <p className="text-2xl font-bold text-foreground mt-2">{filteredPainPoints.length}</p>
             <p className="text-xs text-muted-foreground mt-1">Identified issues</p>
           </div>
           
@@ -494,7 +559,7 @@ export default function DashboardHome() {
                 <Lightbulb className="h-4 w-4 text-green-500" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground mt-2">{useCases.length}</p>
+            <p className="text-2xl font-bold text-foreground mt-2">{filteredUseCases.length}</p>
             <p className="text-xs text-muted-foreground mt-1">Potential solutions</p>
           </div>
         </div>
