@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 
 interface PainPointData {
   id: string;
@@ -19,6 +19,7 @@ interface PainPointsOverviewTableProps {
   isLoading?: boolean;
   onManageClick: (painPointId: string) => void;
   onEditClick?: (painPointId: string) => void;
+  onDeleteClick?: (painPointId: string) => void;
 }
 
 type SortColumn = 'statement' | 'solutions' | 'magnitude' | 'effortSolving' | 'totalHoursPerMonth' | 'fteCount' | 'totalPercentageSolved' | 'potentialHoursSaved';
@@ -33,7 +34,8 @@ export function PainPointsOverviewTable({
   data, 
   isLoading, 
   onManageClick,
-  onEditClick 
+  onEditClick,
+  onDeleteClick
 }: PainPointsOverviewTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortState, setSortState] = useState<SortState>({ column: null, direction: 'desc' });
@@ -345,6 +347,15 @@ export function PainPointsOverviewTable({
                         <Pencil className="h-4 w-4" />
                       </button>
                     )}
+                    {onDeleteClick && (
+                      <button
+                        onClick={() => onDeleteClick(row.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                        title="Delete pain point"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onManageClick(row.id)}
                       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
@@ -424,15 +435,26 @@ export function PainPointsOverviewTable({
               </div>
 
               <div className="flex flex-col gap-2">
-                {onEditClick && (
-                  <button
-                    onClick={() => onEditClick(row.id)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-200"
-                    title="Edit pain point"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                )}
+                <div className="flex items-center gap-1">
+                  {onEditClick && (
+                    <button
+                      onClick={() => onEditClick(row.id)}
+                      className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-200"
+                      title="Edit pain point"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
+                  {onDeleteClick && (
+                    <button
+                      onClick={() => onDeleteClick(row.id)}
+                      className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                      title="Delete pain point"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => onManageClick(row.id)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${

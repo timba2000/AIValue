@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,10 @@ import { Select } from "@/components/ui/select";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { PainPointMetricsCards } from "@/components/PainPointMetricsCards";
+import { PainPointsOverviewTable } from "@/components/dashboard/PainPointsOverviewTable";
 import { useFilterStore } from "../stores/filterStore";
 import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat, useCompanies } from "../hooks/useApiData";
 import { getDescendantIds } from "../utils/hierarchy";
-import { Link2, Check, AlertCircle, Filter, ChevronDown } from "lucide-react";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -107,7 +107,6 @@ export default function PainPointList() {
     selectedL2Process,
     painPointFilter,
   } = useFilterStore();
-  const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingPainPoint, setEditingPainPoint] = useState<PainPoint | null>(null);
@@ -115,30 +114,6 @@ export default function PainPointList() {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedPainPointForLink, setSelectedPainPointForLink] = useState<PainPoint | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedImpactTypes, setSelectedImpactTypes] = useState<string[]>([]);
-  const [showImpactFilter, setShowImpactFilter] = useState(false);
-  const impactFilterRef = useRef<HTMLDivElement>(null);
-  
-  const [filterBusinessUnit, setFilterBusinessUnit] = useState<string>("");
-  const [filterCategory, setFilterCategory] = useState<string>("");
-  const [filterEffortMin, setFilterEffortMin] = useState<string>("");
-  const [filterEffortMax, setFilterEffortMax] = useState<string>("");
-  const [filterImpactMin, setFilterImpactMin] = useState<string>("");
-  const [filterImpactMax, setFilterImpactMax] = useState<string>("");
-  const [filterHoursMin, setFilterHoursMin] = useState<string>("");
-  const [filterHoursMax, setFilterHoursMax] = useState<string>("");
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (impactFilterRef.current && !impactFilterRef.current.contains(event.target as Node)) {
-        setShowImpactFilter(false);
-      }
-    };
-    if (showImpactFilter) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showImpactFilter]);
 
   const { data: companies = [] } = useCompanies();
   const { data: businessUnits = [] } = useAllBusinessUnits();
@@ -157,6 +132,22 @@ export default function PainPointList() {
     queryKey: ["allPainPointLinksStats"],
     queryFn: async () => {
       const response = await axios.get(`${API_BASE}/api/pain-point-links/stats`);
+      return response.data;
+    }
+  });
+
+  const { data: allLinks = [] } = useQuery<Array<{
+    id: string;
+    painPointId: string;
+    useCaseId: string;
+    useCaseName: string | null;
+    percentageSolved: number | null;
+    notes: string | null;
+    processIds: string[];
+  }>>({
+    queryKey: ["allPainPointLinksDetails"],
+    queryFn: async () => {
+      const response = await axios.get(`${API_BASE}/api/pain-point-links/details`);
       return response.data;
     }
   });
@@ -261,65 +252,6 @@ export default function PainPointList() {
         return matchesProcess || matchesDirectBU;
       });
     }
-    
-    if (search.trim()) {
-      filtered = filtered.filter(pp => 
-        pp.statement.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (selectedImpactTypes.length > 0) {
-      filtered = filtered.filter(pp => 
-        pp.impactType && pp.impactType.some(type => selectedImpactTypes.includes(type))
-      );
-    }
-
-    if (filterBusinessUnit) {
-      filtered = filtered.filter(pp => pp.businessUnitId === filterBusinessUnit);
-    }
-
-    if (filterCategory) {
-      filtered = filtered.filter(pp => pp.taxonomyLevel1Id === filterCategory);
-    }
-
-    if (filterEffortMin) {
-      const min = parseInt(filterEffortMin);
-      if (!isNaN(min)) {
-        filtered = filtered.filter(pp => pp.effortSolving != null && pp.effortSolving >= min);
-      }
-    }
-    if (filterEffortMax) {
-      const max = parseInt(filterEffortMax);
-      if (!isNaN(max)) {
-        filtered = filtered.filter(pp => pp.effortSolving != null && pp.effortSolving <= max);
-      }
-    }
-
-    if (filterImpactMin) {
-      const min = parseInt(filterImpactMin);
-      if (!isNaN(min)) {
-        filtered = filtered.filter(pp => pp.magnitude != null && pp.magnitude >= min);
-      }
-    }
-    if (filterImpactMax) {
-      const max = parseInt(filterImpactMax);
-      if (!isNaN(max)) {
-        filtered = filtered.filter(pp => pp.magnitude != null && pp.magnitude <= max);
-      }
-    }
-
-    if (filterHoursMin) {
-      const min = parseFloat(filterHoursMin);
-      if (!isNaN(min)) {
-        filtered = filtered.filter(pp => Number(pp.totalHoursPerMonth || 0) >= min);
-      }
-    }
-    if (filterHoursMax) {
-      const max = parseFloat(filterHoursMax);
-      if (!isNaN(max)) {
-        filtered = filtered.filter(pp => Number(pp.totalHoursPerMonth || 0) <= max);
-      }
-    }
 
     if (painPointFilter === "linked") {
       filtered = filtered.filter(pp => linkStats[pp.id] && linkStats[pp.id] > 0);
@@ -328,7 +260,7 @@ export default function PainPointList() {
     }
     
     return filtered;
-  }, [painPoints, validProcessIds, validBusinessUnitIds, search, selectedImpactTypes, filterBusinessUnit, filterCategory, filterEffortMin, filterEffortMax, filterImpactMin, filterImpactMax, filterHoursMin, filterHoursMax, painPointFilter, linkStats]);
+  }, [painPoints, validProcessIds, validBusinessUnitIds, painPointFilter, linkStats]);
 
   const metricsData = useMemo(() => {
     const linkedCount = filteredPainPoints.filter(pp => 
@@ -370,6 +302,33 @@ export default function PainPointList() {
     };
   }, [filteredPainPoints, linkStats, taxonomyCategories]);
 
+  const overviewTableData = useMemo(() => {
+    return filteredPainPoints.map(pp => {
+      const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
+      const totalPercentageSolved = ppLinks.reduce((sum, link) => sum + (link.percentageSolved ? Number(link.percentageSolved) : 0), 0);
+      const cappedPercentage = Math.min(totalPercentageSolved, 100);
+      const potentialHoursSaved = Number(pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
+      
+      return {
+        id: pp.id,
+        statement: pp.statement,
+        magnitude: Number(pp.magnitude || 0),
+        effortSolving: Number(pp.effortSolving || 0),
+        totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
+        fteCount: Number(pp.fteCount || 0),
+        hasLinks: ppLinks.length > 0,
+        linkedSolutions: ppLinks.map(link => link.useCaseName).filter((name): name is string => name !== null),
+        totalPercentageSolved,
+        potentialHoursSaved: Math.round(potentialHoursSaved)
+      };
+    }).sort((a, b) => {
+      const effortA = a.effortSolving === 0 ? 0.1 : (a.effortSolving || 10);
+      const effortB = b.effortSolving === 0 ? 0.1 : (b.effortSolving || 10);
+      const ratioA = a.magnitude / effortA;
+      const ratioB = b.magnitude / effortB;
+      return ratioB - ratioA;
+    });
+  }, [filteredPainPoints, allLinks]);
 
   const handleCreate = () => {
     setEditingPainPoint(null);
@@ -503,312 +462,19 @@ export default function PainPointList() {
 
       <FilterByContext />
 
-      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6 slide-up">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Pain Points List</h2>
-          <div className="flex items-center gap-3">
-            <div className="relative" ref={impactFilterRef}>
-              <button
-                onClick={() => setShowImpactFilter(!showImpactFilter)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all duration-200 ${
-                  selectedImpactTypes.length > 0
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background text-foreground hover:bg-accent"
-                }`}
-              >
-                <Filter className="h-4 w-4" />
-                <span>Category</span>
-                {selectedImpactTypes.length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs font-medium bg-primary text-white rounded-full">
-                    {selectedImpactTypes.length}
-                  </span>
-                )}
-                <ChevronDown className={`h-4 w-4 transition-transform ${showImpactFilter ? "rotate-180" : ""}`} />
-              </button>
-              
-              {showImpactFilter && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-popover border border-border rounded-xl shadow-lg z-50 p-2">
-                  <div className="flex items-center justify-between px-2 py-1.5 mb-1">
-                    <span className="text-xs font-medium text-muted-foreground">Filter by Impact Type</span>
-                    {selectedImpactTypes.length > 0 && (
-                      <button
-                        onClick={() => setSelectedImpactTypes([])}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    {IMPACT_TYPES.map((type) => {
-                      const isSelected = selectedImpactTypes.includes(type.value);
-                      return (
-                        <button
-                          key={type.value}
-                          onClick={() => {
-                            setSelectedImpactTypes(prev =>
-                              isSelected
-                                ? prev.filter(t => t !== type.value)
-                                : [...prev, type.value]
-                            );
-                          }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                            isSelected
-                              ? "bg-primary/10 text-primary"
-                              : "text-foreground hover:bg-accent"
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            isSelected ? "bg-primary border-primary" : "border-border"
-                          }`}>
-                            {isSelected && <Check className="h-3 w-3 text-white" />}
-                          </div>
-                          {type.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search by statement..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
-              />
-            </div>
-          </div>
-        </div>
-
-        {loading && painPoints.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">Loading pain points...</div>
-        ) : filteredPainPoints.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {search ? "No pain points match your search" : "No pain points yet. Create one to get started!"}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Statement</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Business Unit</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Category</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Effort (1-10)</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Impact (1-10)</th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground">Total Hrs/Month</th>
-                  <th className="text-center py-3 px-4 font-semibold text-muted-foreground">Linked Solutions</th>
-                  <th className="text-right py-3 px-4 font-semibold text-muted-foreground">Actions</th>
-                </tr>
-                <tr className="border-b border-border bg-muted/30">
-                  <td className="py-2 px-4"></td>
-                  <td className="py-2 px-4">
-                    <select
-                      value={filterBusinessUnit}
-                      onChange={(e) => setFilterBusinessUnit(e.target.value)}
-                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                    >
-                      <option value="">All</option>
-                      {businessUnits.map(bu => (
-                        <option key={bu.id} value={bu.id}>{bu.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="py-2 px-4">
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                    >
-                      <option value="">All</option>
-                      {level1Categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="py-2 px-4">
-                    <select
-                      value={selectedImpactTypes.length === 1 ? selectedImpactTypes[0] : selectedImpactTypes.length > 1 ? "_multi_" : ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "") setSelectedImpactTypes([]);
-                        else if (val !== "_multi_") setSelectedImpactTypes([val]);
-                      }}
-                      className="w-full text-xs rounded-lg border border-border bg-background px-2 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                    >
-                      <option value="">All</option>
-                      {IMPACT_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                      {selectedImpactTypes.length > 1 && <option value="_multi_" disabled>Multiple ({selectedImpactTypes.length})</option>}
-                    </select>
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="flex gap-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        placeholder="Min"
-                        value={filterEffortMin}
-                        onChange={(e) => setFilterEffortMin(e.target.value)}
-                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        placeholder="Max"
-                        value={filterEffortMax}
-                        onChange={(e) => setFilterEffortMax(e.target.value)}
-                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="flex gap-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        placeholder="Min"
-                        value={filterImpactMin}
-                        onChange={(e) => setFilterImpactMin(e.target.value)}
-                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        placeholder="Max"
-                        value={filterImpactMax}
-                        onChange={(e) => setFilterImpactMax(e.target.value)}
-                        className="w-12 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-2 px-4">
-                    <div className="flex gap-1">
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="Min"
-                        value={filterHoursMin}
-                        onChange={(e) => setFilterHoursMin(e.target.value)}
-                        className="w-14 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="Max"
-                        value={filterHoursMax}
-                        onChange={(e) => setFilterHoursMax(e.target.value)}
-                        className="w-14 text-xs rounded-lg border border-border bg-background px-1.5 py-1.5 text-foreground focus:border-primary focus:outline-none"
-                      />
-                    </div>
-                  </td>
-                  <td className="py-2 px-4"></td>
-                  <td className="py-2 px-4"></td>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredPainPoints.map((pp) => (
-                  <tr key={pp.id} className="hover:bg-accent/50 transition-colors duration-150">
-                    <td className="py-3 px-4">{pp.statement}</td>
-                    <td className="py-3 px-4">
-                      {pp.businessUnitId ? (
-                        <span className="text-sm">{businessUnits.find(bu => bu.id === pp.businessUnitId)?.name || "-"}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {pp.taxonomyLevel1Id ? (
-                        <span className="text-sm">
-                          {getTaxonomyName(pp.taxonomyLevel1Id)}
-                          {pp.taxonomyLevel2Id && ` > ${getTaxonomyName(pp.taxonomyLevel2Id)}`}
-                          {pp.taxonomyLevel3Id && ` > ${getTaxonomyName(pp.taxonomyLevel3Id)}`}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {pp.impactType && pp.impactType.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {pp.impactType.map((type) => (
-                            <span key={type} className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                              {IMPACT_TYPES.find((t) => t.value === type)?.label ?? type}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">{pp.effortSolving ?? "-"}</td>
-                    <td className="py-3 px-4">{pp.magnitude ?? "-"}</td>
-                    <td className="py-3 px-4">
-                      {pp.totalHoursPerMonth ? (
-                        <span className="font-medium text-foreground">{Number(pp.totalHoursPerMonth).toFixed(1)}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {linkStats[pp.id] && linkStats[pp.id] > 0 ? (
-                        <button
-                          onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors text-xs font-medium"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                          {linkStats[pp.id]} linked
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors text-xs font-medium border border-amber-500/20"
-                        >
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Not linked
-                        </button>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenLinkModal(pp)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Link solutions"
-                        >
-                          <Link2 className="h-3.5 w-3.5" />
-                          Link
-                        </button>
-                        <button
-                          onClick={() => handleEdit(pp)}
-                          className="text-primary hover:text-primary/80 font-medium text-xs px-2 py-1 hover:bg-primary/10 rounded-lg transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(pp.id)}
-                          className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-medium text-xs px-2 py-1 hover:bg-red-500/10 rounded-lg transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <PainPointsOverviewTable
+        data={overviewTableData}
+        isLoading={loading && painPoints.length === 0}
+        onManageClick={(painPointId) => {
+          const pp = painPoints.find(p => p.id === painPointId);
+          if (pp) handleOpenLinkModal(pp);
+        }}
+        onEditClick={(painPointId) => {
+          const pp = painPoints.find(p => p.id === painPointId);
+          if (pp) handleEdit(pp);
+        }}
+        onDeleteClick={handleDelete}
+      />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
