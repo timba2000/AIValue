@@ -419,10 +419,18 @@ export default function OpportunitiesDashboard() {
     totalProcessLinks
   };
 
+  const painPointLinkCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allLinks.forEach(link => {
+      counts[link.painPointId] = (counts[link.painPointId] || 0) + 1;
+    });
+    return counts;
+  }, [allLinks]);
+
   const matrixData = (allPainPoints.data || [])
     .filter(pp => {
       if (painPointFilter === 'all') return true;
-      const hasLinks = (allPainPointLinks.data?.[pp.id] || 0) > 0;
+      const hasLinks = (painPointLinkCounts[pp.id] || 0) > 0;
       if (painPointFilter === 'linked') return hasLinks;
       if (painPointFilter === 'unlinked') return !hasLinks;
       return true;
@@ -433,29 +441,37 @@ export default function OpportunitiesDashboard() {
       magnitude: Number(pp.magnitude || 0),
       effortSolving: Number(pp.effortSolving || 0),
       totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
-      hasLinks: (allPainPointLinks.data?.[pp.id] || 0) > 0,
+      hasLinks: (painPointLinkCounts[pp.id] || 0) > 0,
       linkedUseCases: allLinks.filter(link => link.painPointId === pp.id).map(link => link.useCaseName).filter((name): name is string => name !== null)
     }));
 
-  const overviewTableData = (allPainPoints.data || []).map(pp => {
-    const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
-    const totalPercentageSolved = ppLinks.reduce((sum, link) => sum + (link.percentageSolved ? Number(link.percentageSolved) : 0), 0);
-    const cappedPercentage = Math.min(totalPercentageSolved, 100);
-    const potentialHoursSaved = Number(pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
+  const overviewTableData = (allPainPoints.data || [])
+    .filter(pp => {
+      if (painPointFilter === 'all') return true;
+      const hasLinks = (painPointLinkCounts[pp.id] || 0) > 0;
+      if (painPointFilter === 'linked') return hasLinks;
+      if (painPointFilter === 'unlinked') return !hasLinks;
+      return true;
+    })
+    .map(pp => {
+      const ppLinks = allLinks.filter(link => link.painPointId === pp.id);
+      const totalPercentageSolved = ppLinks.reduce((sum, link) => sum + (link.percentageSolved ? Number(link.percentageSolved) : 0), 0);
+      const cappedPercentage = Math.min(totalPercentageSolved, 100);
+      const potentialHoursSaved = Number(pp.totalHoursPerMonth || 0) * (cappedPercentage / 100);
     
-    return {
-      id: pp.id,
-      statement: pp.statement,
-      magnitude: Number(pp.magnitude || 0),
-      effortSolving: Number(pp.effortSolving || 0),
-      totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
-      fteCount: Number(pp.fteCount || 0),
-      hasLinks: ppLinks.length > 0,
-      linkedSolutions: ppLinks.map(link => link.useCaseName).filter((name): name is string => name !== null),
-      totalPercentageSolved,
-      potentialHoursSaved: Math.round(potentialHoursSaved)
-    };
-  }).sort((a, b) => {
+      return {
+        id: pp.id,
+        statement: pp.statement,
+        magnitude: Number(pp.magnitude || 0),
+        effortSolving: Number(pp.effortSolving || 0),
+        totalHoursPerMonth: Number(pp.totalHoursPerMonth || 0),
+        fteCount: Number(pp.fteCount || 0),
+        hasLinks: ppLinks.length > 0,
+        linkedSolutions: ppLinks.map(link => link.useCaseName).filter((name): name is string => name !== null),
+        totalPercentageSolved,
+        potentialHoursSaved: Math.round(potentialHoursSaved)
+      };
+    }).sort((a, b) => {
     const effortA = a.effortSolving === 0 ? 0.1 : (a.effortSolving || 10);
     const effortB = b.effortSolving === 0 ? 0.1 : (b.effortSolving || 10);
     const ratioA = a.magnitude / effortA;
