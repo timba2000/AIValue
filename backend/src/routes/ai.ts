@@ -81,9 +81,121 @@ The query results will be automatically executed and returned. Only SELECT/WITH 
 === END SCHEMA ===
 `;
 
+async function findBusinessUnitByName(searchTerms: string[]): Promise<{ id: string; name: string } | null> {
+  try {
+    const allBus = await db.execute<{ id: string; name: string }>(
+      sql`SELECT id, name FROM business_units`
+    );
+    
+    for (const bu of allBus.rows) {
+      const buNameLower = bu.name.toLowerCase();
+      if (searchTerms.some(term => buNameLower.includes(term))) {
+        return bu;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("[AI] Error finding business unit:", error);
+    return null;
+  }
+}
+
+function extractSearchTerms(question: string): string[] {
+  const stopWords = ['the', 'for', 'and', 'how', 'many', 'pain', 'points', 'linked', 'unlinked', 'what', 'are', 'in', 'of', 'to', 'a', 'an', 'is', 'has', 'have', 'team', 'department', 'unit', 'business', 'with', 'without', 'solutions'];
+  const words = question.toLowerCase().split(/\s+/);
+  return words.filter(word => word.length > 2 && !stopWords.includes(word));
+}
+
 async function executeAnalyticalQuery(question: string): Promise<string | null> {
   try {
     const lowerQuestion = question.toLowerCase();
+    
+    if ((lowerQuestion.includes('linked') || lowerQuestion.includes('unlinked') || lowerQuestion.includes('without solution')) && 
+        (lowerQuestion.includes('pain point') || lowerQuestion.includes('pain points'))) {
+      const searchTerms = extractSearchTerms(question);
+      const matchedBu = await findBusinessUnitByName(searchTerms);
+      
+      if (matchedBu) {
+        const linkedStats = await db.execute<{ 
+          total_count: string; 
+          linked_count: string; 
+          unlinked_count: string;
+          total_hours: string;
+          linked_hours: string;
+          unlinked_hours: string;
+        }>(
+          sql`WITH pp_link_status AS (
+            SELECT 
+              pp.id,
+              pp.total_hours_per_month,
+              CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+            FROM pain_points pp
+            WHERE pp.business_unit_id = ${matchedBu.id}
+          )
+          SELECT 
+            COUNT(*)::text as total_count,
+            COUNT(*) FILTER (WHERE is_linked = true)::text as linked_count,
+            COUNT(*) FILTER (WHERE is_linked = false)::text as unlinked_count,
+            COALESCE(SUM(total_hours_per_month), 0)::text as total_hours,
+            COALESCE(SUM(total_hours_per_month) FILTER (WHERE is_linked = true), 0)::text as linked_hours,
+            COALESCE(SUM(total_hours_per_month) FILTER (WHERE is_linked = false), 0)::text as unlinked_hours
+          FROM pp_link_status`
+        );
+        
+        const row = linkedStats.rows[0];
+        const shortId = matchedBu.id.substring(0, 8);
+        
+        let result = `PAIN POINTS FOR [BU:${shortId}] ${matchedBu.name}:\n\n`;
+        result += "| Status | Count | Hours/Month |\n";
+        result += "|--------|-------|-------------|\n";
+        result += `| Total | ${row.total_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+        result += `| Linked (with solutions) | ${row.linked_count} | ${parseFloat(row.linked_hours).toFixed(1)} |\n`;
+        result += `| Unlinked (no solutions) | ${row.unlinked_count} | ${parseFloat(row.unlinked_hours).toFixed(1)} |\n`;
+        
+        result += `\n**Summary:** [BU:${shortId}] ${matchedBu.name} has ${row.total_count} pain points total. ${row.linked_count} are linked to solutions and ${row.unlinked_count} are unlinked (without solutions).`;
+        
+        return result;
+      }
+      
+      const globalLinkedStats = await db.execute<{ 
+        total_count: string; 
+        linked_count: string; 
+        unlinked_count: string;
+        total_hours: string;
+      }>(
+        sql`WITH pp_link_status AS (
+          SELECT 
+            pp.id,
+            pp.total_hours_per_month,
+            CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+          FROM pain_points pp
+        )
+        SELECT 
+          COUNT(*)::text as total_count,
+          COUNT(*) FILTER (WHERE is_linked = true)::text as linked_count,
+          COUNT(*) FILTER (WHERE is_linked = false)::text as unlinked_count,
+          COALESCE(SUM(total_hours_per_month), 0)::text as total_hours
+        FROM pp_link_status`
+      );
+      
+      const row = globalLinkedStats.rows[0];
+      
+      let result = "PAIN POINTS - LINKED VS UNLINKED (ALL):\n\n";
+      result += "| Status | Count | Percentage |\n";
+      result += "|--------|-------|------------|\n";
+      const total = parseInt(row.total_count);
+      const linked = parseInt(row.linked_count);
+      const unlinked = parseInt(row.unlinked_count);
+      const linkedPct = total > 0 ? ((linked / total) * 100).toFixed(1) : '0';
+      const unlinkedPct = total > 0 ? ((unlinked / total) * 100).toFixed(1) : '0';
+      result += `| Total | ${row.total_count} | 100% |\n`;
+      result += `| Linked (with solutions) | ${row.linked_count} | ${linkedPct}% |\n`;
+      result += `| Unlinked (no solutions) | ${row.unlinked_count} | ${unlinkedPct}% |\n`;
+      
+      result += `\n**Summary:** There are ${row.total_count} pain points total. ${row.linked_count} (${linkedPct}%) are linked to solutions and ${row.unlinked_count} (${unlinkedPct}%) are unlinked.`;
+      
+      return result;
+    }
     
     if (lowerQuestion.includes('business unit') && (lowerQuestion.includes('most') || lowerQuestion.includes('ranking') || lowerQuestion.includes('top') || lowerQuestion.includes('highest'))) {
       const buRankings = await db.execute<{ bu_id: string; bu_name: string; company_name: string; pain_point_count: string; total_hours: string }>(
@@ -356,6 +468,11 @@ function isAnalyticalQuestion(question: string): boolean {
     /pain\s*points?\s+by\s+category/i,
     /category\s+breakdown/i,
     /taxonomy\s+breakdown/i,
+    /(linked|unlinked).*(pain\s*points?)/i,
+    /pain\s*points?.*(linked|unlinked)/i,
+    /pain\s*points?.*for\s+the\s+\w+/i,
+    /pain\s*points?.*without\s+solution/i,
+    /pain\s*points?.*with\s+solution/i,
   ];
   
   return analyticalPatterns.some(pattern => pattern.test(question));
