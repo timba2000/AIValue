@@ -214,7 +214,10 @@ export function LinkManagerModal({
       ? (item as UseCase).name.toLowerCase()
       : (item as PainPoint).statement.toLowerCase();
     
-    return searchWords.some(word => textToSearch.includes(word));
+    const textWords = textToSearch.match(/\b\w+\b/g) || [];
+    return searchWords.every(searchWord => 
+      textWords.some(textWord => textWord.startsWith(searchWord))
+    );
   });
 
   const unlinkedItems = filteredItems.filter(item => !linkedItemIds.has(item.id));
