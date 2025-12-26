@@ -4,6 +4,7 @@ import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Link2, Unlink, Check, AlertTriangle, Zap, Clock, TrendingUp, Search, X } from "lucide-react";
+import { prefixSearch } from "@/lib/utils";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -207,17 +208,10 @@ export function LinkManagerModal({
 
   const items = mode === "pain-point" ? useCases : painPoints;
   const filteredItems = items.filter(item => {
-    const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 0);
-    if (searchWords.length === 0) return true;
-    
     const textToSearch = mode === "pain-point" 
-      ? (item as UseCase).name.toLowerCase()
-      : (item as PainPoint).statement.toLowerCase();
-    
-    const textWords = textToSearch.match(/\b\w+\b/g) || [];
-    return searchWords.every(searchWord => 
-      textWords.some(textWord => textWord.startsWith(searchWord))
-    );
+      ? (item as UseCase).name
+      : (item as PainPoint).statement;
+    return prefixSearch(searchQuery, textToSearch);
   });
 
   const unlinkedItems = filteredItems.filter(item => !linkedItemIds.has(item.id));

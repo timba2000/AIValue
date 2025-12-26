@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { useAllBusinessUnits, useAllProcesses, useCompanies } from "../hooks/useApiData";
 import type { PainPoint, PainPointPayload, ImpactType, RiskLevel } from "@/types/painPoint";
 import { X, Plus, Link2 } from "lucide-react";
+import { prefixSearch } from "@/lib/utils";
 
 interface UseCase {
   id: string;
@@ -167,11 +168,10 @@ export function PainPointEditModal({
       return { selectedProcesses: selected, filteredUnselectedProcesses: unselected };
     }
     
-    const query = processSearchQuery.toLowerCase();
-    const filteredUnselected = unselected.filter(p => 
-      p.name.toLowerCase().includes(query) ||
-      (p.description && p.description.toLowerCase().includes(query))
-    );
+    const filteredUnselected = unselected.filter(p => {
+      const searchText = p.name + (p.description ? ' ' + p.description : '');
+      return prefixSearch(processSearchQuery, searchText);
+    });
     
     return { selectedProcesses: selected, filteredUnselectedProcesses: filteredUnselected };
   }, [processes, processSearchQuery, formState.processIds]);

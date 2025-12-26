@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link2, Check, AlertCircle } from "lucide-react";
 import type { UseCase } from "@/types/useCase";
+import { prefixSearch } from "@/lib/utils";
 
 interface UseCaseFilters {
   search: string;
@@ -36,7 +37,7 @@ export function UseCaseList({
 }: UseCaseListProps) {
   const filtered = useMemo(() => {
     return useCases.filter((useCase) => {
-      const matchesSearch = useCase.name.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesSearch = prefixSearch(filters.search, useCase.name);
       const matchesComplexity = filters.complexity ? useCase.complexity === filters.complexity : true;
       const matchesConfidence = filters.confidenceLevel
         ? useCase.confidenceLevel === filters.confidenceLevel

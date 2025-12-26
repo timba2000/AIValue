@@ -3,6 +3,7 @@ import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Layers, Link2, Lightbulb, Users, AlertTriangle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { prefixSearch } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -152,7 +153,7 @@ export default function ProcessList() {
     }
     
     if (search.trim()) {
-      filtered = filtered.filter((process) => process.name.toLowerCase().includes(search.toLowerCase()));
+      filtered = filtered.filter((process) => prefixSearch(search, process.name));
     }
     
     return filtered;
