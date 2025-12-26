@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { generateChatResponse, generateChatResponseStream, ChatMessage, AIConfig } from "../services/aiService.js";
 import { db } from "../db/client.js";
-import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases, aiConversations, aiMessages, taxonomyCategories, processPainPoints } from "../db/schema.js";
+import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases, aiConversations, aiMessages, taxonomyCategories, processPainPoints, users } from "../db/schema.js";
 import { eq, desc, ilike, or, and, inArray, sql } from "drizzle-orm";
 import { getUser } from "../simpleAuth.js";
 
@@ -1063,6 +1063,105 @@ router.post("/conversations/:id/messages", async (req: Request, res: Response) =
   } catch (error) {
     console.error("Error adding message:", error);
     res.status(500).json({ error: "Failed to add message" });
+  }
+});
+
+// Admin endpoint: Get all conversations across all users
+router.get("/admin/conversations", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const allConversations = await db
+      .select({
+        id: aiConversations.id,
+        userId: aiConversations.userId,
+        title: aiConversations.title,
+        createdAt: aiConversations.createdAt,
+        updatedAt: aiConversations.updatedAt,
+        userEmail: users.email,
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+      })
+      .from(aiConversations)
+      .leftJoin(users, eq(aiConversations.userId, users.id))
+      .orderBy(desc(aiConversations.updatedAt));
+
+    // Get message counts for each conversation
+    const conversationsWithCounts = await Promise.all(
+      allConversations.map(async (conv) => {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(aiMessages)
+          .where(eq(aiMessages.conversationId, conv.id));
+        
+        return {
+          ...conv,
+          messageCount: countResult?.count || 0,
+          userName: conv.userFirstName && conv.userLastName 
+            ? `${conv.userFirstName} ${conv.userLastName}` 
+            : conv.userEmail || 'Unknown User'
+        };
+      })
+    );
+
+    res.json(conversationsWithCounts);
+  } catch (error) {
+    console.error("Error fetching admin conversations:", error);
+    res.status(500).json({ error: "Failed to fetch conversations" });
+  }
+});
+
+// Admin endpoint: Delete multiple conversations
+router.delete("/admin/conversations", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "No conversation IDs provided" });
+    }
+
+    await db.delete(aiConversations).where(inArray(aiConversations.id, ids));
+
+    res.json({ success: true, deletedCount: ids.length });
+  } catch (error) {
+    console.error("Error deleting conversations:", error);
+    res.status(500).json({ error: "Failed to delete conversations" });
+  }
+});
+
+// Admin endpoint: Delete all conversations
+router.delete("/admin/conversations/all", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const result = await db.delete(aiConversations);
+    
+    res.json({ success: true, message: "All conversations deleted" });
+  } catch (error) {
+    console.error("Error deleting all conversations:", error);
+    res.status(500).json({ error: "Failed to delete all conversations" });
   }
 });
 
