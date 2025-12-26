@@ -125,7 +125,9 @@ export function PainPointEditModal({
       const response = await axios.get<PainPoint>(`${API_BASE}/api/pain-points/${painPointId}`);
       return response.data;
     },
-    enabled: !!painPointId && open
+    enabled: !!painPointId && open,
+    staleTime: 0,
+    refetchOnMount: 'always'
   });
 
   const { data: useCases = [] } = useQuery<UseCase[]>({
@@ -248,12 +250,6 @@ export function PainPointEditModal({
       setLinkError(null);
     }
   }, [open]);
-  
-  useEffect(() => {
-    if (painPointId && open) {
-      setFormState(emptyForm);
-    }
-  }, [painPointId, open]);
 
   const level1Categories = useMemo(() => 
     taxonomyCategories.filter(c => c.level === 1), 
