@@ -207,12 +207,14 @@ export function LinkManagerModal({
 
   const items = mode === "pain-point" ? useCases : painPoints;
   const filteredItems = items.filter(item => {
-    const searchLower = searchQuery.toLowerCase();
-    if (mode === "pain-point") {
-      return (item as UseCase).name.toLowerCase().includes(searchLower);
-    } else {
-      return (item as PainPoint).statement.toLowerCase().includes(searchLower);
-    }
+    const searchWords = searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+    if (searchWords.length === 0) return true;
+    
+    const textToSearch = mode === "pain-point" 
+      ? (item as UseCase).name.toLowerCase()
+      : (item as PainPoint).statement.toLowerCase();
+    
+    return searchWords.some(word => textToSearch.includes(word));
   });
 
   const unlinkedItems = filteredItems.filter(item => !linkedItemIds.has(item.id));
