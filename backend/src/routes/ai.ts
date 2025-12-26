@@ -81,6 +81,262 @@ The query results will be automatically executed and returned. Only SELECT/WITH 
 === END SCHEMA ===
 `;
 
+interface AnalyticalQueryParams {
+  targetEntity: 'business_unit' | 'company' | 'process' | 'pain_point' | 'solution' | 'category' | null;
+  metric: 'count' | 'hours' | 'opportunity_score' | null;
+  statusFilter: 'linked' | 'unlinked' | 'all';
+  rankingOrder: 'desc' | 'asc';
+  limit: number;
+  groupBy: 'business_unit' | 'company' | 'process' | 'category' | null;
+  specificEntityName: string | null;
+}
+
+function parseAnalyticalQuestion(question: string): AnalyticalQueryParams {
+  const lowerQ = question.toLowerCase();
+  
+  const params: AnalyticalQueryParams = {
+    targetEntity: null,
+    metric: null,
+    statusFilter: 'all',
+    rankingOrder: 'desc',
+    limit: 15,
+    groupBy: null,
+    specificEntityName: null
+  };
+  
+  if (lowerQ.includes('business unit') || lowerQ.includes('bu ') || lowerQ.includes('bus ') || lowerQ.includes('team') || lowerQ.includes('department')) {
+    params.targetEntity = 'business_unit';
+  } else if (lowerQ.includes('company') || lowerQ.includes('companies') || lowerQ.includes('organization')) {
+    params.targetEntity = 'company';
+  } else if (lowerQ.includes('process') || lowerQ.includes('processes')) {
+    params.targetEntity = 'process';
+  } else if (lowerQ.includes('solution') || lowerQ.includes('use case')) {
+    params.targetEntity = 'solution';
+  } else if (lowerQ.includes('category') || lowerQ.includes('taxonomy')) {
+    params.targetEntity = 'category';
+  } else if (lowerQ.includes('pain point') || lowerQ.includes('pain points')) {
+    params.targetEntity = 'pain_point';
+  }
+  
+  if (lowerQ.includes('hour') || lowerQ.includes('time')) {
+    params.metric = 'hours';
+  } else if (lowerQ.includes('score') || lowerQ.includes('opportunity')) {
+    params.metric = 'opportunity_score';
+  } else {
+    params.metric = 'count';
+  }
+  
+  const unlinkedPatterns = [
+    /\bunlinked\b/i,
+    /\bnot\s+linked\b/i,
+    /\bnot\s+yet\s+linked\b/i,
+    /\bwithout\s+solutions?\b/i,
+    /\bno\s+solutions?\b/i,
+    /\bno\s+linked\b/i,
+    /\bwithout\s+linked\b/i,
+    /\bhaven't\s+been\s+linked\b/i,
+    /\bhasn't\s+been\s+linked\b/i,
+    /\bhas\s+not\s+been\s+linked\b/i,
+    /\bhave\s+not\s+been\s+linked\b/i,
+    /\baren't\s+linked\b/i,
+    /\bisn't\s+linked\b/i,
+    /\bare\s+not\s+linked\b/i,
+    /\bis\s+not\s+linked\b/i,
+    /\bnot\s+\w*\s*linked\s+to\b/i,
+  ];
+  
+  const isUnlinked = unlinkedPatterns.some(pattern => pattern.test(lowerQ));
+  
+  if (isUnlinked) {
+    params.statusFilter = 'unlinked';
+  } else if ((lowerQ.includes('linked') || lowerQ.includes('with solution')) && !lowerQ.includes('unlinked')) {
+    params.statusFilter = 'linked';
+  }
+  
+  if (lowerQ.includes('least') || lowerQ.includes('fewest') || lowerQ.includes('lowest') || lowerQ.includes('bottom')) {
+    params.rankingOrder = 'asc';
+  }
+  
+  const topMatch = lowerQ.match(/top\s+(\d+)/);
+  if (topMatch) {
+    params.limit = Math.min(parseInt(topMatch[1], 10), 50);
+  }
+  
+  if (lowerQ.includes('by business unit') || lowerQ.includes('per business unit') || lowerQ.includes('by bu') || lowerQ.includes('per bu')) {
+    params.groupBy = 'business_unit';
+  } else if (lowerQ.includes('by company') || lowerQ.includes('per company')) {
+    params.groupBy = 'company';
+  } else if (lowerQ.includes('by process') || lowerQ.includes('per process')) {
+    params.groupBy = 'process';
+  } else if (lowerQ.includes('by category') || lowerQ.includes('per category')) {
+    params.groupBy = 'category';
+  }
+  
+  return params;
+}
+
+async function executeFlexibleAnalyticalQuery(params: AnalyticalQueryParams): Promise<string | null> {
+  try {
+    if (params.targetEntity === 'business_unit' && params.statusFilter !== 'all') {
+      const statusCondition = params.statusFilter === 'linked' ? 'true' : 'false';
+      const results = await db.execute<{
+        bu_id: string;
+        bu_name: string;
+        company_name: string;
+        pain_point_count: string;
+        total_hours: string;
+      }>(
+        sql`WITH bu_pp_stats AS (
+          SELECT 
+            bu.id as bu_id,
+            bu.name as bu_name,
+            c.name as company_name,
+            pp.id as pp_id,
+            pp.total_hours_per_month,
+            CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+          FROM business_units bu
+          LEFT JOIN companies c ON bu.company_id = c.id
+          LEFT JOIN pain_points pp ON pp.business_unit_id = bu.id
+        )
+        SELECT 
+          bu_id,
+          bu_name,
+          company_name,
+          COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)})::text as pain_point_count,
+          COALESCE(SUM(total_hours_per_month) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}), 0)::text as total_hours
+        FROM bu_pp_stats
+        GROUP BY bu_id, bu_name, company_name
+        HAVING COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) > 0
+        ORDER BY COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) ${sql.raw(params.rankingOrder === 'desc' ? 'DESC' : 'ASC')}
+        LIMIT ${params.limit}`
+      );
+      
+      if (results.rows.length === 0) {
+        return `No business units found with ${params.statusFilter} pain points.`;
+      }
+      
+      const statusLabel = params.statusFilter === 'linked' ? 'Linked' : 'Unlinked';
+      let result = `BUSINESS UNITS WITH ${statusLabel.toUpperCase()} PAIN POINTS:\n\n`;
+      result += `| Rank | Business Unit | Company | ${statusLabel} Pain Points | Hours/Month |\n`;
+      result += `|------|---------------|---------|${'-'.repeat(statusLabel.length + 13)}|-------------|\n`;
+      
+      results.rows.forEach((row, idx) => {
+        const shortId = row.bu_id.substring(0, 8);
+        result += `| ${idx + 1} | [BU:${shortId}] ${row.bu_name} | ${row.company_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      const topBu = results.rows[0];
+      result += `\n**Summary:** [BU:${topBu.bu_id.substring(0, 8)}] ${topBu.bu_name} has the most ${params.statusFilter} pain points (${topBu.pain_point_count}).`;
+      
+      return result;
+    }
+    
+    if (params.targetEntity === 'company' && params.statusFilter !== 'all') {
+      const statusCondition = params.statusFilter === 'linked' ? 'true' : 'false';
+      const results = await db.execute<{
+        co_id: string;
+        co_name: string;
+        pain_point_count: string;
+        total_hours: string;
+      }>(
+        sql`WITH co_pp_stats AS (
+          SELECT 
+            c.id as co_id,
+            c.name as co_name,
+            pp.id as pp_id,
+            pp.total_hours_per_month,
+            CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+          FROM companies c
+          LEFT JOIN pain_points pp ON pp.company_id = c.id
+        )
+        SELECT 
+          co_id,
+          co_name,
+          COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)})::text as pain_point_count,
+          COALESCE(SUM(total_hours_per_month) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}), 0)::text as total_hours
+        FROM co_pp_stats
+        GROUP BY co_id, co_name
+        HAVING COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) > 0
+        ORDER BY COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) ${sql.raw(params.rankingOrder === 'desc' ? 'DESC' : 'ASC')}
+        LIMIT ${params.limit}`
+      );
+      
+      if (results.rows.length === 0) {
+        return `No companies found with ${params.statusFilter} pain points.`;
+      }
+      
+      const statusLabel = params.statusFilter === 'linked' ? 'Linked' : 'Unlinked';
+      let result = `COMPANIES WITH ${statusLabel.toUpperCase()} PAIN POINTS:\n\n`;
+      result += `| Rank | Company | ${statusLabel} Pain Points | Hours/Month |\n`;
+      result += `|------|---------|${'-'.repeat(statusLabel.length + 13)}|-------------|\n`;
+      
+      results.rows.forEach((row, idx) => {
+        const shortId = row.co_id.substring(0, 8);
+        result += `| ${idx + 1} | [CO:${shortId}] ${row.co_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    if (params.targetEntity === 'process' && params.statusFilter !== 'all') {
+      const statusCondition = params.statusFilter === 'linked' ? 'true' : 'false';
+      const results = await db.execute<{
+        proc_id: string;
+        proc_name: string;
+        bu_name: string;
+        pain_point_count: string;
+        total_hours: string;
+      }>(
+        sql`WITH proc_pp_stats AS (
+          SELECT 
+            p.id as proc_id,
+            p.name as proc_name,
+            COALESCE(bu.name, 'Unassigned') as bu_name,
+            pp.id as pp_id,
+            pp.total_hours_per_month,
+            CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+          FROM processes p
+          LEFT JOIN business_units bu ON p.business_unit_id = bu.id
+          LEFT JOIN process_pain_points ppp ON ppp.process_id = p.id
+          LEFT JOIN pain_points pp ON pp.id = ppp.pain_point_id
+        )
+        SELECT 
+          proc_id,
+          proc_name,
+          bu_name,
+          COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)})::text as pain_point_count,
+          COALESCE(SUM(total_hours_per_month) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}), 0)::text as total_hours
+        FROM proc_pp_stats
+        GROUP BY proc_id, proc_name, bu_name
+        HAVING COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) > 0
+        ORDER BY COUNT(DISTINCT pp_id) FILTER (WHERE is_linked = ${sql.raw(statusCondition)}) ${sql.raw(params.rankingOrder === 'desc' ? 'DESC' : 'ASC')}
+        LIMIT ${params.limit}`
+      );
+      
+      if (results.rows.length === 0) {
+        return `No processes found with ${params.statusFilter} pain points.`;
+      }
+      
+      const statusLabel = params.statusFilter === 'linked' ? 'Linked' : 'Unlinked';
+      let result = `PROCESSES WITH ${statusLabel.toUpperCase()} PAIN POINTS:\n\n`;
+      result += `| Rank | Process | Business Unit | ${statusLabel} Pain Points | Hours/Month |\n`;
+      result += `|------|---------|---------------|${'-'.repeat(statusLabel.length + 13)}|-------------|\n`;
+      
+      results.rows.forEach((row, idx) => {
+        const shortId = row.proc_id.substring(0, 8);
+        result += `| ${idx + 1} | [PROC:${shortId}] ${row.proc_name} | ${row.bu_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("[AI] Flexible analytical query error:", error);
+    return null;
+  }
+}
+
 async function findBusinessUnitByName(searchTerms: string[]): Promise<{ id: string; name: string } | null> {
   try {
     const allBus = await db.execute<{ id: string; name: string }>(
@@ -109,6 +365,12 @@ function extractSearchTerms(question: string): string[] {
 async function executeAnalyticalQuery(question: string): Promise<string | null> {
   try {
     const lowerQuestion = question.toLowerCase();
+    
+    const params = parseAnalyticalQuestion(question);
+    const flexibleResult = await executeFlexibleAnalyticalQuery(params);
+    if (flexibleResult) {
+      return flexibleResult;
+    }
     
     if ((lowerQuestion.includes('linked') || lowerQuestion.includes('unlinked') || lowerQuestion.includes('without solution')) && 
         (lowerQuestion.includes('pain point') || lowerQuestion.includes('pain points'))) {
@@ -473,6 +735,13 @@ function isAnalyticalQuestion(question: string): boolean {
     /pain\s*points?.*for\s+the\s+\w+/i,
     /pain\s*points?.*without\s+solution/i,
     /pain\s*points?.*with\s+solution/i,
+    /which\s+(business\s+units?|bus|teams?|departments?).*(unlinked|linked|no solution|without solution)/i,
+    /which\s+(companies|company).*(unlinked|linked|no solution|without solution)/i,
+    /which\s+(processes?).*(unlinked|linked|no solution|without solution)/i,
+    /(business\s+units?|bus|teams?|departments?)\s+(have|with)\s+(unlinked|linked)/i,
+    /(companies|company)\s+(have|with)\s+(unlinked|linked)/i,
+    /(processes?)\s+(have|with)\s+(unlinked|linked)/i,
+    /not\s+(yet\s+)?linked\s+to\s+solutions?/i,
   ];
   
   return analyticalPatterns.some(pattern => pattern.test(question));
