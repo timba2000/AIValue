@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { generateChatResponse, generateChatResponseStream, ChatMessage, AIConfig } from "../services/aiService.js";
 import { db } from "../db/client.js";
 import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases, aiConversations, aiMessages, taxonomyCategories, processPainPoints } from "../db/schema.js";
-import { eq, desc, ilike, or, and, inArray } from "drizzle-orm";
+import { eq, desc, ilike, or, and, inArray, sql } from "drizzle-orm";
 import { getUser } from "../simpleAuth.js";
 
 const router = Router();
@@ -13,6 +13,334 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 
 let cachedUnfilteredContext: string | null = null;
 let unfilteredCacheTimestamp: number = 0;
+
+const DATABASE_SCHEMA_DESCRIPTION = `
+=== DATABASE SCHEMA ===
+You have access to the following tables and relationships:
+
+TABLES:
+1. companies (id, name, industry, anzsic)
+   - Top-level entities representing client organizations
+
+2. business_units (id, company_id, parent_id, name, description, fte)
+   - Departments/divisions within companies
+   - Hierarchical: parent_id allows 3-level nesting
+   - company_id links to companies table
+
+3. processes (id, business_id, business_unit_id, name, description, volume, volume_unit, fte, owner, systems_used)
+   - Business processes within companies/BUs
+   - business_id = company, business_unit_id = optional BU assignment
+
+4. pain_points (id, statement, impact_type[], business_impact, magnitude, frequency, time_per_unit, total_hours_per_month, fte_count, root_cause, workarounds, dependencies, risk_level, effort_solving, taxonomy_level1_id, taxonomy_level2_id, taxonomy_level3_id, company_id, business_unit_id)
+   - Problems/inefficiencies identified in processes
+   - Can be linked to company and/or business_unit
+
+5. use_cases (id, name, solution_provider, problem_to_solve, solution_overview, complexity, data_requirements[], systems_impacted, risks, estimated_delivery_time, cost_range, confidence_level, process_id, company_id, business_unit_id)
+   - Solutions/automation opportunities
+
+6. pain_point_use_cases (pain_point_id, use_case_id, percentage_solved, notes)
+   - Many-to-many linking pain points to solutions
+
+7. process_pain_points (process_id, pain_point_id)
+   - Links pain points to processes
+
+8. taxonomy_categories (id, name, parent_id, level)
+   - Hierarchical categorization (L1 > L2 > L3)
+
+RELATIONSHIPS:
+- Companies → Business Units (one-to-many)
+- Business Units → Processes (one-to-many)
+- Processes → Pain Points (many-to-many via process_pain_points)
+- Pain Points → Use Cases (many-to-many via pain_point_use_cases)
+- Pain Points can belong directly to Company and/or Business Unit
+
+COMMON QUERIES YOU CAN ANSWER:
+- Rankings: "Which BU has the most pain points?", "Top processes by hours"
+- Counts: "How many pain points per company?", "Total solutions available"
+- Aggregates: "Total hours/month by business unit", "Average opportunity score by company"
+- Comparisons: "Compare pain points across BUs", "Which category has most issues"
+=== END SCHEMA ===
+`;
+
+async function executeAnalyticalQuery(question: string): Promise<string | null> {
+  try {
+    const lowerQuestion = question.toLowerCase();
+    
+    if (lowerQuestion.includes('business unit') && (lowerQuestion.includes('most') || lowerQuestion.includes('ranking') || lowerQuestion.includes('top') || lowerQuestion.includes('highest'))) {
+      const buRankings = await db.execute<{ bu_id: string; bu_name: string; company_name: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          bu.id as bu_id,
+          bu.name as bu_name, 
+          c.name as company_name,
+          COUNT(pp.id)::text as pain_point_count,
+          COALESCE(SUM(pp.total_hours_per_month), 0)::text as total_hours
+        FROM business_units bu
+        LEFT JOIN companies c ON bu.company_id = c.id
+        LEFT JOIN pain_points pp ON pp.business_unit_id = bu.id
+        GROUP BY bu.id, bu.name, c.name
+        ORDER BY COUNT(pp.id) DESC
+        LIMIT 15`
+      );
+      
+      if (buRankings.rows.length === 0) {
+        return "No business units found with pain points assigned.";
+      }
+      
+      let result = "BUSINESS UNIT RANKINGS BY PAIN POINTS:\n\n";
+      result += "| Rank | Business Unit | Company | Pain Points | Hours/Month |\n";
+      result += "|------|---------------|---------|-------------|-------------|\n";
+      
+      buRankings.rows.forEach((row, idx) => {
+        const shortId = row.bu_id.substring(0, 8);
+        result += `| ${idx + 1} | [BU:${shortId}] ${row.bu_name} | ${row.company_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      const topBu = buRankings.rows[0];
+      result += `\n**Answer:** [BU:${topBu.bu_id.substring(0, 8)}] ${topBu.bu_name} (${topBu.company_name}) has the most pain points with ${topBu.pain_point_count} pain points and ${parseFloat(topBu.total_hours).toFixed(1)} hours/month total.`;
+      
+      return result;
+    }
+    
+    if (lowerQuestion.includes('process') && (lowerQuestion.includes('most') || lowerQuestion.includes('ranking') || lowerQuestion.includes('top') || lowerQuestion.includes('highest'))) {
+      const procRankings = await db.execute<{ proc_id: string; proc_name: string; bu_name: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          p.id as proc_id,
+          p.name as proc_name,
+          COALESCE(bu.name, 'Unassigned') as bu_name,
+          COUNT(pp.pain_point_id)::text as pain_point_count,
+          COALESCE(SUM(pt.total_hours_per_month), 0)::text as total_hours
+        FROM processes p
+        LEFT JOIN business_units bu ON p.business_unit_id = bu.id
+        LEFT JOIN process_pain_points pp ON pp.process_id = p.id
+        LEFT JOIN pain_points pt ON pt.id = pp.pain_point_id
+        GROUP BY p.id, p.name, bu.name
+        ORDER BY COUNT(pp.pain_point_id) DESC
+        LIMIT 15`
+      );
+      
+      if (procRankings.rows.length === 0) {
+        return "No processes found with pain points.";
+      }
+      
+      let result = "PROCESS RANKINGS BY PAIN POINTS:\n\n";
+      result += "| Rank | Process | Business Unit | Pain Points | Hours/Month |\n";
+      result += "|------|---------|---------------|-------------|-------------|\n";
+      
+      procRankings.rows.forEach((row, idx) => {
+        const shortId = row.proc_id.substring(0, 8);
+        result += `| ${idx + 1} | [PROC:${shortId}] ${row.proc_name} | ${row.bu_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    if (lowerQuestion.includes('company') && (lowerQuestion.includes('most') || lowerQuestion.includes('ranking') || lowerQuestion.includes('compare') || lowerQuestion.includes('top') || lowerQuestion.includes('highest'))) {
+      const companyRankings = await db.execute<{ co_id: string; co_name: string; bu_count: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          c.id as co_id,
+          c.name as co_name,
+          COUNT(DISTINCT bu.id)::text as bu_count,
+          COUNT(pp.id)::text as pain_point_count,
+          COALESCE(SUM(pp.total_hours_per_month), 0)::text as total_hours
+        FROM companies c
+        LEFT JOIN business_units bu ON bu.company_id = c.id
+        LEFT JOIN pain_points pp ON pp.company_id = c.id
+        GROUP BY c.id, c.name
+        ORDER BY COUNT(pp.id) DESC
+        LIMIT 15`
+      );
+      
+      if (companyRankings.rows.length === 0) {
+        return "No companies found.";
+      }
+      
+      let result = "COMPANY RANKINGS:\n\n";
+      result += "| Rank | Company | Business Units | Pain Points | Hours/Month |\n";
+      result += "|------|---------|----------------|-------------|-------------|\n";
+      
+      companyRankings.rows.forEach((row, idx) => {
+        const shortId = row.co_id.substring(0, 8);
+        result += `| ${idx + 1} | [CO:${shortId}] ${row.co_name} | ${row.bu_count} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    if (lowerQuestion.includes('category') || lowerQuestion.includes('taxonomy')) {
+      const categoryRankings = await db.execute<{ category_name: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          COALESCE(tc.name, 'Uncategorized') as category_name,
+          COUNT(pp.id)::text as pain_point_count,
+          COALESCE(SUM(pp.total_hours_per_month), 0)::text as total_hours
+        FROM pain_points pp
+        LEFT JOIN taxonomy_categories tc ON pp.taxonomy_level1_id = tc.id
+        GROUP BY tc.name
+        ORDER BY COUNT(pp.id) DESC
+        LIMIT 15`
+      );
+      
+      if (categoryRankings.rows.length === 0) {
+        return "No categorized pain points found.";
+      }
+      
+      let result = "PAIN POINTS BY CATEGORY (L1 Taxonomy):\n\n";
+      result += "| Rank | Category | Pain Points | Hours/Month |\n";
+      result += "|------|----------|-------------|-------------|\n";
+      
+      categoryRankings.rows.forEach((row, idx) => {
+        result += `| ${idx + 1} | ${row.category_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    if ((lowerQuestion.includes('solution') || lowerQuestion.includes('use case')) && (lowerQuestion.includes('most') || lowerQuestion.includes('popular') || lowerQuestion.includes('top') || lowerQuestion.includes('highest'))) {
+      const solutionRankings = await db.execute<{ uc_id: string; uc_name: string; provider: string; linked_count: string; avg_solved: string }>(
+        sql`SELECT 
+          uc.id as uc_id,
+          uc.name as uc_name,
+          COALESCE(uc.solution_provider, 'N/A') as provider,
+          COUNT(ppuc.id)::text as linked_count,
+          COALESCE(AVG(ppuc.percentage_solved), 0)::text as avg_solved
+        FROM use_cases uc
+        LEFT JOIN pain_point_use_cases ppuc ON ppuc.use_case_id = uc.id
+        GROUP BY uc.id, uc.name, uc.solution_provider
+        ORDER BY COUNT(ppuc.id) DESC
+        LIMIT 15`
+      );
+      
+      if (solutionRankings.rows.length === 0) {
+        return "No solutions/use cases found.";
+      }
+      
+      let result = "TOP SOLUTIONS BY PAIN POINTS ADDRESSED:\n\n";
+      result += "| Rank | Solution | Provider | Pain Points Linked | Avg % Solved |\n";
+      result += "|------|----------|----------|--------------------|--------------|\n";
+      
+      solutionRankings.rows.forEach((row, idx) => {
+        const shortId = row.uc_id.substring(0, 8);
+        result += `| ${idx + 1} | [UC:${shortId}] ${row.uc_name} | ${row.provider} | ${row.linked_count} | ${parseFloat(row.avg_solved).toFixed(0)}% |\n`;
+      });
+      
+      return result;
+    }
+    
+    if (lowerQuestion.includes('total') || lowerQuestion.includes('count') || lowerQuestion.includes('how many')) {
+      const stats = await db.execute<{ companies: string; business_units: string; processes: string; pain_points: string; use_cases: string; total_hours: string }>(
+        sql`SELECT 
+          (SELECT COUNT(*) FROM companies)::text as companies,
+          (SELECT COUNT(*) FROM business_units)::text as business_units,
+          (SELECT COUNT(*) FROM processes)::text as processes,
+          (SELECT COUNT(*) FROM pain_points)::text as pain_points,
+          (SELECT COUNT(*) FROM use_cases)::text as use_cases,
+          (SELECT COALESCE(SUM(total_hours_per_month), 0) FROM pain_points)::text as total_hours`
+      );
+      
+      const row = stats.rows[0];
+      return `DATABASE TOTALS:
+- Companies: ${row.companies}
+- Business Units: ${row.business_units}
+- Processes: ${row.processes}
+- Pain Points: ${row.pain_points}
+- Solutions/Use Cases: ${row.use_cases}
+- Total Hours/Month (pain points): ${parseFloat(row.total_hours).toFixed(1)}`;
+    }
+    
+    if ((lowerQuestion.includes('per') || lowerQuestion.includes('breakdown') || lowerQuestion.includes('by')) && 
+        (lowerQuestion.includes('business unit') || lowerQuestion.includes('bu'))) {
+      const buBreakdown = await db.execute<{ bu_id: string; bu_name: string; company_name: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          bu.id as bu_id,
+          bu.name as bu_name, 
+          c.name as company_name,
+          COUNT(pp.id)::text as pain_point_count,
+          COALESCE(SUM(pp.total_hours_per_month), 0)::text as total_hours
+        FROM business_units bu
+        LEFT JOIN companies c ON bu.company_id = c.id
+        LEFT JOIN pain_points pp ON pp.business_unit_id = bu.id
+        GROUP BY bu.id, bu.name, c.name
+        ORDER BY bu.name
+        LIMIT 25`
+      );
+      
+      if (buBreakdown.rows.length === 0) {
+        return "No business units found.";
+      }
+      
+      let result = "PAIN POINTS PER BUSINESS UNIT:\n\n";
+      result += "| Business Unit | Company | Pain Points | Hours/Month |\n";
+      result += "|---------------|---------|-------------|-------------|\n";
+      
+      buBreakdown.rows.forEach((row) => {
+        const shortId = row.bu_id.substring(0, 8);
+        result += `| [BU:${shortId}] ${row.bu_name} | ${row.company_name} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    if ((lowerQuestion.includes('per') || lowerQuestion.includes('breakdown') || lowerQuestion.includes('by')) && 
+        lowerQuestion.includes('company')) {
+      const companyBreakdown = await db.execute<{ co_id: string; co_name: string; bu_count: string; pain_point_count: string; total_hours: string }>(
+        sql`SELECT 
+          c.id as co_id,
+          c.name as co_name,
+          COUNT(DISTINCT bu.id)::text as bu_count,
+          COUNT(pp.id)::text as pain_point_count,
+          COALESCE(SUM(pp.total_hours_per_month), 0)::text as total_hours
+        FROM companies c
+        LEFT JOIN business_units bu ON bu.company_id = c.id
+        LEFT JOIN pain_points pp ON pp.company_id = c.id
+        GROUP BY c.id, c.name
+        ORDER BY c.name
+        LIMIT 25`
+      );
+      
+      if (companyBreakdown.rows.length === 0) {
+        return "No companies found.";
+      }
+      
+      let result = "PAIN POINTS PER COMPANY:\n\n";
+      result += "| Company | Business Units | Pain Points | Hours/Month |\n";
+      result += "|---------|----------------|-------------|-------------|\n";
+      
+      companyBreakdown.rows.forEach((row) => {
+        const shortId = row.co_id.substring(0, 8);
+        result += `| [CO:${shortId}] ${row.co_name} | ${row.bu_count} | ${row.pain_point_count} | ${parseFloat(row.total_hours).toFixed(1)} |\n`;
+      });
+      
+      return result;
+    }
+    
+    console.log(`[AI] No specific query matched for: "${question.substring(0, 50)}..."`);
+    return null;
+  } catch (error) {
+    console.error("[AI] Analytical query error:", error);
+    return null;
+  }
+}
+
+function isAnalyticalQuestion(question: string): boolean {
+  const analyticalPatterns = [
+    /which\s+(business\s+unit|bu).*(most|highest|top)/i,
+    /which\s+company.*(most|highest|top)/i,
+    /which\s+process.*(most|highest|top)/i,
+    /which\s+category.*(most|highest|top)/i,
+    /most\s+(pain\s*points?|hours|issues|problems)/i,
+    /top\s+\d*\s*(business\s+units?|bus|companies|processes|solutions?|use\s+cases?)/i,
+    /rank(ing)?\s+(business\s+units?|companies|processes)/i,
+    /how\s+many\s+(pain\s*points?|processes|business\s+units?|companies|solutions?|use\s+cases?)/i,
+    /total\s+(pain\s*points?|hours|count)/i,
+    /(pain\s*points?|hours)\s+(per|by)\s+(business\s+unit|bu|company)/i,
+    /breakdown\s+(by|of)\s+(business\s+unit|bu|company|category|taxonomy)/i,
+    /(business\s+unit|bu|company)\s+breakdown/i,
+    /pain\s*points?\s+by\s+category/i,
+    /category\s+breakdown/i,
+    /taxonomy\s+breakdown/i,
+  ];
+  
+  return analyticalPatterns.some(pattern => pattern.test(question));
+}
 
 interface FilterContext {
   companyId?: string | null;
@@ -427,11 +755,28 @@ router.post("/chat", async (req: Request, res: Response) => {
       processName: config.filterContext.processName,
     } : undefined;
     
+    const lastUserMessage = limitedMessages.filter(m => m.role === 'user').pop()?.content || '';
+    let analyticalResults: string | null = null;
+    
+    if (isAnalyticalQuestion(lastUserMessage)) {
+      console.log(`[AI] Detected analytical question, executing query...`);
+      analyticalResults = await executeAnalyticalQuery(lastUserMessage);
+      if (analyticalResults) {
+        console.log(`[AI] Analytical query returned ${analyticalResults.length} chars`);
+      }
+    }
+    
     const dataContext = await getFilteredDataContext(filterContext);
+    
+    let fullContext = DATABASE_SCHEMA_DESCRIPTION + "\n" + dataContext;
+    
+    if (analyticalResults) {
+      fullContext += "\n\n=== QUERY RESULTS FOR YOUR QUESTION ===\n" + analyticalResults + "\n=== END QUERY RESULTS ===\n\nUse the above query results to answer the user's question. The data is accurate and up-to-date from the database.";
+    }
     
     const messagesText = limitedMessages.map(m => m.content).join(' ');
     const systemPromptEstimate = 500;
-    const totalTokenEstimate = estimateTokens(dataContext) + estimateTokens(messagesText) + systemPromptEstimate;
+    const totalTokenEstimate = estimateTokens(fullContext) + estimateTokens(messagesText) + systemPromptEstimate;
     console.log(`[AI] Streaming request: ${limitedMessages.length} messages, ~${totalTokenEstimate} tokens total`);
     
     if (totalTokenEstimate > 15000) {
@@ -440,7 +785,7 @@ router.post("/chat", async (req: Request, res: Response) => {
     
     const enrichedConfig: AIConfig = {
       ...config,
-      dataContext: dataContext,
+      dataContext: fullContext,
     };
 
     res.setHeader('Content-Type', 'text/event-stream');
