@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { companies, businessUnits, processes, painPoints, useCases, painPointUseCases, aiConversations, aiMessages, taxonomyCategories, processPainPoints, users } from "../db/schema.js";
 import { eq, desc, ilike, or, and, inArray, sql } from "drizzle-orm";
 import { getUser } from "../simpleAuth.js";
+import { executeReadOnlySQL, formatResultsAsMarkdown, getAuditLogs, SQLExecutionResult } from "../services/sqlExecutor.js";
 
 const router = Router();
 
@@ -59,6 +60,24 @@ COMMON QUERIES YOU CAN ANSWER:
 - Counts: "How many pain points per company?", "Total solutions available"
 - Aggregates: "Total hours/month by business unit", "Average opportunity score by company"
 - Comparisons: "Compare pain points across BUs", "Which category has most issues"
+
+SQL EXECUTION CAPABILITY:
+You can execute read-only SQL queries against the database. When a user asks an analytical question that requires database data:
+1. Generate a valid PostgreSQL SELECT query
+2. Wrap the query in a code block with sql language tag
+3. The system will detect and execute the query, then provide results
+
+Example format for executing SQL:
+\`\`\`sql
+SELECT bu.name, COUNT(pp.id) as pain_point_count
+FROM business_units bu
+LEFT JOIN pain_points pp ON pp.business_unit_id = bu.id
+GROUP BY bu.id, bu.name
+ORDER BY pain_point_count DESC
+LIMIT 10
+\`\`\`
+
+The query results will be automatically executed and returned. Only SELECT/WITH queries are allowed (no INSERT, UPDATE, DELETE, etc.).
 === END SCHEMA ===
 `;
 
@@ -1162,6 +1181,60 @@ router.delete("/admin/conversations/all", async (req: Request, res: Response) =>
   } catch (error) {
     console.error("Error deleting all conversations:", error);
     res.status(500).json({ error: "Failed to delete all conversations" });
+  }
+});
+
+router.post("/execute-sql", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    const { query } = req.body;
+    if (!query || typeof query !== "string") {
+      return res.status(400).json({ error: "Query is required" });
+    }
+
+    console.log(`[AI SQL] User ${user.email} executing query: ${query.substring(0, 100)}...`);
+    
+    const result = await executeReadOnlySQL(query, user.id);
+    
+    if (result.success) {
+      console.log(`[AI SQL] Query successful: ${result.rowCount} rows in ${result.executionTimeMs}ms`);
+    } else {
+      console.log(`[AI SQL] Query failed: ${result.error}`);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("SQL execution error:", error);
+    res.status(500).json({ error: "Failed to execute query" });
+  }
+});
+
+router.get("/admin/sql-audit-logs", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user = await getUser(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const logs = getAuditLogs(limit);
+    
+    res.json(logs);
+  } catch (error) {
+    console.error("Error fetching audit logs:", error);
+    res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
 

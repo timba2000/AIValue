@@ -4,6 +4,7 @@ import { Sparkles, Send, RotateCcw, Wand2, User, Bot, Loader2, Search, Plus, Mes
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 import { AIChartRenderer, parseChartSpecs } from "@/components/AIChartRenderer";
 import { FileAttachment, FilePreviewInMessage, UploadedFile } from "@/components/FileAttachment";
+import { SQLExecutor } from "@/components/SQLExecutor";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -565,7 +566,31 @@ export default function AIPage() {
                         </>
                       ) : (
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-table:border-collapse prose-th:border prose-th:border-border prose-th:bg-accent prose-th:px-3 prose-th:py-2 prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-a:text-primary prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
-                          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{text}</Markdown>
+                          <Markdown 
+                            remarkPlugins={[remarkGfm]} 
+                            rehypePlugins={[rehypeHighlight]}
+                            components={{
+                              code({ className, children, ...props }) {
+                                const match = /language-(\w+)/.exec(className || '');
+                                const language = match ? match[1] : '';
+                                const codeContent = String(children).replace(/\n$/, '');
+                                
+                                const upperCode = codeContent.trim().toUpperCase();
+                                if (language === 'sql' && (upperCode.startsWith('SELECT') || upperCode.startsWith('WITH'))) {
+                                  return (
+                                    <div>
+                                      <pre className={className}>
+                                        <code className={className} {...props}>{children}</code>
+                                      </pre>
+                                      <SQLExecutor sql={codeContent} />
+                                    </div>
+                                  );
+                                }
+                                
+                                return <code className={className} {...props}>{children}</code>;
+                              }
+                            }}
+                          >{text}</Markdown>
                         </div>
                       )}
                     </div>
