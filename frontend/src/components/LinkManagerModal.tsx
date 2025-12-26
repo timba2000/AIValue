@@ -142,7 +142,7 @@ export function LinkManagerModal({
       queryClient.invalidateQueries({ queryKey: ["allPainPointLinksDetails"] });
       queryClient.invalidateQueries({ queryKey: ["useCasePainPoints"] });
       queryClient.invalidateQueries({ queryKey: ["useCaseLinkStats"] });
-      resetForm();
+      resetFormKeepSearch();
     }
   });
 
@@ -160,11 +160,15 @@ export function LinkManagerModal({
     }
   });
 
-  const resetForm = () => {
+  const resetFormKeepSearch = () => {
     setSelectedItemId(null);
     setPercentageSolved("");
     setNotes("");
     setStep("select");
+  };
+
+  const resetForm = () => {
+    resetFormKeepSearch();
     setSearchQuery("");
   };
 
