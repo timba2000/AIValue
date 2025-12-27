@@ -89,6 +89,8 @@ interface AnalyticalQueryParams {
   limit: number;
   groupBy: 'business_unit' | 'company' | 'process' | 'category' | null;
   specificEntityName: string | null;
+  companyId: string | null;
+  companyName: string | null;
 }
 
 function parseAnalyticalQuestion(question: string): AnalyticalQueryParams {
@@ -101,7 +103,9 @@ function parseAnalyticalQuestion(question: string): AnalyticalQueryParams {
     rankingOrder: 'desc',
     limit: 15,
     groupBy: null,
-    specificEntityName: null
+    specificEntityName: null,
+    companyId: null,
+    companyName: null
   };
   
   if (lowerQ.includes('business unit') || lowerQ.includes('bu ') || lowerQ.includes('bus ') || lowerQ.includes('team') || lowerQ.includes('department')) {
@@ -330,6 +334,97 @@ async function executeFlexibleAnalyticalQuery(params: AnalyticalQueryParams): Pr
       return result;
     }
     
+    if (params.companyId && (params.targetEntity === 'pain_point' || params.statusFilter !== 'all')) {
+      const isLinkedFilter = params.statusFilter === 'linked' ? true : params.statusFilter === 'unlinked' ? false : null;
+      
+      let results;
+      if (isLinkedFilter === true) {
+        results = await db.execute<{
+          pp_id: string;
+          statement: string;
+          bu_name: string;
+          total_hours: string;
+          is_linked: boolean;
+        }>(
+          sql`SELECT 
+            pp.id as pp_id,
+            pp.statement,
+            COALESCE(bu.name, 'Unassigned') as bu_name,
+            COALESCE(pp.total_hours_per_month, 0)::text as total_hours,
+            true as is_linked
+          FROM pain_points pp
+          LEFT JOIN business_units bu ON pp.business_unit_id = bu.id
+          WHERE pp.company_id = ${params.companyId}
+            AND EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id)
+          ORDER BY pp.total_hours_per_month DESC NULLS LAST
+          LIMIT ${params.limit}`
+        );
+      } else if (isLinkedFilter === false) {
+        results = await db.execute<{
+          pp_id: string;
+          statement: string;
+          bu_name: string;
+          total_hours: string;
+          is_linked: boolean;
+        }>(
+          sql`SELECT 
+            pp.id as pp_id,
+            pp.statement,
+            COALESCE(bu.name, 'Unassigned') as bu_name,
+            COALESCE(pp.total_hours_per_month, 0)::text as total_hours,
+            false as is_linked
+          FROM pain_points pp
+          LEFT JOIN business_units bu ON pp.business_unit_id = bu.id
+          WHERE pp.company_id = ${params.companyId}
+            AND NOT EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id)
+          ORDER BY pp.total_hours_per_month DESC NULLS LAST
+          LIMIT ${params.limit}`
+        );
+      } else {
+        results = await db.execute<{
+          pp_id: string;
+          statement: string;
+          bu_name: string;
+          total_hours: string;
+          is_linked: boolean;
+        }>(
+          sql`SELECT 
+            pp.id as pp_id,
+            pp.statement,
+            COALESCE(bu.name, 'Unassigned') as bu_name,
+            COALESCE(pp.total_hours_per_month, 0)::text as total_hours,
+            CASE WHEN EXISTS (SELECT 1 FROM pain_point_use_cases ppuc WHERE ppuc.pain_point_id = pp.id) THEN true ELSE false END as is_linked
+          FROM pain_points pp
+          LEFT JOIN business_units bu ON pp.business_unit_id = bu.id
+          WHERE pp.company_id = ${params.companyId}
+          ORDER BY pp.total_hours_per_month DESC NULLS LAST
+          LIMIT ${params.limit}`
+        );
+      }
+      
+      if (results.rows.length === 0) {
+        const statusText = params.statusFilter === 'unlinked' ? 'unlinked ' : params.statusFilter === 'linked' ? 'linked ' : '';
+        return `No ${statusText}pain points found for ${params.companyName}.`;
+      }
+      
+      const statusLabel = params.statusFilter === 'unlinked' ? 'UNLINKED ' : params.statusFilter === 'linked' ? 'LINKED ' : '';
+      const companyShortId = params.companyId.substring(0, 8);
+      let result = `${statusLabel}PAIN POINTS FOR [CO:${companyShortId}] ${params.companyName}:\n\n`;
+      result += `| # | Pain Point | Business Unit | Hours/Month | Status |\n`;
+      result += `|---|------------|---------------|-------------|--------|\n`;
+      
+      results.rows.forEach((row, idx) => {
+        const shortId = row.pp_id.substring(0, 8);
+        const truncatedStatement = row.statement.length > 60 ? row.statement.substring(0, 57) + '...' : row.statement;
+        const statusText = row.is_linked ? 'Linked' : 'Unlinked';
+        result += `| ${idx + 1} | [PP:${shortId}] ${truncatedStatement} | ${row.bu_name} | ${parseFloat(row.total_hours).toFixed(1)} | ${statusText} |\n`;
+      });
+      
+      result += `\n**Summary:** Found ${results.rows.length} ${statusLabel.toLowerCase()}pain points for [CO:${companyShortId}] ${params.companyName}.`;
+      
+      return result;
+    }
+    
     return null;
   } catch (error) {
     console.error("[AI] Flexible analytical query error:", error);
@@ -356,6 +451,39 @@ async function findBusinessUnitByName(searchTerms: string[]): Promise<{ id: stri
   }
 }
 
+async function findCompanyByName(question: string): Promise<{ id: string; name: string } | null> {
+  try {
+    const allCompanies = await db.execute<{ id: string; name: string }>(
+      sql`SELECT id, name FROM companies`
+    );
+    
+    const lowerQuestion = question.toLowerCase();
+    
+    for (const company of allCompanies.rows) {
+      const companyNameLower = company.name.toLowerCase();
+      if (lowerQuestion.includes(companyNameLower)) {
+        return company;
+      }
+    }
+    
+    for (const company of allCompanies.rows) {
+      const words = company.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const significantWords = words.filter(w => !['the', 'and', 'of', 'inc', 'ltd', 'pty', 'llc', 'corp'].includes(w));
+      if (significantWords.length >= 2) {
+        const matchCount = significantWords.filter(word => lowerQuestion.includes(word)).length;
+        if (matchCount >= Math.ceil(significantWords.length * 0.6)) {
+          return company;
+        }
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("[AI] Error finding company:", error);
+    return null;
+  }
+}
+
 function extractSearchTerms(question: string): string[] {
   const stopWords = ['the', 'for', 'and', 'how', 'many', 'pain', 'points', 'linked', 'unlinked', 'what', 'are', 'in', 'of', 'to', 'a', 'an', 'is', 'has', 'have', 'team', 'department', 'unit', 'business', 'with', 'without', 'solutions'];
   const words = question.toLowerCase().split(/\s+/);
@@ -367,6 +495,14 @@ async function executeAnalyticalQuery(question: string): Promise<string | null> 
     const lowerQuestion = question.toLowerCase();
     
     const params = parseAnalyticalQuestion(question);
+    
+    const matchedCompany = await findCompanyByName(question);
+    if (matchedCompany) {
+      params.companyId = matchedCompany.id;
+      params.companyName = matchedCompany.name;
+      console.log(`[AI] Matched company: ${matchedCompany.name} (${matchedCompany.id})`);
+    }
+    
     const flexibleResult = await executeFlexibleAnalyticalQuery(params);
     if (flexibleResult) {
       return flexibleResult;
