@@ -16,6 +16,11 @@ interface GraphNode {
   vx: number;
   vy: number;
   radius: number;
+  isLinked?: boolean;
+  hoursPerMonth?: number;
+  opportunityScore?: number;
+  solutionCount?: number;
+  isHighImpact?: boolean;
 }
 
 interface GraphEdge {
@@ -40,6 +45,8 @@ const NODE_COLORS = {
   businessUnit: { light: "#3b82f6", dark: "#60a5fa" },
   process: { light: "#10b981", dark: "#34d399" },
   painPoint: { light: "#f59e0b", dark: "#fbbf24" },
+  painPointLinked: { light: "#22c55e", dark: "#4ade80" },
+  painPointUnlinked: { light: "#ef4444", dark: "#f87171" },
   useCase: { light: "#ec4899", dark: "#f472b6" },
 };
 
@@ -48,6 +55,8 @@ const NODE_LABELS = {
   businessUnit: "Business Unit",
   process: "Process",
   painPoint: "Pain Point",
+  painPointLinked: "Linked Pain Point",
+  painPointUnlinked: "Unlinked Pain Point",
   useCase: "Solution",
 };
 
@@ -68,6 +77,8 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
   const [showProcesses, setShowProcesses] = useState(false);
   const [showPainPoints, setShowPainPoints] = useState(true);
   const [showSolutions, setShowSolutions] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
+  const [impactThreshold, setImpactThreshold] = useState(0);
   const { resolvedTheme } = useThemeStore();
   const isDark = resolvedTheme === "dark";
   const { selectedCompanyId, selectedBusinessUnitId, selectedProcessId } = useFilterStore();
@@ -223,6 +234,8 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
     }
 
     if (showPainPoints) {
+      const linkedPainPointIds = new Set(links.map((l) => l.painPointId));
+      
       const filteredPainPoints = painPoints
         .filter((pp) => {
           if (selectedProcessId) {
@@ -234,10 +247,31 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
           }
           return pp.businessUnitId && relevantBuIds.has(pp.businessUnitId) ||
                  pp.processIds?.some((pid: string) => relevantProcessIds.has(pid));
+        })
+        .filter((pp) => {
+          const isLinked = linkedPainPointIds.has(pp.id);
+          if (statusFilter === 'linked') return isLinked;
+          if (statusFilter === 'unlinked') return !isLinked;
+          return true;
+        })
+        .filter((pp) => {
+          const hours = pp.totalHoursPerMonth || 0;
+          return hours >= impactThreshold;
         });
 
+      const maxHours = Math.max(...filteredPainPoints.map((pp) => pp.totalHoursPerMonth || 0), 1);
+      
       filteredPainPoints.forEach((pp, i) => {
         const nodeId = `pp-${pp.id}`;
+        const isLinked = linkedPainPointIds.has(pp.id);
+        const solutionCount = links.filter((l) => l.painPointId === pp.id).length;
+        const hours = pp.totalHoursPerMonth || 0;
+        const baseRadius = 12;
+        const maxRadius = 28;
+        const radiusScale = maxHours > 0 ? (hours / maxHours) : 0;
+        const radius = baseRadius + radiusScale * (maxRadius - baseRadius);
+        const isHighImpact = hours >= 50 && !isLinked;
+        
         if (!nodeIds.has(nodeId)) {
           nodeIds.add(nodeId);
           nodes.push({
@@ -248,7 +282,11 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
             y: 500 + Math.floor(i / 8) * 70,
             vx: 0,
             vy: 0,
-            radius: 16,
+            radius,
+            isLinked,
+            hoursPerMonth: hours,
+            solutionCount,
+            isHighImpact,
           });
 
           if (showProcesses) {
@@ -334,7 +372,7 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
     }
 
     return { nodes, edges };
-  }, [companies, businessUnits, processes, painPoints, useCases, links, selectedCompanyId, selectedBusinessUnitId, selectedProcessId, showProcesses, showPainPoints, showSolutions]);
+  }, [companies, businessUnits, processes, painPoints, useCases, links, selectedCompanyId, selectedBusinessUnitId, selectedProcessId, showProcesses, showPainPoints, showSolutions, statusFilter, impactThreshold]);
 
   useEffect(() => {
     nodesRef.current = graphData.nodes.map((n) => ({ ...n }));
@@ -428,17 +466,60 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
       const source = nodes.find((n) => n.id === edge.source);
       const target = nodes.find((n) => n.id === edge.target);
       if (source && target) {
+        const isSolvedBy = edge.type === 'solvedBy';
+        
         ctx.beginPath();
         ctx.moveTo(source.x, source.y);
         ctx.lineTo(target.x, target.y);
-        ctx.strokeStyle = isDark ? "rgba(148, 163, 184, 0.6)" : "rgba(100, 116, 139, 0.3)";
-        ctx.lineWidth = isDark ? 1.5 : 1;
+        ctx.strokeStyle = isSolvedBy 
+          ? (isDark ? "rgba(34, 197, 94, 0.7)" : "rgba(22, 163, 74, 0.5)")
+          : (isDark ? "rgba(148, 163, 184, 0.6)" : "rgba(100, 116, 139, 0.3)");
+        ctx.lineWidth = isSolvedBy ? 2 : (isDark ? 1.5 : 1);
         ctx.stroke();
+        
+        if (isSolvedBy) {
+          const angle = Math.atan2(target.y - source.y, target.x - source.x);
+          const arrowSize = 8;
+          const arrowX = target.x - target.radius * Math.cos(angle);
+          const arrowY = target.y - target.radius * Math.sin(angle);
+          
+          ctx.beginPath();
+          ctx.moveTo(arrowX, arrowY);
+          ctx.lineTo(
+            arrowX - arrowSize * Math.cos(angle - Math.PI / 6),
+            arrowY - arrowSize * Math.sin(angle - Math.PI / 6)
+          );
+          ctx.lineTo(
+            arrowX - arrowSize * Math.cos(angle + Math.PI / 6),
+            arrowY - arrowSize * Math.sin(angle + Math.PI / 6)
+          );
+          ctx.closePath();
+          ctx.fillStyle = isDark ? "rgba(34, 197, 94, 0.9)" : "rgba(22, 163, 74, 0.7)";
+          ctx.fill();
+        }
       }
     });
 
     nodes.forEach((node) => {
-      const color = NODE_COLORS[node.type][isDark ? "dark" : "light"];
+      let color: string;
+      if (node.type === 'painPoint') {
+        color = node.isLinked 
+          ? NODE_COLORS.painPointLinked[isDark ? "dark" : "light"]
+          : NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"];
+      } else {
+        color = NODE_COLORS[node.type][isDark ? "dark" : "light"];
+      }
+      
+      if (node.isHighImpact) {
+        ctx.save();
+        ctx.shadowColor = isDark ? "#ef4444" : "#dc2626";
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius + 3, 0, Math.PI * 2);
+        ctx.fillStyle = isDark ? "rgba(239, 68, 68, 0.3)" : "rgba(220, 38, 38, 0.2)";
+        ctx.fill();
+        ctx.restore();
+      }
       
       ctx.beginPath();
       ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
@@ -613,40 +694,93 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-4">
-        {Object.entries(NODE_LABELS).map(([type, label]) => {
-          const isToggleable = type === "process" || type === "painPoint" || type === "useCase";
-          const isActive = type === "process" ? showProcesses : 
-                          type === "painPoint" ? showPainPoints : 
-                          type === "useCase" ? showSolutions : true;
-          const toggleFn = type === "process" ? () => setShowProcesses(!showProcesses) :
-                          type === "painPoint" ? () => setShowPainPoints(!showPainPoints) :
-                          type === "useCase" ? () => setShowSolutions(!showSolutions) : undefined;
-          
-          return (
-            <button
-              key={type}
-              onClick={isToggleable ? toggleFn : undefined}
-              className={`flex items-center gap-2 text-sm px-2 py-1 rounded-lg transition-all ${
-                isToggleable ? "hover:bg-accent cursor-pointer" : "cursor-default"
-              } ${!isActive ? "opacity-40" : ""}`}
-              disabled={!isToggleable}
-            >
-              <div
-                className={`w-3 h-3 rounded-full transition-opacity ${!isActive ? "opacity-40" : ""}`}
-                style={{
-                  backgroundColor: NODE_COLORS[type as keyof typeof NODE_COLORS][isDark ? "dark" : "light"],
-                }}
-              />
-              <span className="text-muted-foreground">{label}</span>
-              {isToggleable && (
-                <span className={`text-xs px-1.5 py-0.5 rounded ${isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {isActive ? "ON" : "OFF"}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.company[isDark ? "dark" : "light"] }} />
+          <span className="text-sm text-muted-foreground">Company</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.businessUnit[isDark ? "dark" : "light"] }} />
+          <span className="text-sm text-muted-foreground">Business Unit</span>
+        </div>
+        
+        <button
+          onClick={() => setShowProcesses(!showProcesses)}
+          className={`flex items-center gap-2 text-sm px-2 py-1 rounded-lg hover:bg-accent cursor-pointer transition-all ${!showProcesses ? "opacity-40" : ""}`}
+        >
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.process[isDark ? "dark" : "light"] }} />
+          <span className="text-muted-foreground">Process</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded ${showProcesses ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+            {showProcesses ? "ON" : "OFF"}
+          </span>
+        </button>
+        
+        <button
+          onClick={() => setShowPainPoints(!showPainPoints)}
+          className={`flex items-center gap-2 text-sm px-2 py-1 rounded-lg hover:bg-accent cursor-pointer transition-all ${!showPainPoints ? "opacity-40" : ""}`}
+        >
+          <div className="flex gap-1">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.painPointLinked[isDark ? "dark" : "light"] }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"] }} />
+          </div>
+          <span className="text-muted-foreground">Pain Points</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded ${showPainPoints ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+            {showPainPoints ? "ON" : "OFF"}
+          </span>
+        </button>
+        
+        <button
+          onClick={() => setShowSolutions(!showSolutions)}
+          className={`flex items-center gap-2 text-sm px-2 py-1 rounded-lg hover:bg-accent cursor-pointer transition-all ${!showSolutions ? "opacity-40" : ""}`}
+        >
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.useCase[isDark ? "dark" : "light"] }} />
+          <span className="text-muted-foreground">Solutions</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded ${showSolutions ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+            {showSolutions ? "ON" : "OFF"}
+          </span>
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Pain Point Status:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'linked' | 'unlinked')}
+            className="text-sm px-2 py-1 rounded-lg bg-accent text-foreground border border-border"
+          >
+            <option value="all">All</option>
+            <option value="linked">Linked (with solutions)</option>
+            <option value="unlinked">Unlinked (no solutions)</option>
+          </select>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Min Hours/Month:</span>
+          <input
+            type="number"
+            value={impactThreshold}
+            onChange={(e) => setImpactThreshold(Math.max(0, parseInt(e.target.value) || 0))}
+            className="w-20 text-sm px-2 py-1 rounded-lg bg-accent text-foreground border border-border"
+            min="0"
+            step="10"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.painPointLinked[isDark ? "dark" : "light"] }} />
+            <span className="text-xs text-muted-foreground">= Linked</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"] }} />
+            <span className="text-xs text-muted-foreground">= Unlinked</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded-full border-2 border-red-500 animate-pulse" style={{ backgroundColor: NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"] }} />
+            <span className="text-xs text-muted-foreground">= High Impact</span>
+          </div>
+        </div>
       </div>
 
       <div
@@ -669,22 +803,51 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
           <div
             className="absolute z-50 bg-popover/95 backdrop-blur-sm text-popover-foreground px-3 py-2 rounded-xl shadow-lg border border-border max-w-xs pointer-events-none"
             style={{
-              left: Math.min(tooltip.x + 15, (containerRef.current?.clientWidth || 500) - 200),
-              top: Math.min(tooltip.y + 15, (containerRef.current?.clientHeight || 500) - 100),
+              left: Math.min(tooltip.x + 15, (containerRef.current?.clientWidth || 500) - 220),
+              top: Math.min(tooltip.y + 15, (containerRef.current?.clientHeight || 500) - 120),
             }}
           >
             <div className="flex items-center gap-2 mb-1">
               <div
                 className="w-3 h-3 rounded-full"
                 style={{
-                  backgroundColor: NODE_COLORS[tooltip.node.type][isDark ? "dark" : "light"],
+                  backgroundColor: tooltip.node.type === 'painPoint'
+                    ? (tooltip.node.isLinked 
+                        ? NODE_COLORS.painPointLinked[isDark ? "dark" : "light"]
+                        : NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"])
+                    : NODE_COLORS[tooltip.node.type][isDark ? "dark" : "light"],
                 }}
               />
               <span className="text-xs font-medium text-muted-foreground">
-                {NODE_LABELS[tooltip.node.type]}
+                {tooltip.node.type === 'painPoint' 
+                  ? (tooltip.node.isLinked ? 'Linked Pain Point' : 'Unlinked Pain Point')
+                  : NODE_LABELS[tooltip.node.type]}
               </span>
+              {tooltip.node.isHighImpact && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 font-medium">
+                  High Impact
+                </span>
+              )}
             </div>
             <p className="font-medium text-sm">{tooltip.node.label}</p>
+            {tooltip.node.type === 'painPoint' && (
+              <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-muted-foreground">Hours/Month:</span>
+                  <span className="ml-1 font-medium">{(tooltip.node.hoursPerMonth || 0).toFixed(1)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Solutions:</span>
+                  <span className="ml-1 font-medium">{tooltip.node.solutionCount || 0}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className={`ml-1 font-medium ${tooltip.node.isLinked ? 'text-green-500' : 'text-red-500'}`}>
+                    {tooltip.node.isLinked ? 'Linked to Solution' : 'No Solution'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -704,12 +867,23 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
               <div
                 className="w-4 h-4 rounded-full"
                 style={{
-                  backgroundColor: NODE_COLORS[selectedNode.type][isDark ? "dark" : "light"],
+                  backgroundColor: selectedNode.type === 'painPoint'
+                    ? (selectedNode.isLinked 
+                        ? NODE_COLORS.painPointLinked[isDark ? "dark" : "light"]
+                        : NODE_COLORS.painPointUnlinked[isDark ? "dark" : "light"])
+                    : NODE_COLORS[selectedNode.type][isDark ? "dark" : "light"],
                 }}
               />
               <span className="text-sm font-medium text-muted-foreground">
-                {NODE_LABELS[selectedNode.type]}
+                {selectedNode.type === 'painPoint' 
+                  ? (selectedNode.isLinked ? 'Linked Pain Point' : 'Unlinked Pain Point')
+                  : NODE_LABELS[selectedNode.type]}
               </span>
+              {selectedNode.isHighImpact && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 font-medium">
+                  High Impact - Needs Solution
+                </span>
+              )}
             </div>
             <button
               onClick={() => setSelectedNode(null)}
@@ -719,6 +893,24 @@ export function KnowledgeGraph({ onPainPointClick, onUseCaseClick }: KnowledgeGr
             </button>
           </div>
           <p className="font-semibold text-foreground">{selectedNode.label}</p>
+          {selectedNode.type === 'painPoint' && (
+            <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Hours/Month:</span>
+                <span className="ml-1 font-medium">{(selectedNode.hoursPerMonth || 0).toFixed(1)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Linked Solutions:</span>
+                <span className="ml-1 font-medium">{selectedNode.solutionCount || 0}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Status:</span>
+                <span className={`ml-1 font-medium ${selectedNode.isLinked ? 'text-green-500' : 'text-red-500'}`}>
+                  {selectedNode.isLinked ? 'Has Solution' : 'No Solution'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
