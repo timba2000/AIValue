@@ -742,6 +742,29 @@ export default function AdminPainPointUpload() {
             </div>
           </div>
 
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-6 slide-up">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Complete Data Export</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Export everything: pain points, solutions, links, and company structure in one multi-sheet Excel workbook
+                </p>
+                <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                  <li>• Pain Points - with company, process, taxonomy, and linked solutions</li>
+                  <li>• Solutions - with linked pain point counts and hours addressed</li>
+                  <li>• Links - pain point to solution mappings with percentage solved</li>
+                  <li>• Company Structure - full hierarchy with metrics</li>
+                </ul>
+              </div>
+              <Button 
+                onClick={() => window.location.href = `${API_BASE}/api/admin/pain-points/complete-export`}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Complete Export
+              </Button>
+            </div>
+          </div>
+
           <div className="bg-card rounded-2xl border border-border p-6 slide-up">
             <h2 className="text-lg font-semibold text-foreground mb-4">Expected Pain Points Excel Format</h2>
             <p className="text-sm text-muted-foreground mb-4">

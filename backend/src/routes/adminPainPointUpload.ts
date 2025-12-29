@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { db } from "../db/client.js";
-import { painPoints, processes, processPainPoints, taxonomyCategories, companies, businessUnits } from "../db/schema.js";
+import { painPoints, processes, processPainPoints, taxonomyCategories, companies, businessUnits, useCases, painPointUseCases } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -790,6 +790,307 @@ router.post("/add-sub-unit", async (req, res): Promise<void> => {
     res.json({ success: true, subUnit: newSubUnit, message: `Sub-unit "${trimmedSub}" created successfully` });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to create sub-unit" });
+  }
+});
+
+router.get("/complete-export", async (_req, res) => {
+  try {
+    const allPainPoints = await db.select().from(painPoints);
+    const allProcesses = await db.select().from(processes);
+    const allTaxonomy = await db.select().from(taxonomyCategories);
+    const allProcessPainPoints = await db.select().from(processPainPoints);
+    const allCompanies = await db.select().from(companies);
+    const allBusinessUnits = await db.select().from(businessUnits);
+    const allUseCases = await db.select().from(useCases);
+    const allLinks = await db.select().from(painPointUseCases);
+
+    const workbook = XLSX.utils.book_new();
+
+    const painPointRows = allPainPoints.map(pp => {
+      const processLinks = allProcessPainPoints.filter(ppp => ppp.painPointId === pp.id);
+      const linkedProcesses = processLinks
+        .map(link => allProcesses.find(p => p.id === link.processId))
+        .filter(Boolean);
+      const processNames = linkedProcesses.map(p => p?.name).filter(Boolean).join(", ");
+
+      const solutionLinks = allLinks.filter(l => l.painPointId === pp.id);
+      const linkedSolutions = solutionLinks
+        .map(link => allUseCases.find(uc => uc.id === link.useCaseId))
+        .filter(Boolean);
+      const solutionNames = linkedSolutions.map(uc => uc?.name).filter(Boolean).join(", ");
+      const totalPercentageSolved = solutionLinks.reduce((sum, l) => sum + (l.percentageSolved ? Number(l.percentageSolved) : 0), 0);
+
+      let company: typeof allCompanies[number] | null = null;
+      let businessUnit: typeof allBusinessUnits[number] | null = null;
+      let parentUnit: typeof allBusinessUnits[number] | null = null;
+      
+      if (pp.businessUnitId) {
+        const foundUnit = allBusinessUnits.find(bu => bu.id === pp.businessUnitId) || null;
+        businessUnit = foundUnit;
+        if (foundUnit) {
+          company = allCompanies.find(c => c.id === foundUnit.companyId) || null;
+          if (foundUnit.parentId) {
+            parentUnit = allBusinessUnits.find(bu => bu.id === foundUnit.parentId) || null;
+          }
+        }
+      }
+      
+      if (!company || !businessUnit) {
+        for (const proc of linkedProcesses) {
+          if (!proc) continue;
+          
+          if (!company && proc.businessId) {
+            company = allCompanies.find(c => c.id === proc.businessId) || null;
+          }
+          
+          if (!businessUnit && proc.businessUnitId) {
+            const procBU = allBusinessUnits.find(bu => bu.id === proc.businessUnitId) || null;
+            if (procBU) {
+              if (procBU.parentId) {
+                parentUnit = allBusinessUnits.find(bu => bu.id === procBU.parentId) || null;
+                businessUnit = procBU;
+              } else {
+                businessUnit = procBU;
+              }
+              if (!company && procBU.companyId) {
+                company = allCompanies.find(c => c.id === procBU.companyId) || null;
+              }
+            }
+          }
+          
+          if (company && businessUnit) break;
+        }
+      }
+
+      const l1 = pp.taxonomyLevel1Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel1Id) : null;
+      const l2 = pp.taxonomyLevel2Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel2Id) : null;
+      const l3 = pp.taxonomyLevel3Id ? allTaxonomy.find(t => t.id === pp.taxonomyLevel3Id) : null;
+
+      return {
+        "Pain Point ID": pp.id.substring(0, 8),
+        "Company": company?.name || "",
+        "Business Unit": parentUnit?.name || businessUnit?.name || "",
+        "Sub Unit": parentUnit ? businessUnit?.name : "",
+        "Statement": pp.statement || "",
+        "Impact Type": pp.impactType ? pp.impactType.join(", ") : "",
+        "Business Impact": pp.businessImpact || "",
+        "Impact (1-10)": pp.magnitude ? Number(pp.magnitude) : "",
+        "Frequency (per month)": pp.frequency ? Number(pp.frequency) : "",
+        "Time Required (Hrs)": pp.timePerUnit ? Number(pp.timePerUnit) : "",
+        "Total Hours/Month": pp.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : "",
+        "# FTE": pp.fteCount ? Number(pp.fteCount) : "",
+        "Risk Level": pp.riskLevel || "",
+        "Effort to Solve (1-10)": pp.effortSolving ? Number(pp.effortSolving) : "",
+        "Process Names": processNames,
+        "L1 Category": l1?.name || "",
+        "L2 Sub-category": l2?.name || "",
+        "L3 Description": l3?.name || "",
+        "Linked Solutions": solutionNames,
+        "Total % Solved": totalPercentageSolved || "",
+        "Solution Count": solutionLinks.length
+      };
+    });
+
+    const painPointSheet = XLSX.utils.json_to_sheet(painPointRows);
+    painPointSheet["!cols"] = [
+      { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 50 },
+      { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }, { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 30 },
+      { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 30 }, { wch: 12 }, { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, painPointSheet, "Pain Points");
+
+    const solutionRows = allUseCases.map(uc => {
+      const ucLinks = allLinks.filter(l => l.useCaseId === uc.id);
+      const linkedPainPoints = ucLinks.map(l => allPainPoints.find(pp => pp.id === l.painPointId)).filter(Boolean);
+      const totalHoursAddressed = linkedPainPoints.reduce((sum, pp) => {
+        const link = ucLinks.find(l => l.painPointId === pp?.id);
+        const percentage = link?.percentageSolved ? Number(link.percentageSolved) : 0;
+        const hours = pp?.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : 0;
+        return sum + (hours * percentage / 100);
+      }, 0);
+
+      let company: typeof allCompanies[number] | null = null;
+      let businessUnit: typeof allBusinessUnits[number] | null = null;
+      
+      if (uc.companyId) {
+        company = allCompanies.find(c => c.id === uc.companyId) || null;
+      }
+      if (uc.businessUnitId) {
+        businessUnit = allBusinessUnits.find(bu => bu.id === uc.businessUnitId) || null;
+        if (!company && businessUnit) {
+          company = allCompanies.find(c => c.id === businessUnit?.companyId) || null;
+        }
+      }
+
+      return {
+        "Solution ID": uc.id.substring(0, 8),
+        "Solution Name": uc.name || "",
+        "Problem to Solve": uc.problemToSolve || "",
+        "Solution Overview": uc.solutionOverview || "",
+        "Company": company?.name || "",
+        "Business Unit": businessUnit?.name || "",
+        "Complexity": uc.complexity || "",
+        "Confidence Level": uc.confidenceLevel || "",
+        "Est. Delivery Time": uc.estimatedDeliveryTime || "",
+        "Cost Range": uc.costRange || "",
+        "Linked Pain Points": ucLinks.length,
+        "Total Hours Addressed": Math.round(totalHoursAddressed * 10) / 10
+      };
+    });
+
+    const solutionSheet = XLSX.utils.json_to_sheet(solutionRows);
+    solutionSheet["!cols"] = [
+      { wch: 12 }, { wch: 35 }, { wch: 40 }, { wch: 40 }, { wch: 20 }, { wch: 20 },
+      { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 18 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, solutionSheet, "Solutions");
+
+    const linkRows = allLinks.map(link => {
+      const pp = allPainPoints.find(p => p.id === link.painPointId);
+      const uc = allUseCases.find(u => u.id === link.useCaseId);
+      const hoursAddressed = pp?.totalHoursPerMonth && link.percentageSolved 
+        ? (Number(pp.totalHoursPerMonth) * Number(link.percentageSolved) / 100)
+        : 0;
+
+      return {
+        "Link ID": link.id.substring(0, 8),
+        "Pain Point ID": link.painPointId.substring(0, 8),
+        "Pain Point Statement": pp?.statement?.substring(0, 100) || "",
+        "Solution ID": link.useCaseId.substring(0, 8),
+        "Solution Name": uc?.name || "",
+        "% Solved": link.percentageSolved ? Number(link.percentageSolved) : "",
+        "Hours Addressed": Math.round(hoursAddressed * 10) / 10,
+        "Notes": link.notes || "",
+        "Created": link.createdAt ? new Date(link.createdAt).toLocaleDateString() : ""
+      };
+    });
+
+    const linkSheet = XLSX.utils.json_to_sheet(linkRows);
+    linkSheet["!cols"] = [
+      { wch: 12 }, { wch: 12 }, { wch: 50 }, { wch: 12 }, { wch: 30 },
+      { wch: 10 }, { wch: 15 }, { wch: 30 }, { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, linkSheet, "Links");
+
+    const structureRows: Array<{
+      "Company": string;
+      "Business Unit": string;
+      "Sub Unit": string;
+      "Process": string;
+      "Pain Point Count": number;
+      "Solution Count": number;
+      "Total Hours/Month": number;
+    }> = [];
+
+    allCompanies.forEach(company => {
+      const companyBUs = allBusinessUnits.filter(bu => bu.companyId === company.id && !bu.parentId);
+      
+      if (companyBUs.length === 0) {
+        structureRows.push({
+          "Company": company.name,
+          "Business Unit": "",
+          "Sub Unit": "",
+          "Process": "",
+          "Pain Point Count": 0,
+          "Solution Count": 0,
+          "Total Hours/Month": 0
+        });
+      }
+
+      companyBUs.forEach(bu => {
+        const subUnits = allBusinessUnits.filter(sub => sub.parentId === bu.id);
+        const buProcesses = allProcesses.filter(p => p.businessUnitId === bu.id);
+        const buPainPoints = allPainPoints.filter(pp => pp.businessUnitId === bu.id);
+        const buUseCases = allUseCases.filter(uc => uc.businessUnitId === bu.id);
+        const buHours = buPainPoints.reduce((sum, pp) => sum + (pp.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : 0), 0);
+
+        if (subUnits.length === 0 && buProcesses.length === 0) {
+          structureRows.push({
+            "Company": company.name,
+            "Business Unit": bu.name,
+            "Sub Unit": "",
+            "Process": "",
+            "Pain Point Count": buPainPoints.length,
+            "Solution Count": buUseCases.length,
+            "Total Hours/Month": Math.round(buHours * 10) / 10
+          });
+        }
+
+        subUnits.forEach(sub => {
+          const subProcesses = allProcesses.filter(p => p.businessUnitId === sub.id);
+          const subPainPoints = allPainPoints.filter(pp => pp.businessUnitId === sub.id);
+          const subUseCases = allUseCases.filter(uc => uc.businessUnitId === sub.id);
+          const subHours = subPainPoints.reduce((sum, pp) => sum + (pp.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : 0), 0);
+
+          if (subProcesses.length === 0) {
+            structureRows.push({
+              "Company": company.name,
+              "Business Unit": bu.name,
+              "Sub Unit": sub.name,
+              "Process": "",
+              "Pain Point Count": subPainPoints.length,
+              "Solution Count": subUseCases.length,
+              "Total Hours/Month": Math.round(subHours * 10) / 10
+            });
+          }
+
+          subProcesses.forEach(proc => {
+            const procPPLinks = allProcessPainPoints.filter(ppp => ppp.processId === proc.id);
+            const procPPCount = procPPLinks.length;
+            const procPPs = procPPLinks.map(l => allPainPoints.find(pp => pp.id === l.painPointId)).filter(Boolean);
+            const procHours = procPPs.reduce((sum, pp) => sum + (pp?.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : 0), 0);
+            const procPPIds = new Set(procPPs.map(pp => pp?.id).filter(Boolean));
+            const procSolutionIds = new Set(allLinks.filter(l => procPPIds.has(l.painPointId)).map(l => l.useCaseId));
+
+            structureRows.push({
+              "Company": company.name,
+              "Business Unit": bu.name,
+              "Sub Unit": sub.name,
+              "Process": proc.name,
+              "Pain Point Count": procPPCount,
+              "Solution Count": procSolutionIds.size,
+              "Total Hours/Month": Math.round(procHours * 10) / 10
+            });
+          });
+        });
+
+        buProcesses.forEach(proc => {
+          const procPPLinks = allProcessPainPoints.filter(ppp => ppp.processId === proc.id);
+          const procPPCount = procPPLinks.length;
+          const procPPs = procPPLinks.map(l => allPainPoints.find(pp => pp.id === l.painPointId)).filter(Boolean);
+          const procHours = procPPs.reduce((sum, pp) => sum + (pp?.totalHoursPerMonth ? Number(pp.totalHoursPerMonth) : 0), 0);
+          const procPPIds = new Set(procPPs.map(pp => pp?.id).filter(Boolean));
+          const procSolutionIds = new Set(allLinks.filter(l => procPPIds.has(l.painPointId)).map(l => l.useCaseId));
+
+          structureRows.push({
+            "Company": company.name,
+            "Business Unit": bu.name,
+            "Sub Unit": "",
+            "Process": proc.name,
+            "Pain Point Count": procPPCount,
+            "Solution Count": procSolutionIds.size,
+            "Total Hours/Month": Math.round(procHours * 10) / 10
+          });
+        });
+      });
+    });
+
+    const structureSheet = XLSX.utils.json_to_sheet(structureRows);
+    structureSheet["!cols"] = [
+      { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 30 },
+      { wch: 15 }, { wch: 15 }, { wch: 18 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, structureSheet, "Company Structure");
+
+    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Disposition", 'attachment; filename="complete_data_export.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.send(buffer);
+  } catch (error) {
+    console.error("Complete export error:", error);
+    res.status(500).json({ message: "Failed to export complete data" });
   }
 });
 
