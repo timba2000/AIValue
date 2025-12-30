@@ -238,6 +238,13 @@ For multi-series data, use:
 \`\`\`
 
 Always include explanatory text before or after charts. Use real data from the database context when available.`);
+
+  parts.push(`
+IMPORTANT OUTPUT RULES:
+- NEVER show SQL queries to users. The system handles database queries automatically.
+- When you receive data results in your context, present them directly as formatted markdown tables.
+- Do NOT say "running query", "fetching data", or "let me query the database" - the data is already provided to you.
+- Focus on presenting insights and summaries from the data, not technical query details.`);
   
   return parts.join("\n");
 }

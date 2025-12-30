@@ -62,23 +62,8 @@ COMMON QUERIES YOU CAN ANSWER:
 - Aggregates: "Total hours/month by business unit", "Average opportunity score by company"
 - Comparisons: "Compare pain points across BUs", "Which category has most issues"
 
-SQL EXECUTION CAPABILITY:
-You can execute read-only SQL queries against the database. When a user asks an analytical question that requires database data:
-1. Generate a valid PostgreSQL SELECT query
-2. Wrap the query in a code block with sql language tag
-3. The system will detect and execute the query, then provide results
-
-Example format for executing SQL:
-\`\`\`sql
-SELECT bu.name, COUNT(pp.id) as pain_point_count
-FROM business_units bu
-LEFT JOIN pain_points pp ON pp.business_unit_id = bu.id
-GROUP BY bu.id, bu.name
-ORDER BY pain_point_count DESC
-LIMIT 10
-\`\`\`
-
-The query results will be automatically executed and returned. Only SELECT/WITH queries are allowed (no INSERT, UPDATE, DELETE, etc.).
+DATA ACCESS:
+When users ask data questions, the system automatically queries the database and provides you with the results. You do NOT need to write or show SQL queries - just present the data you receive in a clear, readable format.
 === END SCHEMA ===
 `;
 
@@ -504,9 +489,6 @@ router.post("/chat", async (req: Request, res: Response) => {
       const queryResult = await generateAndExecuteQuery(lastUserMessage, userId);
       if (queryResult.success && queryResult.formattedResults) {
         analyticalResults = queryResult.formattedResults;
-        if (queryResult.query) {
-          analyticalResults = `**Query executed:**\n\`\`\`sql\n${queryResult.query}\n\`\`\`\n\n**Results:**\n${queryResult.formattedResults}`;
-        }
         console.log(`[AI] Text-to-SQL query returned ${analyticalResults.length} chars`);
       } else if (queryResult.error) {
         console.log(`[AI] Text-to-SQL failed: ${queryResult.error}`);
@@ -518,7 +500,7 @@ router.post("/chat", async (req: Request, res: Response) => {
     let fullContext = DATABASE_SCHEMA_DESCRIPTION + "\n" + dataContext;
     
     if (analyticalResults) {
-      fullContext += "\n\n=== QUERY RESULTS FOR YOUR QUESTION ===\n" + analyticalResults + "\n=== END QUERY RESULTS ===\n\nUse the above query results to answer the user's question. The data is accurate and up-to-date from the database.";
+      fullContext += `\n\n=== DATABASE QUERY RESULTS (ALREADY EXECUTED) ===\n${analyticalResults}\n=== END RESULTS ===\n\nIMPORTANT: The above data was retrieved from the database. Present this data DIRECTLY to the user as a nicely formatted markdown table. Do NOT show any SQL queries. Do NOT say "running query" or "fetching data" - the data is already here. Just present the results with a brief summary.`;
     }
     
     const messagesText = limitedMessages.map(m => m.content).join(' ');
