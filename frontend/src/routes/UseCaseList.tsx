@@ -9,6 +9,7 @@ import { UseCaseList as UseCaseGrid } from "@/components/UseCaseList";
 import { FilterByContext } from "@/components/FilterByContext";
 import { LinkManagerModal } from "@/components/LinkManagerModal";
 import { useFilterStore } from "../stores/filterStore";
+import { useAuth } from "@/hooks/useAuth";
 import type { UseCase } from "@/types/useCase";
 import type { BusinessUnit } from "@/types/business";
 
@@ -20,6 +21,7 @@ interface Process {
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function UseCaseListPage() {
+  const { canEdit } = useAuth();
   const queryClient = useQueryClient();
   const {
     selectedCompanyId,
@@ -221,9 +223,11 @@ export default function UseCaseListPage() {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Solutions Library</h1>
             <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
           </div>
-          <Button onClick={handleNewUseCase} className="shrink-0">
-            New Solution
-          </Button>
+{canEdit && (
+            <Button onClick={handleNewUseCase} className="shrink-0">
+              New Solution
+            </Button>
+          )}
         </div>
       </div>
 
@@ -233,12 +237,12 @@ export default function UseCaseListPage() {
         useCases={contextFilteredUseCases}
         filters={filters}
         onFiltersChange={setFilters}
-        onEdit={(useCase) => {
+        onEdit={canEdit ? (useCase) => {
           setSelectedUseCase(useCase);
           setShowForm(true);
-        }}
-        onDelete={handleDelete}
-        onLink={handleOpenLinkModal}
+        } : undefined}
+        onDelete={canEdit ? handleDelete : undefined}
+        onLink={canEdit ? handleOpenLinkModal : undefined}
         linkStats={useCaseLinkStats}
         avgSolvedStats={useCaseAvgSolved}
         isLoading={useCasesLoading}

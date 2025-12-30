@@ -16,8 +16,8 @@ interface UseCaseListProps {
   useCases: UseCase[];
   filters: UseCaseFilters;
   onFiltersChange: (filters: UseCaseFilters) => void;
-  onEdit: (useCase: UseCase) => void;
-  onDelete: (useCaseId: string) => void;
+  onEdit?: (useCase: UseCase) => void;
+  onDelete?: (useCaseId: string) => void;
   onLink?: (useCase: UseCase) => void;
   linkStats?: Record<string, number>;
   avgSolvedStats?: Record<string, number>;
@@ -73,7 +73,7 @@ export function UseCaseList({
                     <TableHead>Avg % Solved</TableHead>
                     <TableHead>Delivery Time</TableHead>
                     <TableHead className="text-center">Linked Pain Points</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {(onEdit || onDelete || onLink) && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -89,46 +89,68 @@ export function UseCaseList({
                       <TableCell>{useCase.estimatedDeliveryTime ?? "-"}</TableCell>
                       <TableCell className="text-center">
                         {linkStats[useCase.id] && linkStats[useCase.id] > 0 ? (
-                          <button
-                            onClick={() => onLink?.(useCase)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs font-medium"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                            {linkStats[useCase.id]} linked
-                          </button>
+                          onLink ? (
+                            <button
+                              onClick={() => onLink(useCase)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs font-medium"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              {linkStats[useCase.id]} linked
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                              <Check className="h-3.5 w-3.5" />
+                              {linkStats[useCase.id]} linked
+                            </span>
+                          )
                         ) : (
-                          <button
-                            onClick={() => onLink?.(useCase)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
-                          >
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            Not linked
-                          </button>
+                          onLink ? (
+                            <button
+                              onClick={() => onLink(useCase)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-xs font-medium border border-amber-200"
+                            >
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              Not linked
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-xs font-medium border border-amber-200">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              Not linked
+                            </span>
+                          )
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => onLink?.(useCase)}
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                            title="Link pain points"
-                          >
-                            <Link2 className="h-3.5 w-3.5" />
-                            Link
-                          </button>
-                          <Button variant="outline" size="sm" onClick={() => onEdit(useCase)}>
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => onDelete(useCase.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {(onEdit || onDelete || onLink) && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {onLink && (
+                              <button
+                                onClick={() => onLink(useCase)}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                title="Link pain points"
+                              >
+                                <Link2 className="h-3.5 w-3.5" />
+                                Link
+                              </button>
+                            )}
+                            {onEdit && (
+                              <Button variant="outline" size="sm" onClick={() => onEdit(useCase)}>
+                                Edit
+                              </Button>
+                            )}
+                            {onDelete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => onDelete(useCase.id)}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

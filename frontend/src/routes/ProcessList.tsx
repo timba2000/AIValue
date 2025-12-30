@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FilterByContext } from "@/components/FilterByContext";
 import { useFilterStore } from "../stores/filterStore";
 import { useCompanies, useBusinessUnits } from "../hooks/useApiData";
+import { useAuth } from "@/hooks/useAuth";
 import type { ProcessOptionsResponse, ProcessPayload, ProcessRecord, PainPointOption, UseCaseOption } from "@/types/process";
 
 // Helper to parse L1/L2/L3 from process name
@@ -69,6 +70,7 @@ const emptyForm: FormState = {
 };
 
 export default function ProcessList() {
+  const { canEdit } = useAuth();
   const {
     selectedCompanyId,
     selectedBusinessUnitId: selectedUnitId,
@@ -436,9 +438,11 @@ export default function ProcessList() {
               Manage processes within each business unit and link them to pain points and solutions.
             </p>
           </div>
-          <Button onClick={openCreateForm} disabled={!selectedUnitId} className="sm:mt-0">
-            New process
-          </Button>
+          {canEdit && (
+            <Button onClick={openCreateForm} disabled={!selectedUnitId} className="sm:mt-0">
+              New process
+            </Button>
+          )}
         </div>
         {error ? <p className="text-sm text-red-500 font-medium mt-3">{error}</p> : null}
       </div>
@@ -612,10 +616,12 @@ export default function ProcessList() {
                                 <span>FTE: {process.fte ?? "-"}</span>
                                 <span>Pain Points: {process.painPointCount}</span>
                                 <span>Solutions: {process.useCaseCount}</span>
-                                <div className="flex gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
-                                  <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
-                                </div>
+                                {canEdit && (
+                                  <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                    <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -663,10 +669,12 @@ export default function ProcessList() {
                                       <span>FTE: {process.fte ?? "-"}</span>
                                       <span>Pain Points: {process.painPointCount}</span>
                                       <span>Solutions: {process.useCaseCount}</span>
-                                      <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
-                                        <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
-                                      </div>
+                                      {canEdit && (
+                                        <div className="flex gap-2">
+                                          <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                          <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -683,10 +691,12 @@ export default function ProcessList() {
                                           <span>FTE: {process.fte ?? "-"}</span>
                                           <span>Pain Points: {process.painPointCount}</span>
                                           <span>Solutions: {process.useCaseCount}</span>
-                                          <div className="flex gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
-                                            <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
-                                          </div>
+                                          {canEdit && (
+                                            <div className="flex gap-2">
+                                              <Button variant="outline" size="sm" onClick={() => openEditForm(process)}>Edit</Button>
+                                              <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(process)}>Delete</Button>
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
                                     ))}

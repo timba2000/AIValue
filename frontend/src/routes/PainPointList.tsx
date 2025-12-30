@@ -10,6 +10,7 @@ import { PainPointEditModal } from "@/components/PainPointEditModal";
 import { useFilterStore } from "../stores/filterStore";
 import { useAllBusinessUnits, useAllProcesses, useBusinessUnitsFlat } from "../hooks/useApiData";
 import { getDescendantIds } from "../utils/hierarchy";
+import { useAuth } from "@/hooks/useAuth";
 import type { PainPoint } from "@/types/painPoint";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -38,6 +39,7 @@ function parseProcessHierarchy(name: string): { l1: string; l2: string; l3: stri
 }
 
 export default function PainPointList() {
+  const { canEdit } = useAuth();
   const {
     selectedCompanyId,
     selectedBusinessUnitId,
@@ -271,9 +273,11 @@ export default function PainPointList() {
               Identify and track process pain points across your organization
             </p>
           </div>
-          <Button onClick={handleCreate} className="shrink-0">
-            New pain point
-          </Button>
+          {canEdit && (
+            <Button onClick={handleCreate} className="shrink-0">
+              New pain point
+            </Button>
+          )}
         </div>
       </div>
 
@@ -300,15 +304,15 @@ export default function PainPointList() {
       <PainPointsOverviewTable
         data={overviewTableData}
         isLoading={loading && painPoints.length === 0}
-        onManageClick={(painPointId) => {
+        onManageClick={canEdit ? (painPointId) => {
           const pp = painPoints.find(p => p.id === painPointId);
           if (pp) handleOpenLinkModal(pp);
-        }}
-        onEditClick={(painPointId) => {
+        } : undefined}
+        onEditClick={canEdit ? (painPointId) => {
           setEditingPainPointId(painPointId);
           setEditModalOpen(true);
-        }}
-        onDeleteClick={handleDelete}
+        } : undefined}
+        onDeleteClick={canEdit ? handleDelete : undefined}
       />
 
       <PainPointEditModal

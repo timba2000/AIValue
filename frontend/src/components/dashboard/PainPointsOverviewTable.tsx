@@ -17,7 +17,7 @@ interface PainPointData {
 interface PainPointsOverviewTableProps {
   data: PainPointData[];
   isLoading?: boolean;
-  onManageClick: (painPointId: string) => void;
+  onManageClick?: (painPointId: string) => void;
   onEditClick?: (painPointId: string) => void;
   onDeleteClick?: (painPointId: string) => void;
 }
@@ -356,16 +356,18 @@ export function PainPointsOverviewTable({
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => onManageClick(row.id)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                        row.hasLinks
-                          ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
-                          : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                      }`}
-                    >
-                      {row.hasLinks ? 'Manage' : 'Link'}
-                    </button>
+                    {onManageClick && (
+                      <button
+                        onClick={() => onManageClick(row.id)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                          row.hasLinks
+                            ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
+                            : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                        }`}
+                      >
+                        {row.hasLinks ? 'Manage' : 'Link'}
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -455,16 +457,18 @@ export function PainPointsOverviewTable({
                     </button>
                   )}
                 </div>
-                <button
-                  onClick={() => onManageClick(row.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
-                    row.hasLinks
-                      ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
-                      : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-                  }`}
-                >
-                  {row.hasLinks ? 'Manage' : 'Link'}
-                </button>
+                {onManageClick && (
+                  <button
+                    onClick={() => onManageClick(row.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                      row.hasLinks
+                        ? 'text-green-500 bg-green-500/10 hover:bg-green-500/20'
+                        : 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                    }`}
+                  >
+                    {row.hasLinks ? 'Manage' : 'Link'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
