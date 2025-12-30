@@ -13,6 +13,9 @@ export const sessions = pgTable(
   })
 );
 
+export const userRoles = ["reader", "editor", "admin"] as const;
+export type UserRole = typeof userRoles[number];
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
@@ -21,6 +24,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: integer("is_admin").default(0),
+  role: varchar("role", { length: 20 }).default("reader").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

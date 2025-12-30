@@ -16,7 +16,7 @@ import adminProcessUploadRouter from "./routes/adminProcessUpload.js";
 import adminBusinessRouter from "./routes/adminBusiness.js";
 import aiRouter from "./routes/ai.js";
 import aiUploadsRouter from "./routes/aiUploads.js";
-import { setupAuth, isAuthenticated, isAdmin, getUser } from "./simpleAuth.js";
+import { setupAuth, isAuthenticated, isAdmin, isEditorOrAdmin, requireRole, getUser } from "./simpleAuth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -101,6 +101,7 @@ async function startServer() {
         firstName: users.firstName,
         lastName: users.lastName,
         isAdmin: users.isAdmin,
+        role: users.role,
         createdAt: users.createdAt
       }).from(users).orderBy(desc(users.createdAt));
       res.json(allUsers);
@@ -112,19 +113,31 @@ async function startServer() {
   app.patch("/api/admin/users/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const { isAdmin: newAdminStatus } = req.body;
+      const { role } = req.body;
       
-      if (typeof newAdminStatus !== "boolean") {
-        return res.status(400).json({ message: "isAdmin must be a boolean" });
+      const validRoles = ["reader", "editor", "admin"];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ message: "role must be one of: reader, editor, admin" });
       }
       
       const { db } = await import("./db/client.js");
       const { users } = await import("./db/schema.js");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and, ne, count } = await import("drizzle-orm");
+      
+      if (id === req.session.userId && role !== "admin") {
+        const [adminCount] = await db.select({ count: count() }).from(users).where(eq(users.role, "admin"));
+        if (adminCount.count <= 1) {
+          return res.status(400).json({ message: "Cannot demote the only admin. Promote another user to admin first." });
+        }
+      }
       
       const [updated] = await db
         .update(users)
-        .set({ isAdmin: newAdminStatus ? 1 : 0, updatedAt: new Date() })
+        .set({ 
+          role: role, 
+          isAdmin: role === "admin" ? 1 : 0,
+          updatedAt: new Date() 
+        })
         .where(eq(users.id, id))
         .returning();
       
@@ -132,7 +145,7 @@ async function startServer() {
         return res.status(404).json({ message: "User not found" });
       }
       
-      res.json({ id: updated.id, email: updated.email, isAdmin: updated.isAdmin === 1 });
+      res.json({ id: updated.id, email: updated.email, role: updated.role, isAdmin: updated.role === "admin" });
     } catch {
       res.status(500).json({ message: "Failed to update user" });
     }
