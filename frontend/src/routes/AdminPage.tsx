@@ -65,7 +65,6 @@ interface UserRecord {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  isAdmin: number;
   role: UserRole;
   createdAt: string;
 }
@@ -116,7 +115,7 @@ export default function AdminPage() {
       if (res.ok) {
         const data = await res.json();
         setUsersList(prev => prev.map(u => 
-          u.id === userId ? { ...u, role: data.role, isAdmin: data.role === "admin" ? 1 : 0 } : u
+          u.id === userId ? { ...u, role: data.role } : u
         ));
       } else {
         const error = await res.json().catch(() => ({}));

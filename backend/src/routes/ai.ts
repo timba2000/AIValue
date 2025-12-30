@@ -1615,7 +1615,7 @@ router.get("/admin/conversations", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const user = await getUser(userId);
-    if (!user || !user.isAdmin) {
+    if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
 
@@ -1667,7 +1667,7 @@ router.delete("/admin/conversations", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const user = await getUser(userId);
-    if (!user || !user.isAdmin) {
+    if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
 
@@ -1693,7 +1693,7 @@ router.delete("/admin/conversations/all", async (req: Request, res: Response) =>
       return res.status(401).json({ error: "Unauthorized" });
     }
     const user = await getUser(userId);
-    if (!user || !user.isAdmin) {
+    if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
 
@@ -1746,7 +1746,7 @@ router.get("/admin/sql-audit-logs", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const user = await getUser(userId);
-    if (!user || !user.isAdmin) {
+    if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
     }
 

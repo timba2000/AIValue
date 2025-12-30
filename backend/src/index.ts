@@ -100,7 +100,6 @@ async function startServer() {
         email: users.email,
         firstName: users.firstName,
         lastName: users.lastName,
-        isAdmin: users.isAdmin,
         role: users.role,
         createdAt: users.createdAt
       }).from(users).orderBy(desc(users.createdAt));
@@ -135,7 +134,6 @@ async function startServer() {
         .update(users)
         .set({ 
           role: role, 
-          isAdmin: role === "admin" ? 1 : 0,
           updatedAt: new Date() 
         })
         .where(eq(users.id, id))
@@ -145,7 +143,7 @@ async function startServer() {
         return res.status(404).json({ message: "User not found" });
       }
       
-      res.json({ id: updated.id, email: updated.email, role: updated.role, isAdmin: updated.role === "admin" });
+      res.json({ id: updated.id, email: updated.email, role: updated.role });
     } catch {
       res.status(500).json({ message: "Failed to update user" });
     }

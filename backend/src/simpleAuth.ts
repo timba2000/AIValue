@@ -145,7 +145,6 @@ export async function setupAuth(app: Express) {
           password: hashedPassword,
           firstName: firstName || null,
           lastName: lastName || null,
-          isAdmin: isFirstUser ? 1 : 0,
           role: newRole,
         })
         .returning();
