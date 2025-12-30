@@ -12,6 +12,7 @@ interface CompanyListProps {
   onEdit: (company: Company) => void;
   onDelete: (company: Company) => void;
   loading?: boolean;
+  canEdit?: boolean;
 }
 
 export function CompanyList({
@@ -21,15 +22,18 @@ export function CompanyList({
   onAdd,
   onEdit,
   onDelete,
-  loading = false
+  loading = false,
+  canEdit = true
 }: CompanyListProps) {
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>Companies</CardTitle>
-        <Button size="sm" onClick={onAdd}>
-          Add Company
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={onAdd}>
+            Add Company
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? <p className="text-sm text-muted-foreground">Loading companies...</p> : null}
@@ -55,28 +59,32 @@ export function CompanyList({
                   <TableCell>{company.industry || "–"}</TableCell>
                   <TableCell>{company.anzsic || "–"}</TableCell>
                   <TableCell className="flex items-center justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onEdit(company);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDelete(company);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canEdit && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit(company);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete(company);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               );

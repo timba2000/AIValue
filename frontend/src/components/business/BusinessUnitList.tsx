@@ -11,6 +11,7 @@ interface BusinessUnitListProps {
   onEdit: (unit: BusinessUnitWithChildren) => void;
   onDelete: (unit: BusinessUnitWithChildren) => void;
   loading?: boolean;
+  canEdit?: boolean;
 }
 
 interface TreeRowProps {
@@ -20,11 +21,12 @@ interface TreeRowProps {
   onAdd: (parentId: string) => void;
   onEdit: (unit: BusinessUnitWithChildren) => void;
   onDelete: (unit: BusinessUnitWithChildren) => void;
+  canEdit?: boolean;
 }
 
 const MAX_DEPTH = 3;
 
-function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowProps) {
+function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete, canEdit = true }: TreeRowProps) {
   const hasChildren = unit.children && unit.children.length > 0;
   const isExpanded = expanded[unit.id] ?? false;
   const canAddChild = unit.depth < MAX_DEPTH;
@@ -76,38 +78,40 @@ function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowP
           <span className="text-xs">FTE</span>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {canAddChild && (
+        {canEdit && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {canAddChild && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onAdd(unit.id)}
+                className="h-7 w-7 p-0"
+                title="Add child unit"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onAdd(unit.id)}
+              onClick={() => onEdit(unit)}
               className="h-7 w-7 p-0"
-              title="Add child unit"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(unit)}
-            className="h-7 w-7 p-0"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(unit)}
-            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(unit)}
+              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {hasChildren && isExpanded && (
@@ -121,6 +125,7 @@ function TreeRow({ unit, expanded, onToggle, onAdd, onEdit, onDelete }: TreeRowP
               onAdd={onAdd}
               onEdit={onEdit}
               onDelete={onDelete}
+              canEdit={canEdit}
             />
           ))}
         </div>
@@ -135,7 +140,8 @@ export function BusinessUnitList({
   onAdd,
   onEdit,
   onDelete,
-  loading = false
+  loading = false,
+  canEdit = true
 }: BusinessUnitListProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -179,10 +185,12 @@ export function BusinessUnitList({
               </Button>
             </>
           )}
-          <Button size="sm" onClick={() => onAdd(null)} disabled={!company}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Unit
-          </Button>
+          {canEdit && (
+            <Button size="sm" onClick={() => onAdd(null)} disabled={!company}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Unit
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-2">
@@ -199,6 +207,7 @@ export function BusinessUnitList({
                 onAdd={(parentId) => onAdd(parentId)}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                canEdit={canEdit}
               />
             ))}
           </div>
