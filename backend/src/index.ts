@@ -151,6 +151,38 @@ async function startServer() {
     }
   });
 
+  app.delete("/api/admin/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      if (id === req.session.userId) {
+        return res.status(400).json({ message: "You cannot delete your own account" });
+      }
+      
+      const { db } = await import("./db/client.js");
+      const { users } = await import("./db/schema.js");
+      const { eq, count } = await import("drizzle-orm");
+      
+      const [userToDelete] = await db.select().from(users).where(eq(users.id, id));
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (userToDelete.role === "admin") {
+        const [adminCount] = await db.select({ count: count() }).from(users).where(eq(users.role, "admin"));
+        if (adminCount.count <= 1) {
+          return res.status(400).json({ message: "Cannot delete the only admin. Promote another user to admin first." });
+        }
+      }
+      
+      await db.delete(users).where(eq(users.id, id));
+      
+      res.json({ message: "User deleted successfully" });
+    } catch {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   app.delete("/api/admin/delete/companies", isAuthenticated, isAdmin, async (_req, res) => {
     try {
       const { db } = await import("./db/client.js");

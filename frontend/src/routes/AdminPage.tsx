@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Sparkles } from "lucide-react";
+import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Sparkles, Trash2 } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -79,6 +79,8 @@ export default function AdminPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   
   useEffect(() => {
     if (!isAdmin) return;
@@ -124,6 +126,28 @@ export default function AdminPage() {
       setUpdateError("Failed to update user role. Please try again.");
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    setDeletingUserId(userId);
+    setUpdateError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      if (res.ok) {
+        setUsersList(prev => prev.filter(u => u.id !== userId));
+        setConfirmDeleteId(null);
+      } else {
+        const error = await res.json().catch(() => ({}));
+        setUpdateError(error.message || "Failed to delete user. Please try again.");
+      }
+    } catch {
+      setUpdateError("Failed to delete user. Please try again.");
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -323,6 +347,7 @@ export default function AdminPage() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Joined</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Role</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,6 +385,41 @@ export default function AdminPage() {
                           <option value="editor">Editor</option>
                           <option value="admin">Admin</option>
                         </select>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {u.id === user?.id ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : confirmDeleteId === u.id ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteUser(u.id)}
+                            disabled={deletingUserId === u.id}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {deletingUserId === u.id ? "..." : "Confirm"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConfirmDeleteId(null)}
+                            disabled={deletingUserId === u.id}
+                            className="h-7 px-2 text-xs"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDeleteId(u.id)}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </td>
                   </tr>
