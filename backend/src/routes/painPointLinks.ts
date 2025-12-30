@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../db/client.js";
 import { painPointUseCases, painPoints, useCases, processPainPoints } from "../db/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { isEditorOrAdmin } from "../simpleAuth.js";
 
 const router = Router();
 
@@ -90,7 +91,7 @@ router.get("/pain-points/:painPointId/links", async (req, res) => {
   }
 });
 
-router.post("/pain-points/:painPointId/links", async (req, res) => {
+router.post("/pain-points/:painPointId/links", isEditorOrAdmin, async (req, res) => {
   try {
     const { painPointId } = req.params;
     const { useCaseId, percentageSolved, notes } = req.body;
@@ -142,7 +143,7 @@ router.post("/pain-points/:painPointId/links", async (req, res) => {
   }
 });
 
-router.put("/pain-points/:painPointId/links/:linkId", async (req, res) => {
+router.put("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async (req, res) => {
   try {
     const { painPointId, linkId } = req.params;
     const { percentageSolved, notes } = req.body;
@@ -194,7 +195,7 @@ router.put("/pain-points/:painPointId/links/:linkId", async (req, res) => {
   }
 });
 
-router.delete("/pain-points/:painPointId/links/:linkId", async (req, res) => {
+router.delete("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async (req, res) => {
   try {
     const { painPointId, linkId } = req.params;
 

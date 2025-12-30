@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asc, desc, eq, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { painPoints, processPainPoints, processes, businessUnits, taxonomyCategories } from "../db/schema.js";
+import { isEditorOrAdmin } from "../simpleAuth.js";
 
 const router = Router();
 
@@ -260,7 +261,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", isEditorOrAdmin, async (req, res) => {
   const {
     statement,
     impactType,
@@ -357,7 +358,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
   const {
     statement,
@@ -464,7 +465,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {

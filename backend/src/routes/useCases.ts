@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { processes, useCases, painPointUseCases, painPoints, companies, businessUnits } from "../db/schema.js";
 import { parseOptionalNumber } from "../utils/parsing.js";
+import { isEditorOrAdmin } from "../simpleAuth.js";
 
 const router = Router();
 
@@ -86,7 +87,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", isEditorOrAdmin, async (req, res) => {
   const {
     name: rawName,
     solutionProvider,
@@ -170,7 +171,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
   const {
     name: rawName,
@@ -261,7 +262,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {

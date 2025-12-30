@@ -2,6 +2,7 @@ import { Router } from "express";
 import { desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { businessUnits, companies, processes } from "../db/schema.js";
+import { isEditorOrAdmin } from "../simpleAuth.js";
 
 const router = Router();
 
@@ -215,7 +216,7 @@ router.get("/flat", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", isEditorOrAdmin, async (req, res) => {
   const { companyId, name, fte, description, parentId } = req.body ?? {};
   const trimmedName = (name ?? "").trim();
 
@@ -274,7 +275,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
   const { name, fte, description, parentId } = req.body ?? {};
   const trimmedName = (name ?? "").trim();
@@ -375,7 +376,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
