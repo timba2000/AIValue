@@ -1,11 +1,10 @@
-import { TrendingUp, AlertTriangle, Target, Users, Link2 } from "lucide-react";
+import { TrendingUp, AlertTriangle, Target, Link2 } from "lucide-react";
 
 interface MetricsCardsProps {
   totalPainPoints: number;
   totalUseCases: number;
   painPointsWithLinks: number;
   totalHoursPerMonth: number;
-  totalFTE: number;
   totalProcessLinks: number;
 }
 
@@ -14,7 +13,6 @@ export function MetricsCards({
   totalUseCases,
   painPointsWithLinks,
   totalHoursPerMonth,
-  totalFTE,
   totalProcessLinks
 }: MetricsCardsProps) {
   const coveragePercentage = totalPainPoints > 0 
@@ -64,20 +62,11 @@ export function MetricsCards({
       gradient: "from-purple-500 to-violet-500",
       iconBg: "bg-gradient-to-br from-purple-500/10 to-violet-500/10",
       iconColor: "text-purple-500"
-    },
-    {
-      label: "FTE Capacity Created",
-      value: (totalHoursPerMonth / 35).toFixed(1),
-      subtitle: "based on 35 hrs/week",
-      icon: Users,
-      gradient: "from-indigo-500 to-purple-500",
-      iconBg: "bg-gradient-to-br from-indigo-500/10 to-purple-500/10",
-      iconColor: "text-indigo-500"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {metrics.map((metric, index) => (
         <div 
           key={index} 

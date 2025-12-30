@@ -415,7 +415,6 @@ export default function OpportunitiesDashboard() {
     totalUseCases: useCases.length,
     painPointsWithLinks: painPointsWithLinksCount,
     totalHoursPerMonth: potentialHoursSaved,
-    totalFTE: Math.ceil((allPainPoints.data || []).reduce((sum, pp) => sum + Number(pp.fteCount || 0), 0)),
     totalProcessLinks
   };
 
