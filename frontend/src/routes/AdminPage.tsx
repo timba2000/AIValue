@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Check, X, Sparkles } from "lucide-react";
+import { Shield, LogOut, User, Settings, Database, Users, Building2, Workflow, AlertTriangle, Lightbulb, Sparkles } from "lucide-react";
 import { useAISettingsStore } from "@/stores/aiSettingsStore";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
@@ -58,12 +58,15 @@ interface AdminStats {
   users: number;
 }
 
+type UserRole = "reader" | "editor" | "admin";
+
 interface UserRecord {
   id: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
   isAdmin: number;
+  role: UserRole;
   createdAt: string;
 }
 
@@ -98,7 +101,7 @@ export default function AdminPage() {
       .finally(() => setUsersLoading(false));
   }, [isAdmin]);
 
-  const toggleAdmin = async (userId: string, currentIsAdmin: number) => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     setUpdatingUserId(userId);
     setUpdateError(null);
     try {
@@ -106,19 +109,30 @@ export default function AdminPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ isAdmin: currentIsAdmin === 0 })
+        body: JSON.stringify({ role: newRole })
       });
       if (res.ok) {
+        const data = await res.json();
         setUsersList(prev => prev.map(u => 
-          u.id === userId ? { ...u, isAdmin: currentIsAdmin === 0 ? 1 : 0 } : u
+          u.id === userId ? { ...u, role: data.role, isAdmin: data.role === "admin" ? 1 : 0 } : u
         ));
       } else {
-        setUpdateError("Failed to update admin status. Please try again.");
+        const error = await res.json().catch(() => ({}));
+        setUpdateError(error.message || "Failed to update user role. Please try again.");
       }
     } catch {
-      setUpdateError("Failed to update admin status. Please try again.");
+      setUpdateError("Failed to update user role. Please try again.");
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const getRoleBadgeColor = (role: UserRole) => {
+    switch (role) {
+      case "admin": return "bg-purple-500/20 text-purple-600 border-purple-500/30";
+      case "editor": return "bg-blue-500/20 text-blue-600 border-blue-500/30";
+      case "reader": return "bg-gray-500/20 text-gray-600 border-gray-500/30";
+      default: return "bg-gray-500/20 text-gray-600 border-gray-500/30";
     }
   };
 
@@ -262,7 +276,7 @@ export default function AdminPage() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">User Management</h2>
-            <p className="text-sm text-muted-foreground">Manage user access and admin privileges</p>
+            <p className="text-sm text-muted-foreground">Manage user access and role permissions (Reader, Editor, Admin)</p>
           </div>
         </div>
         
@@ -308,7 +322,7 @@ export default function AdminPage() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Joined</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Admin</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Role</th>
                 </tr>
               </thead>
               <tbody>
@@ -328,26 +342,25 @@ export default function AdminPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => toggleAdmin(u.id, u.isAdmin)}
-                        disabled={updatingUserId === u.id || u.id === user?.id}
-                        className={`inline-flex items-center justify-center w-16 h-8 rounded-full transition-colors ${
-                          u.isAdmin === 1
-                            ? "bg-green-500/20 text-green-600 hover:bg-green-500/30"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        } ${updatingUserId === u.id ? "opacity-50 cursor-wait" : ""} ${
-                          u.id === user?.id ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        title={u.id === user?.id ? "You cannot change your own admin status" : ""}
-                      >
-                        {updatingUserId === u.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                        ) : u.isAdmin === 1 ? (
-                          <><Check className="h-4 w-4 mr-1" />Yes</>
-                        ) : (
-                          <><X className="h-4 w-4 mr-1" />No</>
-                        )}
-                      </button>
+                      {u.id === user?.id ? (
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(u.role)}`}>
+                          {u.role.charAt(0).toUpperCase() + u.role.slice(1)} (You)
+                        </span>
+                      ) : updatingUserId === u.id ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                        </div>
+                      ) : (
+                        <select
+                          value={u.role}
+                          onChange={(e) => updateUserRole(u.id, e.target.value as UserRole)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${getRoleBadgeColor(u.role)} bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/50`}
+                        >
+                          <option value="reader">Reader</option>
+                          <option value="editor">Editor</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      )}
                     </td>
                   </tr>
                 ))}

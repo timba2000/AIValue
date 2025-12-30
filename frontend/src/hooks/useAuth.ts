@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
+type UserRole = "reader" | "editor" | "admin";
+
 interface AuthUser {
   id: string;
   email: string | null;
@@ -11,6 +13,7 @@ interface AuthUser {
   lastName: string | null;
   profileImageUrl: string | null;
   isAdmin: boolean;
+  role: UserRole;
 }
 
 export function useAuth() {
@@ -40,12 +43,18 @@ export function useAuth() {
 
   const isInitialLoading = isLoading && user === undefined;
 
+  const role = user?.role ?? "reader";
+  
   return {
     user: user ?? null,
     isLoading: isInitialLoading,
     isFetching,
     isAuthenticated: !!user,
-    isAdmin: user?.isAdmin ?? false,
+    isAdmin: role === "admin",
+    isEditor: role === "editor" || role === "admin",
+    isReader: role === "reader",
+    canEdit: role === "editor" || role === "admin",
+    role,
     error,
   };
 }
