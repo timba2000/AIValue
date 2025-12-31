@@ -257,7 +257,8 @@ router.get("/:id", async (req, res) => {
       ...result,
       processIds: processLinks.map(link => link.processId)
     });
-  } catch {
+  } catch (error) {
+    console.error("[PainPoints GET /:id] Error:", error);
     res.status(500).json({ message: "Failed to fetch pain point" });
   }
 });
@@ -355,8 +356,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
     await logCreate("pain_point", result.id, result.statement, { ...result, processIds: processIdsArray }, await getAuditContext(req as any));
 
     res.status(201).json({ ...result, processIds: processIdsArray });
-  } catch {
-    
+  } catch (error) {
+    console.error("[PainPoints POST /] Error:", error);
     res.status(500).json({ message: "Failed to create pain point" });
   }
 });
@@ -471,8 +472,8 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
     );
 
     res.json({ ...result, processIds: processIdsArray });
-  } catch {
-    
+  } catch (error) {
+    console.error("[PainPoints PUT /:id] Error:", error);
     res.status(500).json({ message: "Failed to update pain point" });
   }
 });
@@ -492,8 +493,8 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
     await logDelete("pain_point", id, existing.statement, existing as Record<string, unknown>, await getAuditContext(req as any));
     
     res.status(204).send();
-  } catch {
-    
+  } catch (error) {
+    console.error("[PainPoints DELETE /:id] Error:", error);
     res.status(500).json({ message: "Failed to delete pain point" });
   }
 });
