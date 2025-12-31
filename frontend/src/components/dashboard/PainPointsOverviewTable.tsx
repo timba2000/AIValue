@@ -50,6 +50,7 @@ export function PainPointsOverviewTable({
   const [editValue, setEditValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -60,21 +61,24 @@ export function PainPointsOverviewTable({
 
   const handleStartEdit = (painPointId: string, field: 'magnitude' | 'effortSolving', currentValue: number) => {
     if (!onInlineEdit) return;
+    cancelledRef.current = false;
     setEditingCell({ painPointId, field });
     setEditValue(currentValue.toString());
   };
 
   const handleCancelEdit = () => {
+    cancelledRef.current = true;
     setEditingCell(null);
     setEditValue("");
   };
 
   const handleSaveEdit = async () => {
-    if (!editingCell || !onInlineEdit) return;
+    if (!editingCell || !onInlineEdit || isSaving || cancelledRef.current) return;
     
     const numValue = parseFloat(editValue);
     if (isNaN(numValue) || numValue < 0 || numValue > 10) {
-      handleCancelEdit();
+      setEditingCell(null);
+      setEditValue("");
       return;
     }
 
@@ -84,7 +88,8 @@ export function PainPointsOverviewTable({
       setEditingCell(null);
       setEditValue("");
     } catch {
-      handleCancelEdit();
+      setEditingCell(null);
+      setEditValue("");
     } finally {
       setIsSaving(false);
     }
@@ -97,6 +102,12 @@ export function PainPointsOverviewTable({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       handleCancelEdit();
+    }
+  };
+
+  const handleBlur = () => {
+    if (!cancelledRef.current) {
+      handleSaveEdit();
     }
   };
 
@@ -123,6 +134,7 @@ export function PainPointsOverviewTable({
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
             disabled={isSaving}
             className="w-12 px-1.5 py-0.5 text-xs text-center border border-primary rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
@@ -140,7 +152,7 @@ export function PainPointsOverviewTable({
             ? 'hover:bg-accent cursor-pointer group-hover:ring-1 group-hover:ring-primary/30' 
             : 'cursor-default'
         }`}
-        title={onInlineEdit ? "Click to edit (Enter to save, Escape to cancel)" : undefined}
+        title={onInlineEdit ? "Click to edit (click away to save, Escape to cancel)" : undefined}
       >
         {value}/10
       </button>
