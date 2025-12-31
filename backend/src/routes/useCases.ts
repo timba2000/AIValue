@@ -40,8 +40,8 @@ router.get("/", async (_req, res) => {
       .orderBy(desc(useCases.createdAt));
 
     res.json(results);
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases GET /] Error:", error);
     res.status(500).json({ message: "Failed to fetch use cases" });
   }
 });
@@ -84,8 +84,8 @@ router.get("/:id", async (req, res) => {
     }
 
     res.json(result);
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases GET /:id] Error:", error);
     res.status(500).json({ message: "Failed to fetch use case" });
   }
 });
@@ -173,8 +173,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
     await logCreate("solution", created.id, created.name, withProcess as Record<string, unknown>, await getAuditContext(req as any));
 
     res.status(201).json(withProcess);
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases POST /] Error:", error);
     res.status(500).json({ message: "Failed to create use case" });
   }
 });
@@ -276,8 +276,8 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
     );
 
     res.json(updated);
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases PUT /:id] Error:", error);
     res.status(500).json({ message: "Failed to update use case" });
   }
 });
@@ -297,8 +297,8 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
     await logDelete("solution", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
     
     res.status(204).send();
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases DELETE /:id] Error:", error);
     res.status(500).json({ message: "Failed to delete use case" });
   }
 });
@@ -335,8 +335,8 @@ router.get("/:id/pain-points", async (req, res) => {
     }));
 
     res.json(formatted);
-  } catch {
-    
+  } catch (error) {
+    console.error("[UseCases GET /:id/pain-points] Error:", error);
     res.status(500).json({ message: "Failed to fetch use case pain points" });
   }
 });
