@@ -3,6 +3,7 @@ import { desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { businessUnits, companies, processes } from "../db/schema.js";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -268,6 +269,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       })
       .returning();
 
+    await logCreate("business_unit", created.id, created.name, created as Record<string, unknown>, await getAuditContext(req as any));
+
     res.status(201).json(created);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create business unit";
@@ -370,6 +373,15 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
       .where(eq(businessUnits.id, id))
       .returning();
 
+    await logUpdate(
+      "business_unit",
+      id,
+      updated.name,
+      existingUnit as Record<string, unknown>,
+      updated as Record<string, unknown>,
+      await getAuditContext(req as any)
+    );
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ message: "Failed to update business unit" });
@@ -380,6 +392,12 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
+    const [existing] = await db.select().from(businessUnits).where(eq(businessUnits.id, id));
+    
+    if (!existing) {
+      return res.status(404).json({ message: "Business unit not found" });
+    }
+
     const unitHasChildren = await hasChildren(id);
     if (unitHasChildren) {
       return res.status(400).json({
@@ -400,9 +418,7 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
 
     const [deleted] = await db.delete(businessUnits).where(eq(businessUnits.id, id)).returning();
 
-    if (!deleted) {
-      return res.status(404).json({ message: "Business unit not found" });
-    }
+    await logDelete("business_unit", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
 
     res.json({ message: "Business unit deleted" });
   } catch (error) {

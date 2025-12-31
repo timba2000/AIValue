@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { businessUnits, companies } from "../db/schema.js";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -29,6 +30,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       .values({ name: trimmedName, industry, anzsic })
       .returning();
 
+    await logCreate("company", created.id, created.name, created as Record<string, unknown>, await getAuditContext(req as any));
+
     res.status(201).json(created);
   } catch {
     res.status(500).json({ message: "Failed to create company" });
@@ -45,15 +48,19 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
   }
 
   try {
+    const [existing] = await db.select().from(companies).where(eq(companies.id, id));
+    
+    if (!existing) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
     const [updated] = await db
       .update(companies)
       .set({ name: trimmedName, industry, anzsic })
       .where(eq(companies.id, id))
       .returning();
 
-    if (!updated) {
-      return res.status(404).json({ message: "Company not found" });
-    }
+    await logUpdate("company", id, updated.name, existing as Record<string, unknown>, updated as Record<string, unknown>, await getAuditContext(req as any));
 
     res.json(updated);
   } catch {
@@ -65,11 +72,15 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const [deleted] = await db.delete(companies).where(eq(companies.id, id)).returning();
-
-    if (!deleted) {
+    const [existing] = await db.select().from(companies).where(eq(companies.id, id));
+    
+    if (!existing) {
       return res.status(404).json({ message: "Company not found" });
     }
+
+    const [deleted] = await db.delete(companies).where(eq(companies.id, id)).returning();
+
+    await logDelete("company", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
 
     res.json({ message: "Company deleted" });
   } catch {

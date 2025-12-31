@@ -164,6 +164,7 @@ export default function AdminAuditPage() {
               <option value="">All Entity Types</option>
               <option value="pain_point">Pain Points</option>
               <option value="solution">Solutions</option>
+              <option value="link">Pain Point Links</option>
               <option value="company">Companies</option>
               <option value="business_unit">Business Units</option>
               <option value="process">Processes</option>

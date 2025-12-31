@@ -12,6 +12,7 @@ import {
 } from "../db/schema.js";
 import { parseOptionalNumberOrUndefined, normalizeIdArray } from "../utils/parsing.js";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -131,6 +132,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
 
     await replaceProcessLinks(created.id, normalizeIdArray(painPointIds), normalizeIdArray(useCaseIds));
 
+    await logCreate("process", created.id, created.name, created as Record<string, unknown>, await getAuditContext(req as any));
+
     res.status(201).json(created);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create process";
@@ -192,6 +195,8 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
 
     await replaceProcessLinks(id, normalizeIdArray(painPointIds), normalizeIdArray(useCaseIds));
 
+    await logUpdate("process", id, updated.name, existing as Record<string, unknown>, updated as Record<string, unknown>, await getAuditContext(req as any));
+
     res.json(updated);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to update process";
@@ -203,11 +208,19 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
+    const [existing] = await db.select().from(processes).where(eq(processes.id, id));
+    
+    if (!existing) {
+      return res.status(404).json({ message: "Process not found" });
+    }
+
     await db.transaction(async (tx) => {
       await tx.delete(processPainPoints).where(eq(processPainPoints.processId, id));
       await tx.delete(processUseCases).where(eq(processUseCases.processId, id));
       await tx.delete(processes).where(eq(processes.id, id));
     });
+
+    await logDelete("process", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
 
     res.json({ message: "Process deleted" });
   } catch {

@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { painPointUseCases, painPoints, useCases, processPainPoints } from "../db/schema.js";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -133,6 +134,14 @@ router.post("/pain-points/:painPointId/links", isEditorOrAdmin, async (req, res)
       .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
       .where(eq(painPointUseCases.id, link.id));
 
+    await logCreate(
+      "link",
+      link.id,
+      `Pain Point → ${linkWithUseCase.useCaseName || 'Solution'}`,
+      linkWithUseCase as Record<string, unknown>,
+      await getAuditContext(req as any)
+    );
+
     res.status(201).json({
       ...linkWithUseCase,
       percentageSolved: linkWithUseCase.percentageSolved !== null ? Number(linkWithUseCase.percentageSolved) : null
@@ -154,6 +163,25 @@ router.put("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async (re
         return res.status(400).json({ message: "Percentage solved must be between 0 and 100" });
       }
     }
+
+    const [existingRaw] = await db
+      .select({
+        id: painPointUseCases.id,
+        painPointId: painPointUseCases.painPointId,
+        useCaseId: painPointUseCases.useCaseId,
+        percentageSolved: painPointUseCases.percentageSolved,
+        notes: painPointUseCases.notes,
+        createdAt: painPointUseCases.createdAt,
+        useCaseName: useCases.name
+      })
+      .from(painPointUseCases)
+      .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
+      .where(eq(painPointUseCases.id, linkId));
+    
+    const existing = existingRaw ? {
+      ...existingRaw,
+      percentageSolved: existingRaw.percentageSolved !== null ? Number(existingRaw.percentageSolved) : null
+    } : null;
 
     await db
       .update(painPointUseCases)
@@ -185,6 +213,17 @@ router.put("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async (re
       .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
       .where(eq(painPointUseCases.id, linkId));
 
+    if (existing) {
+      await logUpdate(
+        "link",
+        linkId,
+        `Pain Point → ${updated.useCaseName || 'Solution'}`,
+        existing as Record<string, unknown>,
+        { ...updated, percentageSolved: updated.percentageSolved !== null ? Number(updated.percentageSolved) : null } as Record<string, unknown>,
+        await getAuditContext(req as any)
+      );
+    }
+
     res.json({
       ...updated,
       percentageSolved: updated.percentageSolved !== null ? Number(updated.percentageSolved) : null
@@ -199,6 +238,19 @@ router.delete("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async 
   try {
     const { painPointId, linkId } = req.params;
 
+    const [existing] = await db
+      .select({
+        id: painPointUseCases.id,
+        painPointId: painPointUseCases.painPointId,
+        useCaseId: painPointUseCases.useCaseId,
+        percentageSolved: painPointUseCases.percentageSolved,
+        notes: painPointUseCases.notes,
+        useCaseName: useCases.name
+      })
+      .from(painPointUseCases)
+      .leftJoin(useCases, eq(painPointUseCases.useCaseId, useCases.id))
+      .where(eq(painPointUseCases.id, linkId));
+
     await db
       .delete(painPointUseCases)
       .where(
@@ -207,6 +259,16 @@ router.delete("/pain-points/:painPointId/links/:linkId", isEditorOrAdmin, async 
           eq(painPointUseCases.painPointId, painPointId)
         )
       );
+
+    if (existing) {
+      await logDelete(
+        "link",
+        linkId,
+        `Pain Point → ${existing.useCaseName || 'Solution'}`,
+        existing as Record<string, unknown>,
+        await getAuditContext(req as any)
+      );
+    }
 
     res.status(204).send();
   } catch {
