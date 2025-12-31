@@ -77,8 +77,8 @@ router.get("/", async (req, res) => {
       : await baseQuery;
 
     res.json(records);
-  } catch {
-    
+  } catch (error) {
+    console.error("[Processes GET /] Error:", error);
     res.status(500).json({ message: "Failed to fetch processes" });
   }
 });
@@ -223,8 +223,8 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
     await logDelete("process", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
 
     res.json({ message: "Process deleted" });
-  } catch {
-    
+  } catch (error) {
+    console.error("[Processes DELETE /:id] Error:", error);
     res.status(500).json({ message: "Failed to delete process" });
   }
 });
@@ -247,8 +247,8 @@ router.get("/links/:id", async (req, res) => {
       painPointIds: painPointLinks.map((row) => row.painPointId),
       useCaseIds: useCaseLinks.map((row) => row.useCaseId)
     });
-  } catch {
-    
+  } catch (error) {
+    console.error("[Processes GET /links/:id] Error:", error);
     res.status(500).json({ message: "Failed to load linked records" });
   }
 });
@@ -261,8 +261,8 @@ router.get("/options", async (_req, res) => {
     ]);
 
     res.json({ painPoints: painPointOptions, useCases: useCaseOptions });
-  } catch {
-    
+  } catch (error) {
+    console.error("[Processes GET /options] Error:", error);
     res.status(500).json({ message: "Failed to load process options" });
   }
 });
