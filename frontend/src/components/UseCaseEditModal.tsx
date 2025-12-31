@@ -199,6 +199,7 @@ export function UseCaseEditModal({
       estimatedDeliveryTime: formState.estimatedDeliveryTime as "Quick Win" | "1 to 3 months" | "3 to 6 months" | "6 plus months",
       costRange: formState.costRange as "Low" | "Medium" | "High" | "Very High",
       confidenceLevel: formState.confidenceLevel as "Low" | "Medium" | "High",
+      alphaType: useCase?.alphaType ?? null,
       processId: formState.processId || null,
       companyId: formState.companyId || null,
       businessUnitId: formState.businessUnitId || null
