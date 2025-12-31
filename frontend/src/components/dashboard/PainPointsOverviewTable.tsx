@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Check, Loader2 } from "lucide-react";
 
 interface PainPointData {
   id: string;
@@ -20,6 +20,12 @@ interface PainPointsOverviewTableProps {
   onManageClick?: (painPointId: string) => void;
   onEditClick?: (painPointId: string) => void;
   onDeleteClick?: (painPointId: string) => void;
+  onInlineEdit?: (painPointId: string, field: 'magnitude' | 'effortSolving', value: number) => Promise<void>;
+}
+
+interface EditingCell {
+  painPointId: string;
+  field: 'magnitude' | 'effortSolving';
 }
 
 type SortColumn = 'statement' | 'solutions' | 'magnitude' | 'effortSolving' | 'totalHoursPerMonth' | 'fteCount' | 'totalPercentageSolved' | 'potentialHoursSaved';
@@ -35,10 +41,111 @@ export function PainPointsOverviewTable({
   isLoading, 
   onManageClick,
   onEditClick,
-  onDeleteClick
+  onDeleteClick,
+  onInlineEdit
 }: PainPointsOverviewTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortState, setSortState] = useState<SortState>({ column: null, direction: 'desc' });
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingCell]);
+
+  const handleStartEdit = (painPointId: string, field: 'magnitude' | 'effortSolving', currentValue: number) => {
+    if (!onInlineEdit) return;
+    setEditingCell({ painPointId, field });
+    setEditValue(currentValue.toString());
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCell || !onInlineEdit) return;
+    
+    const numValue = parseFloat(editValue);
+    if (isNaN(numValue) || numValue < 0 || numValue > 10) {
+      handleCancelEdit();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onInlineEdit(editingCell.painPointId, editingCell.field, numValue);
+      setEditingCell(null);
+      setEditValue("");
+    } catch {
+      handleCancelEdit();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelEdit();
+    }
+  };
+
+  const EditableCell = ({ 
+    painPointId, 
+    field, 
+    value 
+  }: { 
+    painPointId: string; 
+    field: 'magnitude' | 'effortSolving'; 
+    value: number;
+  }) => {
+    const isEditing = editingCell?.painPointId === painPointId && editingCell?.field === field;
+    
+    if (isEditing) {
+      return (
+        <div className="flex items-center justify-center gap-1">
+          <input
+            ref={inputRef}
+            type="number"
+            min="0"
+            max="10"
+            step="1"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isSaving}
+            className="w-12 px-1.5 py-0.5 text-xs text-center border border-primary rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          {isSaving && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => handleStartEdit(painPointId, field, value)}
+        disabled={!onInlineEdit}
+        className={`text-xs px-2 py-1 rounded-md transition-all duration-150 ${
+          onInlineEdit 
+            ? 'hover:bg-accent cursor-pointer group-hover:ring-1 group-hover:ring-primary/30' 
+            : 'cursor-default'
+        }`}
+        title={onInlineEdit ? "Click to edit (Enter to save, Escape to cancel)" : undefined}
+      >
+        {value}/10
+      </button>
+    );
+  };
   
   const handleSort = (column: SortColumn) => {
     setSortState(prev => {
@@ -308,11 +415,11 @@ export function PainPointsOverviewTable({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-4 text-sm text-foreground text-center">
-                  <span className="text-xs">{row.magnitude}/10</span>
+                <td className="px-4 py-4 text-sm text-foreground text-center group">
+                  <EditableCell painPointId={row.id} field="magnitude" value={row.magnitude} />
                 </td>
-                <td className="px-4 py-4 text-sm text-foreground text-center">
-                  <span className="text-xs">{row.effortSolving}/10</span>
+                <td className="px-4 py-4 text-sm text-foreground text-center group">
+                  <EditableCell painPointId={row.id} field="effortSolving" value={row.effortSolving} />
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground text-right">
                   {row.totalHoursPerMonth > 0 ? Math.round(row.totalHoursPerMonth).toLocaleString() : '-'}
@@ -401,9 +508,13 @@ export function PainPointsOverviewTable({
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-                  <span>Benefit: {row.magnitude}/10</span>
-                  <span>Effort: {row.effortSolving}/10</span>
+                <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground items-center">
+                  <span className="flex items-center gap-1">
+                    Benefit: <EditableCell painPointId={row.id} field="magnitude" value={row.magnitude} />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    Effort: <EditableCell painPointId={row.id} field="effortSolving" value={row.effortSolving} />
+                  </span>
                   <span>Hours/Month: {Math.round(row.totalHoursPerMonth)}</span>
                   {row.fteCount > 0 && <span>FTE: {row.fteCount}</span>}
                 </div>

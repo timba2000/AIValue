@@ -543,6 +543,19 @@ export default function OpportunitiesDashboard() {
           setEditingPainPointId(painPointId);
           setEditModalOpen(true);
         }}
+        onInlineEdit={async (painPointId, field, value) => {
+          const pp = allPainPoints.data?.find(p => p.id === painPointId);
+          if (!pp) return;
+          
+          const updatePayload = {
+            statement: pp.statement,
+            magnitude: field === 'magnitude' ? value : pp.magnitude,
+            effortSolving: field === 'effortSolving' ? value : pp.effortSolving
+          };
+          
+          await axios.put(`${API_URL}/api/pain-points/${painPointId}`, updatePayload);
+          allPainPoints.refetch();
+        }}
       />
 
       <PainPointEditModal
