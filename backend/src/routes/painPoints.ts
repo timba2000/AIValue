@@ -229,8 +229,8 @@ router.get("/", async (req, res) => {
     }));
 
     res.json(resultsWithProcessIds);
-  } catch {
-    
+  } catch (error) {
+    console.error("[PainPoints GET /] Error:", error);
     res.status(500).json({ message: "Failed to fetch pain points" });
   }
 });
