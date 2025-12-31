@@ -50,17 +50,7 @@ export function PainPointsOverviewTable({
   const [editValue, setEditValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cancelledRef = useRef(false);
-  const editingCellRef = useRef<EditingCell | null>(null);
-  const editValueRef = useRef("");
-
-  useEffect(() => {
-    editingCellRef.current = editingCell;
-  }, [editingCell]);
-
-  useEffect(() => {
-    editValueRef.current = editValue;
-  }, [editValue]);
+  const pendingSaveRef = useRef<{ painPointId: string; field: 'magnitude' | 'effortSolving'; value: string } | null>(null);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -71,68 +61,59 @@ export function PainPointsOverviewTable({
 
   const handleStartEdit = (painPointId: string, field: 'magnitude' | 'effortSolving', currentValue: number) => {
     if (!onInlineEdit) return;
-    cancelledRef.current = false;
     setEditingCell({ painPointId, field });
     setEditValue(currentValue.toString());
   };
 
-  const handleCancelEdit = () => {
-    cancelledRef.current = true;
-    setEditingCell(null);
-    setEditValue("");
-  };
-
-  const handleSaveEdit = async () => {
-    const currentEditingCell = editingCellRef.current;
-    const currentEditValue = editValueRef.current;
+  const performSave = async (painPointId: string, field: 'magnitude' | 'effortSolving', valueStr: string) => {
+    if (!onInlineEdit || isSaving) return;
     
-    if (!currentEditingCell || !onInlineEdit || isSaving || cancelledRef.current) return;
-    
-    const numValue = parseFloat(currentEditValue);
+    const numValue = parseFloat(valueStr);
     if (isNaN(numValue) || numValue < 0 || numValue > 10) {
-      setEditingCell(null);
-      setEditValue("");
       return;
     }
 
     setIsSaving(true);
     try {
-      await onInlineEdit(currentEditingCell.painPointId, currentEditingCell.field, numValue);
-      setEditingCell(null);
-      setEditValue("");
-    } catch {
-      setEditingCell(null);
-      setEditValue("");
+      await onInlineEdit(painPointId, field, numValue);
+    } catch (err) {
+      console.error('Failed to save inline edit:', err);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && editingCell) {
       e.preventDefault();
-      handleSaveEdit();
+      pendingSaveRef.current = { painPointId: editingCell.painPointId, field: editingCell.field, value: editValue };
+      setEditingCell(null);
+      setEditValue("");
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      handleCancelEdit();
+      pendingSaveRef.current = null;
+      setEditingCell(null);
+      setEditValue("");
     }
   };
 
   const handleBlur = () => {
-    if (!cancelledRef.current) {
-      handleSaveEdit();
+    if (editingCell) {
+      pendingSaveRef.current = { painPointId: editingCell.painPointId, field: editingCell.field, value: editValue };
+      setEditingCell(null);
+      setEditValue("");
     }
   };
 
-  const EditableCell = ({ 
-    painPointId, 
-    field, 
-    value 
-  }: { 
-    painPointId: string; 
-    field: 'magnitude' | 'effortSolving'; 
-    value: number;
-  }) => {
+  useEffect(() => {
+    if (!editingCell && pendingSaveRef.current) {
+      const { painPointId, field, value } = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      performSave(painPointId, field, value);
+    }
+  }, [editingCell]);
+
+  const renderEditableCell = (painPointId: string, field: 'magnitude' | 'effortSolving', value: number) => {
     const isEditing = editingCell?.painPointId === painPointId && editingCell?.field === field;
     
     if (isEditing) {
@@ -441,10 +422,10 @@ export function PainPointsOverviewTable({
                   )}
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground text-center group">
-                  <EditableCell painPointId={row.id} field="magnitude" value={row.magnitude} />
+                  {renderEditableCell(row.id, "magnitude", row.magnitude)}
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground text-center group">
-                  <EditableCell painPointId={row.id} field="effortSolving" value={row.effortSolving} />
+                  {renderEditableCell(row.id, "effortSolving", row.effortSolving)}
                 </td>
                 <td className="px-4 py-4 text-sm text-foreground text-right">
                   {row.totalHoursPerMonth > 0 ? Math.round(row.totalHoursPerMonth).toLocaleString() : '-'}
@@ -535,10 +516,10 @@ export function PainPointsOverviewTable({
 
                 <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground items-center">
                   <span className="flex items-center gap-1">
-                    Benefit: <EditableCell painPointId={row.id} field="magnitude" value={row.magnitude} />
+                    Benefit: {renderEditableCell(row.id, "magnitude", row.magnitude)}
                   </span>
                   <span className="flex items-center gap-1">
-                    Effort: <EditableCell painPointId={row.id} field="effortSolving" value={row.effortSolving} />
+                    Effort: {renderEditableCell(row.id, "effortSolving", row.effortSolving)}
                   </span>
                   <span>Hours/Month: {Math.round(row.totalHoursPerMonth)}</span>
                   {row.fteCount > 0 && <span>FTE: {row.fteCount}</span>}

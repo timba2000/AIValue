@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { AlertTriangle, Pencil, Trash2, Grid3X3, Share2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
@@ -55,6 +56,7 @@ interface PainPointLink {
 
 export default function OpportunitiesDashboard() {
   const queryClient = useQueryClient();
+  const { canEdit } = useAuth();
   const {
     selectedCompanyId,
     selectedBusinessUnitId,
@@ -543,9 +545,12 @@ export default function OpportunitiesDashboard() {
           setEditingPainPointId(painPointId);
           setEditModalOpen(true);
         }}
-        onInlineEdit={async (painPointId, field, value) => {
+        onInlineEdit={canEdit ? async (painPointId, field, value) => {
           const pp = allPainPoints.data?.find(p => p.id === painPointId);
-          if (!pp) return;
+          if (!pp) {
+            console.error('Pain point not found:', painPointId);
+            throw new Error('Pain point not found');
+          }
           
           const updatePayload = {
             statement: pp.statement,
@@ -553,9 +558,11 @@ export default function OpportunitiesDashboard() {
             effortSolving: field === 'effortSolving' ? value : pp.effortSolving
           };
           
+          console.log('Saving inline edit:', { painPointId, field, value, updatePayload });
           await axios.put(`${API_URL}/api/pain-points/${painPointId}`, updatePayload);
+          console.log('Inline edit saved successfully');
           allPainPoints.refetch();
-        }}
+        } : undefined}
       />
 
       <PainPointEditModal
