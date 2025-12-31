@@ -3,6 +3,7 @@ import { asc, desc, eq, sql, inArray } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { painPoints, processPainPoints, processes, businessUnits, taxonomyCategories } from "../db/schema.js";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -351,6 +352,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       return created;
     });
 
+    logCreate("pain_point", result.id, result.statement, { ...result, processIds: processIdsArray }, getAuditContext(req as any));
+
     res.status(201).json({ ...result, processIds: processIdsArray });
   } catch {
     
@@ -458,6 +461,15 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
       return updated;
     });
 
+    logUpdate(
+      "pain_point", 
+      id, 
+      result.statement, 
+      existing as Record<string, unknown>, 
+      { ...result, processIds: processIdsArray } as Record<string, unknown>,
+      getAuditContext(req as any)
+    );
+
     res.json({ ...result, processIds: processIdsArray });
   } catch {
     
@@ -476,6 +488,9 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
     }
 
     await db.delete(painPoints).where(eq(painPoints.id, id));
+    
+    logDelete("pain_point", id, existing.statement, existing as Record<string, unknown>, getAuditContext(req as any));
+    
     res.status(204).send();
   } catch {
     
