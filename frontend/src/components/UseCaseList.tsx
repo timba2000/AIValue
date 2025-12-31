@@ -68,6 +68,7 @@ export function UseCaseList({
                     <TableHead>Company</TableHead>
                     <TableHead>Business Unit</TableHead>
                     <TableHead>Solution Provider</TableHead>
+                    <TableHead>Alpha Type</TableHead>
                     <TableHead>Complexity</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead>Avg % Solved</TableHead>
@@ -83,6 +84,7 @@ export function UseCaseList({
                       <TableCell>{useCase.companyName ?? "-"}</TableCell>
                       <TableCell>{useCase.businessUnitName ?? "-"}</TableCell>
                       <TableCell>{useCase.solutionProvider ?? "-"}</TableCell>
+                      <TableCell>{useCase.alphaType ?? "-"}</TableCell>
                       <TableCell>{useCase.complexity}</TableCell>
                       <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>
                       <TableCell>{avgSolvedStats[useCase.id] !== undefined ? `${avgSolvedStats[useCase.id]}%` : "-"}</TableCell>
