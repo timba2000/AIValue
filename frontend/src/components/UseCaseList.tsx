@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Link2, Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle } from "lucide-react";
 import type { UseCase } from "@/types/useCase";
 import { prefixSearch } from "@/lib/utils";
 
@@ -73,7 +73,7 @@ export function UseCaseList({
                     <TableHead>Avg % Solved</TableHead>
                     <TableHead>Delivery Time</TableHead>
                     <TableHead className="text-center">Linked Pain Points</TableHead>
-                    {(onEdit || onDelete || onLink) && <TableHead className="text-right">Actions</TableHead>}
+                    {(onEdit || onDelete) && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -120,19 +120,9 @@ export function UseCaseList({
                           )
                         )}
                       </TableCell>
-                      {(onEdit || onDelete || onLink) && (
+                      {(onEdit || onDelete) && (
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {onLink && (
-                              <button
-                                onClick={() => onLink(useCase)}
-                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                                title="Link pain points"
-                              >
-                                <Link2 className="h-3.5 w-3.5" />
-                                Link
-                              </button>
-                            )}
                             {onEdit && (
                               <Button variant="outline" size="sm" onClick={() => onEdit(useCase)}>
                                 Edit
