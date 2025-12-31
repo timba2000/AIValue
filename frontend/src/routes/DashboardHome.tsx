@@ -143,8 +143,17 @@ export default function DashboardHome() {
 
   const filteredProcessIds = useMemo(() => new Set(filteredProcesses.map(p => p.id)), [filteredProcesses]);
 
+  const hasProcessFilter = selectedProcessId || selectedBusinessUnitId || selectedCompanyId || selectedL1Process || selectedL2Process;
+
   const filteredPainPoints = useMemo(() => {
-    let filtered = painPoints.filter((pp: any) => filteredProcessIds.has(pp.processId));
+    let filtered = painPoints;
+    
+    if (hasProcessFilter) {
+      filtered = painPoints.filter((pp: any) => {
+        const ppProcessIds = pp.processIds || [];
+        return ppProcessIds.length === 0 || ppProcessIds.some((pid: string) => filteredProcessIds.has(pid));
+      });
+    }
     
     if (painPointFilter === "linked") {
       filtered = filtered.filter((pp: any) => linkStats[pp.id] && linkStats[pp.id] > 0);
@@ -153,7 +162,7 @@ export default function DashboardHome() {
     }
     
     return filtered;
-  }, [painPoints, filteredProcessIds, painPointFilter, linkStats]);
+  }, [painPoints, filteredProcessIds, painPointFilter, linkStats, hasProcessFilter]);
 
   const filteredUseCases = useMemo(() => {
     return useCases.filter((uc: any) => filteredProcessIds.has(uc.processId));
