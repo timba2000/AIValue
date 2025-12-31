@@ -114,6 +114,9 @@ export const processPainPoints = pgTable("process_pain_points", {
     .references(() => painPoints.id, { onDelete: "cascade" })
 });
 
+export const alphaTypes = ["Operational", "Investing", "Governance", "Member"] as const;
+export type AlphaType = typeof alphaTypes[number];
+
 export const useCases = pgTable("use_cases", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -127,6 +130,7 @@ export const useCases = pgTable("use_cases", {
   estimatedDeliveryTime: text("estimated_delivery_time"),
   costRange: text("cost_range"),
   confidenceLevel: text("confidence_level"),
+  alphaType: text("alpha_type"),
   processId: uuid("process_id")
     .references(() => processes.id, { onDelete: "cascade" }),
   companyId: uuid("company_id")

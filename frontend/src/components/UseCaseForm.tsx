@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { UseCase, UseCasePayload, DataRequirement, RiskLevel } from "@/types/useCase";
+import type { UseCase, UseCasePayload, DataRequirement, RiskLevel, AlphaType } from "@/types/useCase";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -36,6 +36,7 @@ interface UseCaseFormProps {
 
 const DATA_REQUIREMENT_OPTIONS: DataRequirement[] = ["Structured", "Unstructured"];
 const RISK_LEVELS: RiskLevel[] = ["High", "Medium", "Low"];
+const ALPHA_TYPES: AlphaType[] = ["Operational", "Investing", "Governance", "Member"];
 
 const DEFAULT_STATE: UseCasePayload = {
   name: "",
@@ -49,6 +50,7 @@ const DEFAULT_STATE: UseCasePayload = {
   estimatedDeliveryTime: "Quick Win",
   costRange: "Medium",
   confidenceLevel: "Medium",
+  alphaType: null,
   processId: null,
   companyId: null,
   businessUnitId: null
@@ -106,6 +108,7 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
         estimatedDeliveryTime: selectedUseCase.estimatedDeliveryTime ?? "Quick Win",
         costRange: selectedUseCase.costRange ?? "Medium",
         confidenceLevel: selectedUseCase.confidenceLevel ?? "Medium",
+        alphaType: selectedUseCase.alphaType,
         processId: selectedUseCase.processId,
         companyId: selectedUseCase.companyId,
         businessUnitId: selectedUseCase.businessUnitId
@@ -319,7 +322,7 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="risks">Risks</Label>
               <select
@@ -364,6 +367,22 @@ export function UseCaseForm({ selectedUseCase, onSuccess }: UseCaseFormProps) {
                 {(["Low", "Medium", "High"] as const).map((level) => (
                   <option key={level} value={level}>
                     {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="alphaType">Alpha Type</Label>
+              <select
+                id="alphaType"
+                value={formState.alphaType ?? ""}
+                onChange={(event) => handleChange("alphaType", event.target.value ? event.target.value as AlphaType : null)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select alpha type</option>
+                {ALPHA_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
                 ))}
               </select>
