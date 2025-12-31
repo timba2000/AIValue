@@ -51,6 +51,16 @@ export function PainPointsOverviewTable({
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelledRef = useRef(false);
+  const editingCellRef = useRef<EditingCell | null>(null);
+  const editValueRef = useRef("");
+
+  useEffect(() => {
+    editingCellRef.current = editingCell;
+  }, [editingCell]);
+
+  useEffect(() => {
+    editValueRef.current = editValue;
+  }, [editValue]);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -73,9 +83,12 @@ export function PainPointsOverviewTable({
   };
 
   const handleSaveEdit = async () => {
-    if (!editingCell || !onInlineEdit || isSaving || cancelledRef.current) return;
+    const currentEditingCell = editingCellRef.current;
+    const currentEditValue = editValueRef.current;
     
-    const numValue = parseFloat(editValue);
+    if (!currentEditingCell || !onInlineEdit || isSaving || cancelledRef.current) return;
+    
+    const numValue = parseFloat(currentEditValue);
     if (isNaN(numValue) || numValue < 0 || numValue > 10) {
       setEditingCell(null);
       setEditValue("");
@@ -84,7 +97,7 @@ export function PainPointsOverviewTable({
 
     setIsSaving(true);
     try {
-      await onInlineEdit(editingCell.painPointId, editingCell.field, numValue);
+      await onInlineEdit(currentEditingCell.painPointId, currentEditingCell.field, numValue);
       setEditingCell(null);
       setEditValue("");
     } catch {
