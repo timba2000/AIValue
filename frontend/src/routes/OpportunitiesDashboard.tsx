@@ -29,13 +29,22 @@ interface PainPoint {
   id: string;
   statement: string;
   impactType: string[];
+  businessImpact: string | null;
   magnitude: number | null;
   frequency: number | null;
   timePerUnit: number | null;
   totalHoursPerMonth: number | null;
   fteCount: number | null;
+  rootCause: string | null;
+  workarounds: string | null;
+  dependencies: string | null;
   riskLevel: string | null;
   effortSolving: number | null;
+  taxonomyLevel1Id: string | null;
+  taxonomyLevel2Id: string | null;
+  taxonomyLevel3Id: string | null;
+  companyId: string | null;
+  businessUnitId: string | null;
   processIds: string[];
 }
 
@@ -554,11 +563,27 @@ export default function OpportunitiesDashboard() {
           
           const updatePayload = {
             statement: pp.statement,
+            impactType: pp.impactType,
+            businessImpact: pp.businessImpact,
             magnitude: field === 'magnitude' ? value : pp.magnitude,
-            effortSolving: field === 'effortSolving' ? value : pp.effortSolving
+            frequency: pp.frequency,
+            timePerUnit: pp.timePerUnit,
+            totalHoursPerMonth: pp.totalHoursPerMonth,
+            fteCount: pp.fteCount,
+            rootCause: pp.rootCause,
+            workarounds: pp.workarounds,
+            dependencies: pp.dependencies,
+            riskLevel: pp.riskLevel,
+            effortSolving: field === 'effortSolving' ? value : pp.effortSolving,
+            taxonomyLevel1Id: pp.taxonomyLevel1Id,
+            taxonomyLevel2Id: pp.taxonomyLevel2Id,
+            taxonomyLevel3Id: pp.taxonomyLevel3Id,
+            companyId: pp.companyId,
+            businessUnitId: pp.businessUnitId,
+            processIds: pp.processIds
           };
           
-          console.log('Saving inline edit:', { painPointId, field, value, updatePayload });
+          console.log('Saving inline edit:', { painPointId, field, value });
           await axios.put(`${API_URL}/api/pain-points/${painPointId}`, updatePayload);
           console.log('Inline edit saved successfully');
           allPainPoints.refetch();
