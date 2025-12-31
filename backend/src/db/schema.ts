@@ -232,3 +232,26 @@ export type NewAIMessage = typeof aiMessages.$inferInsert;
 
 export type AIFileUpload = typeof aiFileUploads.$inferSelect;
 export type NewAIFileUpload = typeof aiFileUploads.$inferInsert;
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  userName: varchar("user_name", { length: 255 }),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  entityId: uuid("entity_id").notNull(),
+  entityName: text("entity_name"),
+  action: varchar("action", { length: 20 }).notNull(),
+  changes: jsonb("changes"),
+  previousValues: jsonb("previous_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+}, (table) => ({
+  entityTypeIdx: index("idx_audit_entity_type").on(table.entityType),
+  entityIdIdx: index("idx_audit_entity_id").on(table.entityId),
+  userIdIdx: index("idx_audit_user_id").on(table.userId),
+  createdAtIdx: index("idx_audit_created_at").on(table.createdAt)
+}));
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
