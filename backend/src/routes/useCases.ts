@@ -170,7 +170,7 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .where(eq(useCases.id, created.id));
 
-    await logCreate("solution", created.id, created.name, withProcess as Record<string, unknown>, getAuditContext(req as any));
+    await logCreate("solution", created.id, created.name, withProcess as Record<string, unknown>, await getAuditContext(req as any));
 
     res.status(201).json(withProcess);
   } catch {
@@ -272,7 +272,7 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
       updated.name,
       existing as Record<string, unknown>,
       updated as Record<string, unknown>,
-      getAuditContext(req as any)
+      await getAuditContext(req as any)
     );
 
     res.json(updated);
@@ -294,7 +294,7 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
 
     await db.delete(useCases).where(eq(useCases.id, id));
     
-    await logDelete("solution", id, existing.name, existing as Record<string, unknown>, getAuditContext(req as any));
+    await logDelete("solution", id, existing.name, existing as Record<string, unknown>, await getAuditContext(req as any));
     
     res.status(204).send();
   } catch {

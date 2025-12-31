@@ -1,5 +1,6 @@
 import { db } from "../db/client.js";
-import { auditLogs } from "../db/schema.js";
+import { auditLogs, users } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 export type EntityType = "pain_point" | "solution" | "company" | "business_unit" | "process" | "link";
 export type ActionType = "create" | "update" | "delete";
@@ -121,13 +122,29 @@ export async function logDelete(
   }
 }
 
-export function getAuditContext(req: { user?: { id?: string; claims?: { first_name?: string; last_name?: string } }; ip?: string }): AuditContext {
-  const userName = req.user?.claims 
-    ? `${req.user.claims.first_name || ''} ${req.user.claims.last_name || ''}`.trim() || 'Unknown'
-    : 'Unknown';
+export async function getAuditContext(req: { session?: { userId?: string }; ip?: string }): Promise<AuditContext> {
+  let userName = 'Unknown';
+  let userId: string | undefined;
+  
+  if (req.session?.userId) {
+    userId = req.session.userId;
+    try {
+      const [user] = await db.select({ 
+        firstName: users.firstName, 
+        lastName: users.lastName, 
+        email: users.email 
+      }).from(users).where(eq(users.id, req.session.userId));
+      if (user) {
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        userName = fullName || user.email || 'Unknown';
+      }
+    } catch (error) {
+      console.error("Failed to fetch user for audit context:", error);
+    }
+  }
   
   return {
-    userId: req.user?.id,
+    userId,
     userName,
     ipAddress: req.ip
   };

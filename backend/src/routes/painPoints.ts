@@ -352,7 +352,7 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       return created;
     });
 
-    await logCreate("pain_point", result.id, result.statement, { ...result, processIds: processIdsArray }, getAuditContext(req as any));
+    await logCreate("pain_point", result.id, result.statement, { ...result, processIds: processIdsArray }, await getAuditContext(req as any));
 
     res.status(201).json({ ...result, processIds: processIdsArray });
   } catch {
@@ -467,7 +467,7 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
       result.statement, 
       existing as Record<string, unknown>, 
       { ...result, processIds: processIdsArray } as Record<string, unknown>,
-      getAuditContext(req as any)
+      await getAuditContext(req as any)
     );
 
     res.json({ ...result, processIds: processIdsArray });
@@ -489,7 +489,7 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
 
     await db.delete(painPoints).where(eq(painPoints.id, id));
     
-    await logDelete("pain_point", id, existing.statement, existing as Record<string, unknown>, getAuditContext(req as any));
+    await logDelete("pain_point", id, existing.statement, existing as Record<string, unknown>, await getAuditContext(req as any));
     
     res.status(204).send();
   } catch {
