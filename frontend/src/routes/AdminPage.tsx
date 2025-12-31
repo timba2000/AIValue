@@ -474,6 +474,9 @@ export default function AdminPage() {
           <Button onClick={() => window.location.href = "/use-cases"}>
             Manage Solutions
           </Button>
+          <Button variant="outline" onClick={() => window.location.href = "/admin/audit"}>
+            View Audit Logs
+          </Button>
         </div>
       </div>
     </section>

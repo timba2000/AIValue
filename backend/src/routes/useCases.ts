@@ -4,6 +4,7 @@ import { db } from "../db/client.js";
 import { processes, useCases, painPointUseCases, painPoints, companies, businessUnits } from "../db/schema.js";
 import { parseOptionalNumber } from "../utils/parsing.js";
 import { isEditorOrAdmin } from "../simpleAuth.js";
+import { logCreate, logUpdate, logDelete, getAuditContext } from "../services/auditLog.js";
 
 const router = Router();
 
@@ -169,6 +170,8 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
       .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .where(eq(useCases.id, created.id));
 
+    await logCreate("solution", created.id, created.name, withProcess as Record<string, unknown>, getAuditContext(req as any));
+
     res.status(201).json(withProcess);
   } catch {
     
@@ -263,6 +266,15 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
       .leftJoin(businessUnits, eq(useCases.businessUnitId, businessUnits.id))
       .where(eq(useCases.id, id));
 
+    await logUpdate(
+      "solution",
+      id,
+      updated.name,
+      existing as Record<string, unknown>,
+      updated as Record<string, unknown>,
+      getAuditContext(req as any)
+    );
+
     res.json(updated);
   } catch {
     
@@ -281,6 +293,9 @@ router.delete("/:id", isEditorOrAdmin, async (req, res) => {
     }
 
     await db.delete(useCases).where(eq(useCases.id, id));
+    
+    await logDelete("solution", id, existing.name, existing as Record<string, unknown>, getAuditContext(req as any));
+    
     res.status(204).send();
   } catch {
     
