@@ -87,7 +87,7 @@ export function UseCaseList({
                       <TableCell>{useCase.alphaType ?? "-"}</TableCell>
                       <TableCell>{useCase.complexity}</TableCell>
                       <TableCell>{useCase.confidenceLevel ?? "-"}</TableCell>
-                      <TableCell>{avgSolvedStats[useCase.id] !== undefined ? `${avgSolvedStats[useCase.id]}%` : "-"}</TableCell>
+                      <TableCell>{avgSolvedStats[useCase.id] !== undefined && !isNaN(avgSolvedStats[useCase.id]) ? `${avgSolvedStats[useCase.id]}%` : "-"}</TableCell>
                       <TableCell>{useCase.estimatedDeliveryTime ?? "-"}</TableCell>
                       <TableCell className="text-center">
                         {linkStats[useCase.id] && linkStats[useCase.id] > 0 ? (
