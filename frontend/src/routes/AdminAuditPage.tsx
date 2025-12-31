@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, History, Search, ChevronLeft, ChevronRight, RefreshCw, Eye } from "lucide-react";
+import { ArrowLeft, History, Search, ChevronLeft, ChevronRight, RefreshCw, Eye, Download } from "lucide-react";
 import { Link } from "@/lib/wouter";
 import axios from "axios";
 
@@ -98,6 +98,15 @@ export default function AdminAuditPage() {
     fetchLogs();
   };
 
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (entityTypeFilter) params.append("entityType", entityTypeFilter);
+    if (actionFilter) params.append("action", actionFilter);
+    
+    const url = `${API_BASE}/api/admin/audit-logs/export/excel${params.toString() ? '?' + params.toString() : ''}`;
+    window.open(url, '_blank');
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   if (!isAdmin) {
@@ -133,10 +142,16 @@ export default function AdminAuditPage() {
               <p className="text-sm text-muted-foreground">Track all changes made to data</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} className="ml-auto gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export to Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {summary && (
