@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Settings, Pencil, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Check, Loader2 } from "lucide-react";
+import { prefixSearch } from "@/lib/utils";
 
 interface PainPointData {
   id: string;
@@ -175,10 +176,9 @@ export function PainPointsOverviewTable({
     let result = [...data];
     
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
       result = result.filter(p => 
-        p.statement.toLowerCase().includes(term) ||
-        p.linkedSolutions.some(s => s.toLowerCase().includes(term))
+        prefixSearch(searchTerm, p.statement) ||
+        p.linkedSolutions.some(s => prefixSearch(searchTerm, s))
       );
     }
     
