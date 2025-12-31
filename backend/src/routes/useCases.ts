@@ -23,6 +23,7 @@ router.get("/", async (_req, res) => {
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
+        alphaType: useCases.alphaType,
         processId: useCases.processId,
         companyId: useCases.companyId,
         businessUnitId: useCases.businessUnitId,
@@ -62,6 +63,7 @@ router.get("/:id", async (req, res) => {
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
+        alphaType: useCases.alphaType,
         processId: useCases.processId,
         companyId: useCases.companyId,
         businessUnitId: useCases.businessUnitId,
@@ -100,6 +102,7 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
     estimatedDeliveryTime,
     costRange,
     confidenceLevel,
+    alphaType,
     processId,
     companyId,
     businessUnitId
@@ -130,6 +133,7 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
         estimatedDeliveryTime: estimatedDeliveryTime || null,
         costRange: costRange || null,
         confidenceLevel: confidenceLevel || null,
+        alphaType: alphaType || null,
         processId: processId || null,
         companyId: companyId || null,
         businessUnitId: businessUnitId || null
@@ -150,6 +154,7 @@ router.post("/", isEditorOrAdmin, async (req, res) => {
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
+        alphaType: useCases.alphaType,
         processId: useCases.processId,
         companyId: useCases.companyId,
         businessUnitId: useCases.businessUnitId,
@@ -185,6 +190,7 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
     estimatedDeliveryTime,
     costRange,
     confidenceLevel,
+    alphaType,
     processId,
     companyId,
     businessUnitId
@@ -221,6 +227,7 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
         estimatedDeliveryTime: estimatedDeliveryTime || null,
         costRange: costRange || null,
         confidenceLevel: confidenceLevel || null,
+        alphaType: alphaType || null,
         processId: processId || null,
         companyId: companyId || null,
         businessUnitId: businessUnitId || null
@@ -241,6 +248,7 @@ router.put("/:id", isEditorOrAdmin, async (req, res) => {
         estimatedDeliveryTime: useCases.estimatedDeliveryTime,
         costRange: useCases.costRange,
         confidenceLevel: useCases.confidenceLevel,
+        alphaType: useCases.alphaType,
         processId: useCases.processId,
         companyId: useCases.companyId,
         businessUnitId: useCases.businessUnitId,
