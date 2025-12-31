@@ -50,8 +50,10 @@ export function PainPointsOverviewTable({
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [preservedOrder, setPreservedOrder] = useState<string[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingSaveRef = useRef<{ painPointId: string; field: 'magnitude' | 'effortSolving'; value: string } | null>(null);
+  const currentOrderRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -66,7 +68,7 @@ export function PainPointsOverviewTable({
     setEditValue(currentValue.toString());
   };
 
-  const performSave = async (painPointId: string, field: 'magnitude' | 'effortSolving', valueStr: string) => {
+  const performSave = async (painPointId: string, field: 'magnitude' | 'effortSolving', valueStr: string, currentOrder: string[]) => {
     if (!onInlineEdit || isSaving) return;
     
     const numValue = parseFloat(valueStr);
@@ -74,6 +76,7 @@ export function PainPointsOverviewTable({
       return;
     }
 
+    setPreservedOrder(currentOrder);
     setIsSaving(true);
     try {
       await onInlineEdit(painPointId, field, numValue);
@@ -110,7 +113,7 @@ export function PainPointsOverviewTable({
     if (!editingCell && pendingSaveRef.current) {
       const { painPointId, field, value } = pendingSaveRef.current;
       pendingSaveRef.current = null;
-      performSave(painPointId, field, value);
+      performSave(painPointId, field, value, currentOrderRef.current);
     }
   }, [editingCell]);
 
@@ -155,6 +158,7 @@ export function PainPointsOverviewTable({
   };
   
   const handleSort = (column: SortColumn) => {
+    setPreservedOrder(null);
     setSortState(prev => {
       if (prev.column === column) {
         return { column, direction: prev.direction === 'desc' ? 'asc' : 'desc' };
@@ -182,7 +186,14 @@ export function PainPointsOverviewTable({
       );
     }
     
-    if (sortState.column) {
+    if (preservedOrder && preservedOrder.length > 0) {
+      const orderMap = new Map(preservedOrder.map((id, index) => [id, index]));
+      result.sort((a, b) => {
+        const aIndex = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+        const bIndex = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+        return aIndex - bIndex;
+      });
+    } else if (sortState.column) {
       result.sort((a, b) => {
         let aVal: number | string;
         let bVal: number | string;
@@ -237,7 +248,11 @@ export function PainPointsOverviewTable({
     }
     
     return result;
-  }, [data, searchTerm, sortState]);
+  }, [data, searchTerm, sortState, preservedOrder]);
+
+  useEffect(() => {
+    currentOrderRef.current = sortedAndFilteredData.map(p => p.id);
+  }, [sortedAndFilteredData]);
   
   const linkedCount = sortedAndFilteredData.filter(p => p.hasLinks).length;
   const unlinkedCount = sortedAndFilteredData.filter(p => !p.hasLinks).length;
@@ -319,9 +334,12 @@ export function PainPointsOverviewTable({
               </button>
             )}
           </div>
-          {sortState.column && (
+          {(sortState.column || preservedOrder) && (
             <button
-              onClick={() => setSortState({ column: null, direction: 'desc' })}
+              onClick={() => {
+                setPreservedOrder(null);
+                setSortState({ column: null, direction: 'desc' });
+              }}
               className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-accent transition-colors"
             >
               Clear sort
