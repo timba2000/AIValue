@@ -165,8 +165,11 @@ export default function DashboardHome() {
   }, [painPoints, filteredProcessIds, painPointFilter, linkStats, hasProcessFilter]);
 
   const filteredUseCases = useMemo(() => {
-    return useCases.filter((uc: any) => filteredProcessIds.has(uc.processId));
-  }, [useCases, filteredProcessIds]);
+    if (!hasProcessFilter) {
+      return useCases;
+    }
+    return useCases.filter((uc: any) => !uc.processId || filteredProcessIds.has(uc.processId));
+  }, [useCases, filteredProcessIds, hasProcessFilter]);
 
   const selectedCompanyName = useMemo(() => {
     const company = companies.find(c => c.id === selectedCompanyId);
